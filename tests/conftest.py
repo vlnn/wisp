@@ -32,6 +32,16 @@ def created(stamps):
 
 
 @pytest.fixture
+def touched():
+    return {}
+
+
+@pytest.fixture
+def changed(stamps, touched):
+    return lambda path: touched.get(path.name, stamps[path.name])
+
+
+@pytest.fixture
 def logged(folder, stamps):
     def log(text, minutes_ago):
         path = records.keep(folder, text)

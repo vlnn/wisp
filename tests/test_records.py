@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pytest
 
 from conftest import NOW, names
@@ -103,3 +105,86 @@ def test_rename_avoids_an_existing_name(folder):
     path = records.keep(folder, "reading docs")
     renamed = records.rename(path, "reading Apache docs")
     assert renamed.name == "reading-apache-docs-2.md", "rename should not overwrite another record"
+
+
+@pytest.mark.parametrize(
+    "text, kind, line",
+    [
+        ("some text", records.Kind.LOG, "some text"),
+        (". another task", records.Kind.TASK, "another task"),
+        ("* another task", records.Kind.DONE, "another task"),
+        ("! remember this", records.Kind.NOTE, "remember this"),
+        (".   spaced out", records.Kind.TASK, "spaced out"),
+        (".", records.Kind.TASK, ""),
+        (".gitignore moved", records.Kind.LOG, ".gitignore moved"),
+        ("*args again", records.Kind.LOG, "*args again"),
+        ("!!!", records.Kind.LOG, "!!!"),
+        ("", records.Kind.LOG, ""),
+    ],
+)
+def test_parse_reads_a_sigil_followed_by_a_space(text, kind, line):
+    assert records.parse(text) == (kind, line), f"{text!r} should parse as {kind} {line!r}"
+
+
+@pytest.mark.parametrize(
+    "kind, line, expected",
+    [
+        (records.Kind.LOG, "some text", "some text"),
+        (records.Kind.TASK, "another task", ". another task"),
+        (records.Kind.DONE, "another task", "* another task"),
+        (records.Kind.NOTE, "remember this", "! remember this"),
+    ],
+)
+def test_compose_puts_the_sigil_back(kind, line, expected):
+    assert records.compose(kind, line) == expected, f"{kind} {line!r} should become {expected!r}"
+
+
+def test_keep_normalises_the_sigil_spacing(folder):
+    path = records.keep(folder, ".   fix the build")
+    assert path.name == "fix-the-build.md", "the sigil should not reach the file name"
+    assert path.read_text() == ". fix the build\n", "file should hold sigil, one space, line"
+
+
+def test_record_knows_its_kind_and_line(folder, created, stamps):
+    path = records.keep(folder, ". fix the build")
+    stamps[path.name] = NOW
+    (record,) = records.read_folder(folder, created)
+    assert record.kind is records.Kind.TASK, "a line starting with '. ' is an open task"
+    assert record.line == "fix the build", "line should be the text without the sigil"
+    assert record.text == ". fix the build", "text should be the whole first line"
+
+
+def test_read_folder_reads_when_a_record_changed(folder, created, changed, stamps, touched):
+    path = records.keep(folder, "* fix the build")
+    stamps[path.name] = NOW - timedelta(hours=3)
+    touched[path.name] = NOW
+    (record,) = records.read_folder(folder, created, changed)
+    assert record.changed == NOW, "changed should come from the injected callable"
+
+
+@pytest.mark.parametrize(
+    "before, after",
+    [
+        (". fix the build", "* fix the build"),
+        ("* fix the build", ". fix the build"),
+    ],
+)
+def test_mark_flips_a_task_between_open_and_done(folder, before, after):
+    path = records.keep(folder, before)
+    marked = records.mark(path)
+    assert marked == path, "marking should keep the same file"
+    assert path.read_text() == f"{after}\n", f"{before!r} marked should read {after!r}"
+
+
+@pytest.mark.parametrize("text", ["plain log", "! remember this"])
+def test_mark_leaves_other_kinds_alone(folder, text):
+    path = records.keep(folder, text)
+    records.mark(path)
+    assert path.read_text() == f"{text}\n", "only tasks have a done state to flip"
+
+
+def test_mark_keeps_the_body(folder):
+    path = records.keep(folder, ". fix the build")
+    path.write_text(". fix the build\n\nsee the CI log\n")
+    records.mark(path)
+    assert path.read_text() == "* fix the build\n\nsee the CI log\n", "mark touches line one only"

@@ -11,7 +11,8 @@ SERVER = oracle.Server("http://127.0.0.1:8080", "oracle", "")
 
 
 def record(text, minutes_ago):
-    return records.Record(Path(f"/log/{text}.md"), text, NOW - timedelta(minutes=minutes_ago))
+    when = NOW - timedelta(minutes=minutes_ago)
+    return records.Record(Path(f"/log/{text}.md"), text, when, when)
 
 
 @pytest.mark.parametrize(
