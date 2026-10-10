@@ -4,8 +4,11 @@ from collections.abc import Iterable
 from datetime import datetime
 
 from wisp.oracle import Answer
-from wisp.records import Record, first_line
-from wisp.search import matches, search
+from wisp.records import Kind, Record, first_line, normalise, parse
+from wisp.search import matches, query, search
+
+OFFERS = {Kind.LOG: "Log", Kind.TASK: "Task", Kind.DONE: "Done", Kind.NOTE: "Note"}
+FLIPS = {Kind.TASK: "Mark done", Kind.DONE: "Reopen"}
 
 
 def when(created: datetime, now: datetime) -> str:
@@ -20,17 +23,17 @@ def when(created: datetime, now: datetime) -> str:
     return f"{created.day} {created:%b} {created.year} {clock}"
 
 
-def rows(query: str, records: Iterable[Record], now: datetime) -> list[dict]:
-    text = query.strip()
-    offered = [keep_row(text)] if text else []
+def rows(text: str, records: Iterable[Record], now: datetime) -> list[dict]:
+    offered = [keep_row(text)] if query(text).words else []
     return offered + [record_row(record, now) for record in search(text, records)]
 
 
 def keep_row(text: str) -> dict:
+    kind, line = parse(text.strip())
     return {
-        "title": f'Log "{text}"',
+        "title": f'{OFFERS[kind]} "{line}"',
         "subtitle": "↩ keeps it",
-        "arg": text,
+        "arg": normalise(text),
         "variables": {"action": "keep"},
         "mods": {mod: {"valid": False, "subtitle": ""} for mod in ("shift", "alt", "cmd")},
     }
@@ -40,14 +43,14 @@ def record_row(record: Record, now: datetime) -> dict:
     path = str(record.path)
     return {
         "title": record.text,
-        "subtitle": when(record.created, now),
+        "subtitle": record_when(record, now),
         "arg": path,
         "type": "file",
         "quicklookurl": path,
         "variables": {"action": "open"},
         "text": {"copy": record.text, "largetype": record.text},
         "mods": {
-            "shift": {"arg": record.text, "subtitle": "Copy to clipboard"},
+            "shift": shift_mod(record),
             "alt": {"arg": path, "subtitle": "Move to Trash", "variables": {"action": "trash"}},
             "cmd": {
                 "arg": record.text,
@@ -56,6 +59,23 @@ def record_row(record: Record, now: datetime) -> dict:
             },
         },
     }
+
+
+def record_when(record: Record, now: datetime) -> str:
+    written = when(record.created, now)
+    if record.kind is Kind.DONE:
+        return f"done {when(record.changed, now)} · {written}"
+    return written
+
+
+def shift_mod(record: Record) -> dict:
+    if record.kind in FLIPS:
+        return {
+            "arg": str(record.path),
+            "subtitle": FLIPS[record.kind],
+            "variables": {"action": "mark"},
+        }
+    return {"arg": record.text, "subtitle": "Copy to clipboard"}
 
 
 def rename_row(text: str) -> dict:
