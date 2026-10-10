@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 from wisp import apple, records
-from wisp.records import Created, Record
+from wisp.records import Created, Kind, Record
 
 BUDGET = 12_000
 APPLE_BUDGET = 6_000
@@ -22,9 +22,15 @@ THINKING = re.compile(r"<think>.*?</think>", re.DOTALL)
 SYSTEM = (
     "You answer questions about a person's own one-line work log. "
     "Today is {today}. The log is below the question, newest line first, "
-    "each line as `YYYY-MM-DD HH:MM  text`. Answer from the log only, briefly, "
+    "each line as `YYYY-MM-DD HH:MM  text`. Some lines carry a word before the text: "
+    "TODO is a task still open, DONE is a finished task (the time after DONE is when it "
+    "was finished), NOTE is something the person flagged as important. Lines without "
+    "a word are plain log entries. Answer from the log only, briefly, "
     "in the language of the question, as plain text without headings."
 )
+
+TAGS = {Kind.TASK: "TODO", Kind.NOTE: "NOTE"}
+STAMP = "%Y-%m-%d %H:%M"
 
 
 @dataclass(frozen=True)
@@ -67,7 +73,15 @@ def answers_folder(env: Mapping[str, str]) -> Path:
 
 
 def line(record: Record) -> str:
-    return f"{record.created:%Y-%m-%d %H:%M}  {record.text}"
+    return f"{record.created:{STAMP}}  {tagged(record)}"
+
+
+def tagged(record: Record) -> str:
+    if record.kind is Kind.DONE:
+        return f"DONE {record.changed:{STAMP}}  {record.line}"
+    if record.kind in TAGS:
+        return f"{TAGS[record.kind]}  {record.line}"
+    return record.text
 
 
 def evidence(logs: Iterable[Record], budget: int = BUDGET) -> str:

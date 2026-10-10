@@ -45,6 +45,33 @@ def test_line_is_date_time_and_text():
     )
 
 
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        (". fix the build", "2026-10-10 14:50  TODO  fix the build"),
+        ("! keys in 1password", "2026-10-10 14:50  NOTE  keys in 1password"),
+        (".gitignore moved", "2026-10-10 14:50  .gitignore moved"),
+    ],
+)
+def test_line_spells_the_kind_out(text, expected):
+    assert oracle.line(record(text, 10)) == expected, f"{text!r} should be sent as {expected!r}"
+
+
+def test_done_line_carries_the_time_it_was_done():
+    opened = NOW - timedelta(days=1, minutes=10)
+    done = records.Record(Path("/log/x.md"), "* fix the build", opened, NOW)
+    assert oracle.line(done) == "2026-10-09 14:50  DONE 2026-10-10 15:00  fix the build", (
+        "a done task should show when it was written and when it was finished"
+    )
+
+
+def test_system_prompt_explains_the_kinds():
+    system, _ = (m["content"] for m in oracle.prompt("q", [], NOW))
+    assert "TODO" in system and "DONE" in system and "NOTE" in system, (
+        "the model should be told what the kind words mean"
+    )
+
+
 def test_evidence_lists_newest_first():
     lines = oracle.evidence([record("old", 60), record("new", 1)]).splitlines()
     assert [line.split("  ", 1)[1] for line in lines] == ["new", "old"], (
