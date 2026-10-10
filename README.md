@@ -62,11 +62,10 @@ uv run wisp trash ~/log/reading-docs.md
 ## Development
 
 ```
-uv sync
-uv run pytest
+make test                                pytest
+make lint                                ruff check and format
+make build                               → dist/Wisp.alfredworkflow
 uv run --isolated --python 3.9 pytest    the interpreter the workflow runs on
-uv run ruff check && uv run ruff format --check
-./build.sh                               → dist/Wisp.alfredworkflow
 ```
 
 CI runs the tests and lint on Python 3.9 and 3.13, builds the bundle on macOS and publishes it: every

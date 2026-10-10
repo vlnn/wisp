@@ -20,9 +20,8 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python }}
-      - run: uv run --isolated pytest
-      - run: uv run --isolated ruff check
-      - run: uv run --isolated ruff format --check
+      - run: make test
+      - run: make lint
 
   build:
     needs: test
@@ -30,7 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: /usr/bin/python3 --version
-      - run: ./build.sh
+      - run: make build
       - uses: actions/upload-artifact@v4
         with:
           name: Wisp.alfredworkflow
