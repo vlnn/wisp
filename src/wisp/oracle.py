@@ -4,15 +4,16 @@ import json
 import os
 import re
 import urllib.request
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from wisp import records
+from wisp import apple, records
 from wisp.records import Created, Record
 
 BUDGET = 12_000
+APPLE_BUDGET = 6_000
 TIMEOUT = 120
 MAX_TOKENS = 600
 DEFAULT_DATA = "~/Library/Application Support/wisp"
@@ -42,6 +43,8 @@ class Answer:
 
 
 Post = Callable[[Server, dict], dict]
+OnText = Callable[[str], None]
+UNCLOSED_THINKING = re.compile(r"<think>.*\Z", re.DOTALL)
 
 
 def server(env: Mapping[str, str]) -> Server | None:
@@ -71,10 +74,12 @@ def evidence(logs: Iterable[Record], budget: int = BUDGET) -> str:
     return "\n".join(kept)
 
 
-def prompt(question: str, logs: Iterable[Record], now: datetime) -> list[dict]:
+def prompt(
+    question: str, logs: Iterable[Record], now: datetime, budget: int = BUDGET
+) -> list[dict]:
     return [
         {"role": "system", "content": SYSTEM.format(today=f"{now:%A %Y-%m-%d}")},
-        {"role": "user", "content": f"{question}\n\nLog:\n{evidence(logs)}"},
+        {"role": "user", "content": f"{question}\n\nLog:\n{evidence(logs, budget)}"},
     ]
 
 
@@ -102,8 +107,51 @@ def post(server: Server, body: dict) -> dict:
 
 
 def answer_text(response: dict) -> str:
-    content = response["choices"][0]["message"]["content"]
-    return THINKING.sub("", content).strip()
+    return visible(response["choices"][0]["message"]["content"])
+
+
+def visible(text: str) -> str:
+    return UNCLOSED_THINKING.sub("", THINKING.sub("", text)).strip()
+
+
+def budget_for(server: Server) -> int:
+    return APPLE_BUDGET if apple.is_apple(server.url) else BUDGET
+
+
+def deltas(lines: Iterable[bytes]) -> Iterator[str]:
+    for raw in lines:
+        line = raw.decode("utf-8", "replace").strip()
+        if not line.startswith("data:") or line == "data: [DONE]":
+            continue
+        try:
+            delta = json.loads(line[5:])["choices"][0]["delta"].get("content")
+        except (ValueError, KeyError, IndexError, TypeError):
+            continue
+        if delta:
+            yield delta
+
+
+def stream(server: Server, body: dict, on_text: OnText | None) -> str:
+    headers = {"Content-Type": "application/json"}
+    if server.key:
+        headers["Authorization"] = f"Bearer {server.key}"
+    streaming = dict(body, stream=True)
+    request = urllib.request.Request(
+        f"{server.url}/v1/chat/completions", json.dumps(streaming).encode(), headers, method="POST"
+    )
+    text = ""
+    with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+        for delta in deltas(response):
+            text += delta
+            if on_text:
+                on_text(text)
+    return text
+
+
+def answer(server: Server, messages: list[dict], on_text: OnText | None, data: str) -> str:
+    if apple.is_apple(server.url):
+        return apple.respond(messages, data)
+    return visible(stream(server, payload(server, messages), on_text))
 
 
 def ask(question: str, logs: Iterable[Record], now: datetime, server: Server, post: Post) -> str:

@@ -2,7 +2,7 @@
 
 ## What is here
 
-Six small modules, each with one job, so a feature lands in one of them:
+Eight small modules, each with one job, so a feature lands in one of them:
 
 | Module | Owns | Grows when |
 | --- | --- | --- |
@@ -10,14 +10,30 @@ Six small modules, each with one job, so a feature lands in one of them:
 | `search` | folding and word-prefix matching | matching gets smarter (tags, dates, kinds) |
 | `present` | time words and Alfred rows | a row gets a new key, a new kind of row appears |
 | `macos` | Finder trash and notifications | another osascript call is needed |
-| `oracle` | the model: evidence, prompt, request, answers on disk | a new question shape, a different budget |
+| `oracle` | the model: evidence, prompt, request, streaming, answers on disk, which backend | a new question shape, a different budget |
+| `apple` | the on-device model: Swift helper source, compile, run | the Swift side changes |
+| `view` | the Text View protocol: a job's files, the JSON for each state | the view shows something new |
 | `cli` | subcommands, the folder setting | a new subcommand, a new setting |
 
 Alfred wiring is `workflow/info.plist`: one script filter (`l`) whose ↩ runs `keep` or `open` by the
 `action` variable, ⇧↩ goes to a clipboard object, ⌥↩ to `trash`, ⌘↩ to a second, keywordless script
-filter that prefills the text and runs `rename` with the `path` variable. A new key is a new
-connection from the first filter; a new row action is a new `variables.action` value handled in the
-↩ script.
+filter that prefills the text and runs `rename` with the `path` variable. ↩ passes a conditional
+first: `action` equal to `ask` goes to the Text View (script file `view` at the bundle root), anything
+else to the ↩ script. A new key is a new connection from the first filter; a new row action is a new
+`variables.action` value handled in the ↩ script.
+
+The Text View runs `wisp view <question>` with no `job` variable, which starts `wisp ask --job
+<folder>` detached and returns a rerun of 0.2 s; each rerun reads the job folder (`partial.md`,
+`done`, `error`) and renders it. The job folder is under Alfred's cache folder, so Alfred may clear
+it; the answer file itself is in the data folder. If the view ever comes up empty on ↩, check the
+conditional in the editor reads *action is equal to ask*: that match mode is the one number in the
+plist written from memory.
+
+`apple.swift` compiles with `swiftc -O -parse-as-library` into `<data>/bin/wisp-apple` the first time
+it is needed, and again whenever the shipped source is newer than the binary. It takes the system
+instructions as its argument and the prompt on stdin, prints the answer, and exits 2 with a message
+when Apple Intelligence is not available. Nothing in the suite runs it; the shell contract is what
+the tests pin down.
 
 Creation time is `st_birthtime` on macOS, `st_mtime` elsewhere (so the suite runs on Linux CI).
 Tests inject `created` and `now`, which is why nothing in the package reads a clock on its own.

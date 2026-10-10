@@ -12,7 +12,7 @@
 		<array>
 			<dict>
 				<key>destinationuid</key>
-				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C02</string>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C08</string>
 				<key>modifiers</key>
 				<integer>0</integer>
 				<key>modifiersubtext</key>
@@ -73,6 +73,54 @@
 				<integer>0</integer>
 				<key>modifiersubtext</key>
 				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C08</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C09</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>sourceoutputuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C0A</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C02</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C09</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C03</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C0B</string>
+				<key>modifiers</key>
+				<integer>524288</integer>
+				<key>modifiersubtext</key>
+				<string>Open the saved answer</string>
 				<key>vitoclose</key>
 				<false/>
 			</dict>
@@ -179,7 +227,6 @@
 				<string>case "$action" in
   keep) /usr/bin/python3 -m wisp keep "$1" ;;
   open) open "$1" ;;
-  ask)  path=$(/usr/bin/python3 -m wisp ask "$1") &amp;&amp; open "$path" ;;
 esac
 </string>
 				<key>scriptargtype</key>
@@ -310,9 +357,97 @@ esac
 			<key>version</key>
 			<integer>2</integer>
 		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>conditions</key>
+				<array>
+					<dict>
+						<key>inputstring</key>
+						<string>{var:action}</string>
+						<key>matchcasesensitive</key>
+						<false/>
+						<key>matchmode</key>
+						<integer>0</integer>
+						<key>matchstring</key>
+						<string>ask</string>
+						<key>outputlabel</key>
+						<string>ask</string>
+						<key>uid</key>
+						<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C0A</string>
+					</dict>
+				</array>
+				<key>elselabel</key>
+				<string>else</string>
+				<key>hideelse</key>
+				<false/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.utility.conditional</string>
+			<key>uid</key>
+			<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C08</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>behaviour</key>
+				<integer>2</integer>
+				<key>fontmode</key>
+				<integer>0</integer>
+				<key>fontsizing</key>
+				<integer>0</integer>
+				<key>footertext</key>
+				<string>↩ copy · ⌥↩ open the saved answer</string>
+				<key>inputfile</key>
+				<string>view</string>
+				<key>inputtype</key>
+				<integer>1</integer>
+				<key>loadingtext</key>
+				<string>Asking…</string>
+				<key>outputmode</key>
+				<integer>1</integer>
+				<key>scriptinput</key>
+				<integer>2</integer>
+				<key>spellchecking</key>
+				<integer>0</integer>
+				<key>stackview</key>
+				<false/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.userinterface.text</string>
+			<key>uid</key>
+			<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C09</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>concurrently</key>
+				<false/>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>script</key>
+				<string>open "$answer"</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>type</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.script</string>
+			<key>uid</key>
+			<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C0B</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
 	</array>
 	<key>readme</key>
-	<string>Type `l` followed by anything. The first row logs it; the rows below are the records that match, newest first. ↩ opens a record's file, ⇧↩ copies its text, ⌥↩ moves it to the Trash, ⌘↩ renames it. The hotkey object opens the same list; set its combination (HYPER+L is a good one) by double-clicking it. `l ? &lt;question&gt;` asks a local model about the log once Model server is set.
+	<string>Type `l` followed by anything. The first row logs it; the rows below are the records that match, newest first. ↩ opens a record's file, ⇧↩ copies its text, ⌥↩ moves it to the Trash, ⌘↩ renames it. The hotkey object opens the same list; set its combination (HYPER+L is a good one) by double-clicking it. `l ? &lt;question&gt;` asks a local model about the log once Model server is set (a URL, or apple for the on-device model); the answer streams into a Text View, ↩ there copies it, ⌥↩ opens the saved file.
 
 Records are markdown files in the Log folder, one per line; their creation time is the file's creation time.</string>
 	<key>uidata</key>
@@ -329,7 +464,7 @@ Records are markdown files in the Log folder, one per line; their creation time 
 			<key>xpos</key>
 			<integer>330</integer>
 			<key>ypos</key>
-			<integer>50</integer>
+			<integer>110</integer>
 		</dict>
 		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C03</key>
 		<dict>
@@ -363,6 +498,27 @@ Records are markdown files in the Log folder, one per line; their creation time 
 		<dict>
 			<key>xpos</key>
 			<integer>40</integer>
+			<key>ypos</key>
+			<integer>50</integer>
+		</dict>
+		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C08</key>
+		<dict>
+			<key>xpos</key>
+			<integer>230</integer>
+			<key>ypos</key>
+			<integer>50</integer>
+		</dict>
+		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C09</key>
+		<dict>
+			<key>xpos</key>
+			<integer>580</integer>
+			<key>ypos</key>
+			<integer>50</integer>
+		</dict>
+		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C0B</key>
+		<dict>
+			<key>xpos</key>
+			<integer>830</integer>
 			<key>ypos</key>
 			<integer>50</integer>
 		</dict>
@@ -403,7 +559,7 @@ Records are markdown files in the Log folder, one per line; their creation time 
 				<true/>
 			</dict>
 			<key>description</key>
-			<string>llama-server or any OpenAI-compatible /v1/chat/completions, e.g. http://127.0.0.1:8080. Empty: l ? is off.</string>
+			<string>llama-server or any OpenAI-compatible /v1/chat/completions, e.g. http://127.0.0.1:8080, or the word apple for Apple's on-device model (macOS 26, Apple Intelligence on, Command Line Tools). Empty: l ? is off.</string>
 			<key>label</key>
 			<string>Model server</string>
 			<key>type</key>

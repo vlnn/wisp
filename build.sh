@@ -5,9 +5,10 @@ cd "$(dirname "$0")"
 stage=$(mktemp -d)
 trap 'rm -rf "$stage"' EXIT
 
-cp workflow/info.plist workflow/icon.png "$stage"/
+cp workflow/info.plist workflow/icon.png workflow/view "$stage"/
+chmod +x "$stage/view"
 mkdir -p "$stage/wisp"
-cp src/wisp/*.py "$stage/wisp"/
+cp src/wisp/*.py src/wisp/*.swift "$stage/wisp"/
 
 mkdir -p dist
 rm -f dist/Wisp.alfredworkflow

@@ -81,7 +81,7 @@ def question_rows(
 def ask_row(question: str, lines: int) -> dict:
     return {
         "title": f'Ask "{question}"',
-        "subtitle": f"↩ asks the model about {lines} lines · the answer opens when it arrives",
+        "subtitle": f"↩ asks the model about {lines} lines",
         "arg": question,
         "variables": {"action": "ask"},
         "mods": {mod: {"valid": False, "subtitle": ""} for mod in ("shift", "alt", "cmd")},

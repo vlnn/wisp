@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from conftest import NOW, names
-from wisp import cli, oracle
+from wisp import apple, cli, oracle, present, view
 
 
 @pytest.fixture
@@ -36,9 +36,17 @@ def notify(mocker):
 
 
 def model_says(mocker, text):
-    return mocker.patch(
-        "wisp.cli.oracle.post", return_value={"choices": [{"message": {"content": text}}]}
-    )
+    def answer(server, messages, on_text, data):
+        if on_text:
+            on_text(text[:3])
+            on_text(text)
+        return oracle.visible(text)
+
+    return mocker.patch("wisp.cli.oracle.answer", side_effect=answer)
+
+
+def model_fails(mocker, error):
+    return mocker.patch("wisp.cli.oracle.answer", side_effect=error)
 
 
 @pytest.fixture
@@ -210,7 +218,7 @@ def test_question_offers_to_ask_then_lists_past_answers(run, served, sample, ans
         "the Ask row first, then earlier answers whose question matches"
     )
     ask = rows(out)[0]
-    assert ask["subtitle"] == "↩ asks the model about 5 lines · the answer opens when it arrives"
+    assert ask["subtitle"] == "↩ asks the model about 5 lines"
     assert ask["arg"] == "today summary" and ask["variables"] == {"action": "ask"}, (
         "↩ should ask with the bare question"
     )
@@ -271,7 +279,7 @@ def test_ask_without_a_server(run, sample, notify):
 
 
 def test_ask_when_the_server_is_down(run, served, sample, mocker, notify):
-    mocker.patch("wisp.cli.oracle.post", side_effect=urllib.error.URLError("refused"))
+    model_fails(mocker, urllib.error.URLError("refused"))
     code, _ = run("ask", "today summary")
     assert code == 1, "an unreachable server fails the command"
     notify.assert_called_with("Model not reachable at http://127.0.0.1:8080")
@@ -279,14 +287,14 @@ def test_ask_when_the_server_is_down(run, served, sample, mocker, notify):
 
 def test_ask_when_the_server_refuses(run, served, sample, mocker, notify):
     error = urllib.error.HTTPError("http://127.0.0.1:8080", 401, "nope", {}, None)
-    mocker.patch("wisp.cli.oracle.post", side_effect=error)
+    model_fails(mocker, error)
     code, _ = run("ask", "today summary")
     assert code == 1, "a refused request fails the command"
     notify.assert_called_with("Model answered 401 at http://127.0.0.1:8080")
 
 
 def test_ask_when_the_answer_is_malformed(run, served, sample, mocker, notify):
-    mocker.patch("wisp.cli.oracle.post", return_value={"error": "boom"})
+    model_fails(mocker, KeyError("choices"))
     code, _ = run("ask", "today summary")
     assert code == 1, "a bad answer fails the command"
     notify.assert_called_with("Model gave no answer")
@@ -295,3 +303,70 @@ def test_ask_when_the_answer_is_malformed(run, served, sample, mocker, notify):
 def test_ask_with_blank_question(run, served, sample, notify):
     code, _ = run("ask", " ")
     assert code == 1, "nothing to ask"
+
+
+def test_question_row_counts_only_the_lines_that_fit(run, env, sample):
+    env["oracle_url"] = "apple"
+    _, out = run("filter", "? today summary")
+    assert rows(out)[0]["subtitle"] == "↩ asks the model about 5 lines", "five short lines fit"
+
+
+def test_ask_with_a_job_reports_progress_instead_of_notifying(
+    run, served, sample, mocker, notify, tmp_path
+):
+    model_says(mocker, "You read docs.")
+    job = tmp_path / "jobs" / "j1"
+    code, out = run("ask", "--job", str(job), "today summary")
+    assert code == 0, "ask with a job succeeds"
+    done = view.Job(job)
+    assert done.partial() == "You read docs." and done.done() == Path(out.strip()), (
+        "the job carries the text and the saved path"
+    )
+    notify.assert_not_called()
+
+
+def test_ask_with_a_job_records_the_failure(run, served, sample, mocker, notify, tmp_path):
+    model_fails(mocker, urllib.error.URLError("refused"))
+    job = tmp_path / "jobs" / "j1"
+    code, _ = run("ask", "--job", str(job), "today summary")
+    assert code == 1 and view.Job(job).error() == "Model not reachable at http://127.0.0.1:8080", (
+        "the failure goes to the job, not to a notification"
+    )
+    notify.assert_not_called()
+
+
+def test_ask_apple_errors_are_messages(run, env, sample, mocker, notify):
+    env["oracle_url"] = "apple"
+    model_fails(mocker, apple.AppleError("Apple Intelligence is not enabled"))
+    code, _ = run("ask", "today summary")
+    assert code == 1, "an Apple failure fails the command"
+    notify.assert_called_with("Apple Intelligence is not enabled")
+
+
+def test_view_starts_a_job_in_the_background(run, served, sample, mocker):
+    popen = mocker.patch("wisp.cli.subprocess.Popen")
+    _, out = run("view", "today summary")
+    shown = json.loads(out)
+    job = shown["variables"]["job"]
+    assert shown["rerun"] == view.RERUN and job, "the view polls a job it just started"
+    argv = popen.call_args.args[0]
+    assert argv[1:] == ["-m", "wisp", "ask", "--job", job, "today summary"], (
+        "the job is wisp ask with the job folder"
+    )
+    assert popen.call_args.kwargs["start_new_session"] is True, "and it outlives the view script"
+
+
+def test_view_polls_a_running_job(run, served, sample, mocker, tmp_path):
+    popen = mocker.patch("wisp.cli.subprocess.Popen")
+    job = view.Job(tmp_path / "jobs" / "j1")
+    job.progress("You rea")
+    served["job"] = str(job.folder)
+    _, out = run("view", "today summary")
+    shown = json.loads(out)
+    assert shown["response"] == "You rea" and shown["rerun"] == view.RERUN, "shows the text so far"
+    popen.assert_not_called()
+
+
+def test_view_without_a_server(run, sample):
+    _, out = run("view", "today summary")
+    assert json.loads(out)["response"] == f"**{present.NO_SERVER}**", "the view says what to set"
