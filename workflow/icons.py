@@ -18,11 +18,11 @@ BLUE = (0x4A, 0x7F, 0xB5)
 
 ICONS = {
     "log": (GREEN, False),
-    "task": (OCHRE, False),
-    "done": (OCHRE, True),
+    "task": (OCHRE, True),
+    "done": (OCHRE, False),
     "note": (TERRACOTTA, False),
-    "question": (BLUE, False),
-    "decision": (BLUE, True),
+    "question": (BLUE, True),
+    "decision": (BLUE, False),
 }
 
 
