@@ -50,16 +50,6 @@
 				<key>vitoclose</key>
 				<false/>
 			</dict>
-			<dict>
-				<key>destinationuid</key>
-				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C0E</string>
-				<key>modifiers</key>
-				<integer>262144</integer>
-				<key>modifiersubtext</key>
-				<string>Actions…</string>
-				<key>vitoclose</key>
-				<false/>
-			</dict>
 		</array>
 		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C05</key>
 		<array>
@@ -98,6 +88,18 @@
 				<string></string>
 				<key>sourceoutputuid</key>
 				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C0A</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C0E</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>sourceoutputuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C13</string>
 				<key>vitoclose</key>
 				<false/>
 			</dict>
@@ -474,6 +476,20 @@ esac
 						<key>uid</key>
 						<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C0A</string>
 					</dict>
+					<dict>
+						<key>inputstring</key>
+						<string>{var:action}</string>
+						<key>matchcasesensitive</key>
+						<false/>
+						<key>matchmode</key>
+						<integer>0</integer>
+						<key>matchstring</key>
+						<string>menu</string>
+						<key>outputlabel</key>
+						<string>menu</string>
+						<key>uid</key>
+						<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C13</string>
+					</dict>
 				</array>
 				<key>elselabel</key>
 				<string>else</string>
@@ -553,7 +569,7 @@ esac
 				<key>scriptfile</key>
 				<string></string>
 				<key>subtext</key>
-				<string>What this record can do</string>
+				<string>↩ runs the first row; type to narrow</string>
 				<key>title</key>
 				<string>Actions</string>
 				<key>type</key>

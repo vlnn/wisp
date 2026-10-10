@@ -45,10 +45,9 @@ def record_row(record: Record, now: datetime) -> dict:
     return {
         "title": record.text,
         "subtitle": record_when(record, now),
-        "arg": path,
-        "type": "file",
+        "arg": "",
         "quicklookurl": path,
-        "variables": {"action": "open"},
+        "variables": {"action": "menu", "path": path},
         "text": {"copy": record.text, "largetype": record.text},
         "mods": {
             "shift": shift_mod(record),
@@ -57,11 +56,6 @@ def record_row(record: Record, now: datetime) -> dict:
                 "arg": record.text,
                 "subtitle": "Rename",
                 "variables": {"action": "rename", "path": path},
-            },
-            "ctrl": {
-                "arg": "",
-                "subtitle": "Actions…",
-                "variables": {"action": "menu", "path": path},
             },
         },
     }

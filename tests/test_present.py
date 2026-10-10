@@ -125,10 +125,11 @@ def test_menu_narrows_as_you_type():
     assert [row["title"] for row in menu] == ["Rename"], "typed words filter the menu by title"
 
 
-def test_record_row_opens_the_menu_on_ctrl():
+def test_record_row_opens_the_menu_on_enter():
     row = present.record_row(a_record("plain log", NOW), NOW)
-    assert row["mods"]["ctrl"] == {
-        "arg": "",
-        "subtitle": "Actions…",
-        "variables": {"action": "menu", "path": "/log/x.md"},
-    }, "⌃↩ should open the menu for the file with an empty query"
+    assert row["arg"] == "", "the menu should open with an empty query"
+    assert row["variables"] == {"action": "menu", "path": "/log/x.md"}, (
+        "↩ should open the menu for the file, the path travelling as a variable"
+    )
+    assert row["quicklookurl"] == "/log/x.md", "Quick Look still shows the file"
+    assert "ctrl" not in row["mods"], "⌃↩ is Alfred's own key and is left alone"

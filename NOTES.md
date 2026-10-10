@@ -15,17 +15,19 @@ Eight small modules, each with one job, so a feature lands in one of them:
 | `view` | the Text View protocol: a job's files, the JSON for each state | the view shows something new |
 | `cli` | subcommands, the folder setting | a new subcommand, a new setting |
 
-Alfred wiring is `workflow/info.plist`: one script filter (`l`) whose ↩ runs `keep` or `open` by the
-`action` variable, ⇧↩ passes a conditional (`action` equal to `mark` goes to the ↩ script, anything
-else to a clipboard object), ⌥↩ to `trash`, ⌘↩ to a second, keywordless script
-filter that prefills the text and runs `rename` with the `path` variable, and ⌃↩ to a third,
-keywordless script filter (`menu`) whose rows carry the same `action` values; its ↩ passes a
-conditional that sends `rename`, `copy` and `trash` to the objects the modifier keys use and
-everything else to the ↩ script. A new row action is a new `variables.action` value handled in
-the ↩ script, and a new line in `present.menu`; a new key is a new connection from the first
-filter. Esc in the menu closes Alfred rather than going back to the list. ↩ passes a conditional
-first: `action` equal to `ask` goes to the Text View (script file `view` at the bundle root), anything
-else to the ↩ script. 
+Alfred wiring is `workflow/info.plist`: one script filter (`l`) whose ↩ passes a conditional on the
+`action` variable: `ask` goes to the Text View (script file `view` at the bundle root), `menu` to a
+second, keywordless script filter (`menu`) that lists what the record can do, anything else (`keep`,
+and `open` from an answer row) to the ↩ script. The menu's rows carry the same `action` values the
+modifier keys use, and its ↩ passes a second conditional that sends `rename`, `copy` and `trash` to
+the objects those keys reach and everything else (`mark`, `open`) to the ↩ script. From the list,
+⇧↩ passes a conditional too (`mark` to the ↩ script, else a clipboard object), ⌥↩ goes to `trash`,
+⌘↩ to a third, keywordless script filter that prefills the text and runs `rename` with the `path`
+variable. A new action is a line in `present.menu`, a `variables.action` value, and a case in the
+↩ script or a branch in the menu's conditional; a new shortcut is a connection from the first
+filter. Esc in the menu closes Alfred rather than going back to the list; ⌃↩ is not used because
+Alfred reserves it for the default fallback search.
+
 The Text View runs `wisp view <question>` with no `job` variable, which starts `wisp ask --job
 <folder>` detached and returns a rerun of 0.2 s; each rerun reads the job folder (`partial.md`,
 `done`, `error`) and renders it. The job folder is under Alfred's cache folder, so Alfred may clear

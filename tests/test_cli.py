@@ -117,8 +117,8 @@ def test_record_row_shape(run, sample):
     path = str(sample[-1])
     assert row["title"] == "meeting with L", "title should be the text"
     assert row["subtitle"] == "14:50 today", "subtitle should be the creation time"
-    assert row["arg"] == path and row["type"] == "file", "↩ should open the file"
-    assert row["variables"] == {"action": "open"}, "↩ should be the open action"
+    assert row["arg"] == "", "↩ should open the menu with nothing typed"
+    assert row["variables"] == {"action": "menu", "path": path}, "↩ should be the menu action"
     assert row["quicklookurl"] == path, "Quick Look should show the file"
     assert row["text"] == {"copy": "meeting with L", "largetype": "meeting with L"}, (
         "⌘C and ⌘L should give the text"
