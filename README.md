@@ -69,4 +69,11 @@ uv run ruff check && uv run ruff format --check
 ./build.sh                               → dist/Wisp.alfredworkflow
 ```
 
+CI runs the tests and lint on Python 3.9 and 3.13, builds the bundle on macOS and publishes it: every
+push to `main` updates the `latest` pre-release, a `v*` tag makes a release with notes. To cut one:
+
+```
+git tag v0.1.0 && git push origin v0.1.0
+```
+
 `NOTES.md` lists what is deliberately not here yet and where it would go.
