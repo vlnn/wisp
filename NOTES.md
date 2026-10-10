@@ -6,8 +6,8 @@ Eight small modules, each with one job, so a feature lands in one of them:
 
 | Module | Owns | Grows when |
 | --- | --- | --- |
-| `records` | the folder: reading, naming, keep, rename, trash | a record gets a new attribute, a new verb touches files |
-| `search` | folding and word-prefix matching | matching gets smarter (tags, dates, kinds) |
+| `records` | the folder: reading, naming, kinds, keep, rename, mark, trash | a record gets a new attribute, a new verb touches files |
+| `search` | folding, word-prefix matching, the kind axis of a query | matching gets smarter (tags, dates) |
 | `present` | time words and Alfred rows | a row gets a new key, a new kind of row appears |
 | `macos` | Finder trash and notifications | another osascript call is needed |
 | `oracle` | the model: evidence, prompt, request, streaming, answers on disk, which backend | a new question shape, a different budget |
@@ -16,7 +16,8 @@ Eight small modules, each with one job, so a feature lands in one of them:
 | `cli` | subcommands, the folder setting | a new subcommand, a new setting |
 
 Alfred wiring is `workflow/info.plist`: one script filter (`l`) whose ↩ runs `keep` or `open` by the
-`action` variable, ⇧↩ goes to a clipboard object, ⌥↩ to `trash`, ⌘↩ to a second, keywordless script
+`action` variable, ⇧↩ passes a conditional (`action` equal to `mark` goes to the ↩ script, anything
+else to a clipboard object), ⌥↩ to `trash`, ⌘↩ to a second, keywordless script
 filter that prefills the text and runs `rename` with the `path` variable. ↩ passes a conditional
 first: `action` equal to `ask` goes to the Text View (script file `view` at the bundle root), anything
 else to the ↩ script. A new key is a new connection from the first filter; a new row action is a new
@@ -39,8 +40,27 @@ instructions as its argument and the prompt on stdin, prints the answer, and exi
 when Apple Intelligence is not available. Nothing in the suite runs it; the shell contract is what
 the tests pin down.
 
-Creation time is `st_birthtime` on macOS, `st_mtime` elsewhere (so the suite runs on Linux CI).
-Tests inject `created` and `now`, which is why nothing in the package reads a clock on its own.
+Creation time is `st_birthtime` on macOS, `st_mtime` elsewhere (so the suite runs on Linux CI); the
+time a record last changed is `st_mtime` everywhere, and is what a done task reports as the time it
+was finished. Tests inject `created`, `changed` and `now`, which is why nothing in the package reads
+a clock on its own.
+
+## Kinds
+
+A kind is the first character of the line when a space follows it: `.` task, `*` done, `!` note,
+anything else a plain log. `records.parse` is the one place that knows this; `Record.kind` and
+`Record.line` read through it, `compose` writes it back, and `keep` and `rename` normalise the
+spacing. `mark` flips `.` and `*` by rewriting the first line and nothing else, so the body and the
+birth time survive and `st_mtime` becomes the done time. The sigils are not word characters, so the
+slug ignores them and marking never moves a file.
+
+The query carries the same sigil as a filter on kind (`search.query`), with the words matched
+against `Record.line`; no sigil means every kind. The oracle spells kinds out as `TODO`, `DONE
+<time>` and `NOTE` because a small model follows a word over 1 200 lines better than a dot.
+
+`!` is a kind here, not a flag, so an important task has no spelling yet. If one is ever wanted,
+the choice is between a second sigil position (`!. `) and making `!` orthogonal to the others;
+`parse` is the only function that would change.
 
 ## Deliberately not here
 
@@ -59,10 +79,11 @@ Tests inject `created` and `now`, which is why nothing in the package reads a cl
 The design discussed before this was built (statuses, questions, snippets, sweep, promote, a local
 model for tags, like and digests) is all compatible with the current files:
 
-- A kind of record (`!` status, `?` question, a code span) is a property of the text, read by
-  `records` from the first character and shown by `present`; the file stays the plain line.
+- Kinds are in (`.`, `*`, `!`); a `?` question kind cannot use `?` at the filter level, which is
+  the ask mode, and a code span would be read by `records` the same way as the sigils.
 - `sweep` is a new subcommand in `cli` that proposes moves between the log folder and an archive
-  folder; `present` renders the proposal rows; `records` moves.
+  folder; `present` renders the proposal rows; `records` moves. Done tasks are the first thing it
+  would propose.
 - `promote` is a verb in `records` with a target per kind, settings in the plist.
 - Model work beyond `l ?` (tags, embeddings, digest) extends `oracle`; it only ever runs from a
   `Run Script` object, never on a keystroke, and writes next to the log, never into the files.

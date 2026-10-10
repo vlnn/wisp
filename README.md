@@ -19,7 +19,7 @@ folder needs no index, no database and no sync of its own.
 | Key | On a record |
 | --- | --- |
 | ↩ | open the file |
-| ⇧↩ | copy the text |
+| ⇧↩ | copy the text; on a task, mark it done (and on a done task, reopen it) |
 | ⌥↩ | move the file to the Trash (Finder's, with Put Back) |
 | ⌘↩ | rename: the text is prefilled, edit it, ↩ |
 | ⌘C | copy the text |
@@ -28,6 +28,28 @@ folder needs no index, no database and no sync of its own.
 
 Matching: every word you type must be a prefix of a word in the line; case and diacritics are
 ignored. There is no cap on the number of rows.
+
+## Tasks and notes
+
+A line is a plain log unless it starts with a sigil and a space:
+
+```
+l . fix the build            Task "fix the build"      ↩ keeps `. fix the build`
+l ! keys are in 1password    Note "keys are in 1password"
+l .                          open tasks, newest first
+l . build                    open tasks about build
+l *                          done tasks: "done 16:40 today · 09:12 today"
+l !                          notes
+```
+
+⇧↩ on a task turns `. fix the build` into `* fix the build` in place; the file keeps its creation
+time and its name, and the time it was marked is the file's modification time, so a done task
+knows both when it was written and when it was finished. ⇧↩ again reopens it. The sigil has to be
+followed by a space: `.gitignore moved` and `*args again` are plain logs. Words without a sigil
+match every kind, so `l build` finds the task too.
+
+The sigils are deliberately the bullet journal's: `.` a task, `*` crossed out, `!` worth
+remembering.
 
 ## Install
 
@@ -66,7 +88,10 @@ and opens it; Esc closes the view and the answer is gone unless you kept it. Kep
 markdown files (question on the first line, answer below) in Alfred's data folder for the
 workflow; `l ?` lists them like log lines: ↩ opens, ⇧↩ copies the answer, ⌥↩ trashes it.
 
-The question goes with the log, newest line first, cut at about 12 000 characters for a server and
+The model sees each line as `YYYY-MM-DD HH:MM  text`; tasks and notes carry a word before the
+text, `TODO`, `NOTE`, or `DONE` with the time they were finished, so "what is still open?" and
+"what did I finish this week?" are questions it can answer. The question goes with the log, newest
+line first, cut at about 12 000 characters for a server and
 6 000 for the Apple model, whose context window is 4 096 tokens; the **Ask** row says how many lines
 that is. The model only ever runs when you press ↩ on **Ask**, never while you type. On a server,
 pick an instruct model rather than a thinking one — the workflow asks the template not to think,
@@ -78,7 +103,8 @@ names the alias when the server serves several; **Model server API key** is sent
 
 ## How files are named
 
-`reading docs` becomes `reading-docs.md`; a second `reading docs` becomes `reading-docs-2.md`. The
+`reading docs` becomes `reading-docs.md`; a second `reading docs` becomes `reading-docs-2.md`; the
+sigil never reaches the name, so `. fix the build` is `fix-the-build.md`. The
 name is only a convenience for Finder and grep. Rename changes the text in place and then moves the
 file to a name that fits, so the file keeps its creation time.
 
@@ -90,13 +116,15 @@ uv run wisp keep "reading docs"
 uv run wisp filter api | jq '.items[].title'
 uv run wisp rename ~/log/reading-docs.md "reading Apache docs"
 uv run wisp trash ~/log/reading-docs.md
+uv run wisp keep ". fix the build"
+uv run wisp mark ~/log/fix-the-build.md      → * fix the build (and back again)
 oracle_url=http://127.0.0.1:8080 uv run wisp ask "today summary"
 ```
 
 `oracle_url`, `oracle_model` and `oracle_key` configure the model the way the panel does;
 `alfred_workflow_data` is where kept answers go (default `~/Library/Application Support/wisp`).
 
-`filter`, `rename-filter` and `view` print Alfred's JSON, `ask` prints the answer (`ask --keep` and
+`filter`, `rename-filter` and `view` print Alfred's JSON, `mark` prints the flipped line, `ask` prints the answer (`ask --keep` and
 `keep-answer "<question>" "<answer>"` save it and print the file's path), the rest print the text
 they acted on. `wisp ask --job <folder> "…"` is what the text view runs in the background: progress
 goes to that folder instead of notifications.

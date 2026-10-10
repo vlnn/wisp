@@ -1,7 +1,7 @@
 [project]
 name = "wisp"
 version = "0.1.0"
-description = "Alfred workflow for one-line logs: type l, see them newest first, keep, rename, trash"
+description = "Alfred workflow for one-line logs and tasks: type l, see them newest first, keep, mark done, rename, trash"
 requires-python = ">=3.9"
 dependencies = []
 
