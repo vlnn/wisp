@@ -1,14 +1,44 @@
 import json
+import urllib.error
+from datetime import timedelta
+from pathlib import Path
 
 import pytest
 
 from conftest import NOW, names
-from wisp import cli
+from wisp import cli, oracle
 
 
 @pytest.fixture
-def env(folder):
-    return {"log_folder": str(folder)}
+def env(folder, tmp_path):
+    return {"log_folder": str(folder), "alfred_workflow_data": str(tmp_path / "data")}
+
+
+@pytest.fixture
+def served(env):
+    env["oracle_url"] = "http://127.0.0.1:8080"
+    return env
+
+
+@pytest.fixture
+def answered(env, stamps):
+    def remember(question, answer, minutes_ago):
+        path = oracle.remember(Path(env["alfred_workflow_data"]) / "answers", question, answer)
+        stamps[path.name] = NOW - timedelta(minutes=minutes_ago)
+        return path
+
+    return remember
+
+
+@pytest.fixture
+def notify(mocker):
+    return mocker.patch("wisp.cli.macos.notify")
+
+
+def model_says(mocker, text):
+    return mocker.patch(
+        "wisp.cli.oracle.post", return_value={"choices": [{"message": {"content": text}}]}
+    )
 
 
 @pytest.fixture
@@ -134,7 +164,7 @@ def test_rename_changes_the_record(run, folder, sample):
 
 
 def test_trash_sends_the_file_to_the_trash(run, sample, mocker):
-    trash = mocker.patch("wisp.cli.records.trash")
+    trash = mocker.patch("wisp.cli.macos.trash")
     path = sample[0]
     code, out = run("trash", str(path))
     assert code == 0 and out.strip() == "making API v1", "trash should echo the text"
@@ -161,3 +191,107 @@ def test_log_folder(env, expected, monkeypatch):
     assert str(folder) == expected.replace("~", "/Users/me"), (
         f"{env} should resolve to {expected} with ~ expanded"
     )
+
+
+def test_question_without_a_server_says_what_to_set(run, sample):
+    _, out = run("filter", "? today summary")
+    (row,) = rows(out)
+    assert row["title"] == "Set Model server in the workflow configuration", (
+        "without a server the only row says how to get one"
+    )
+    assert row["valid"] is False, "and it cannot be actioned"
+
+
+def test_question_offers_to_ask_then_lists_past_answers(run, served, sample, answered):
+    answered("today summary", "Docs, mostly.", 60)
+    answered("what about api", "Made v1.", 30)
+    _, out = run("filter", "? today summary")
+    assert titles(out) == ['Ask "today summary"', "today summary"], (
+        "the Ask row first, then earlier answers whose question matches"
+    )
+    ask = rows(out)[0]
+    assert ask["subtitle"] == "↩ asks the model about 5 lines · the answer opens when it arrives"
+    assert ask["arg"] == "today summary" and ask["variables"] == {"action": "ask"}, (
+        "↩ should ask with the bare question"
+    )
+
+
+def test_bare_question_mark_lists_every_answer_newest_first(run, served, answered):
+    answered("today summary", "Docs, mostly.", 60)
+    answered("what about api", "Made v1.", 30)
+    _, out = run("filter", "?")
+    assert titles(out) == ["what about api", "today summary"], (
+        "all answers, newest first, no Ask row"
+    )
+
+
+def test_answer_row_shape(run, served, answered):
+    path = str(answered("today summary", "Docs, mostly.\nAnd a meeting.", 10))
+    _, out = run("filter", "?")
+    (row,) = rows(out)
+    assert row["subtitle"] == "14:50 today · Docs, mostly.", (
+        "when it was answered and how it starts"
+    )
+    assert row["arg"] == path and row["type"] == "file", "↩ opens the answer file"
+    assert row["variables"] == {"action": "open"}, "↩ is the open action"
+    assert row["text"]["copy"] == "Docs, mostly.\nAnd a meeting.", "⌘C gives the whole answer"
+    assert row["mods"]["shift"]["arg"] == "Docs, mostly.\nAnd a meeting.", "⇧↩ copies the answer"
+    assert row["mods"]["alt"]["variables"] == {"action": "trash"}, "⌥↩ trashes the answer"
+    assert row["mods"]["cmd"]["valid"] is False, "answers are not renamed"
+
+
+def test_ask_saves_opens_and_notifies(run, served, sample, mocker, notify):
+    model_says(mocker, "<think>x</think>\nYou read docs.")
+    code, out = run("ask", "today summary")
+    path = Path(out.strip())
+    assert code == 0 and path.name == "today-summary.md", "ask prints the answer file"
+    assert path.read_text() == "today summary\n\nYou read docs.\n", (
+        "the file holds question and answer"
+    )
+    assert [c.args[0] for c in notify.call_args_list] == [
+        "Asking about 5 lines…",
+        "You read docs.",
+    ], "one notification when asking, one with the answer"
+
+
+def test_ask_dry_run_prints_the_prompt_and_asks_nothing(run, served, sample, mocker, notify):
+    post = model_says(mocker, "unused")
+    code, out = run("ask", "--dry-run", "today summary")
+    assert code == 0 and out.startswith("today summary\n") and "making API v1" in out, (
+        "dry run prints what the model would be sent"
+    )
+    post.assert_not_called()
+    notify.assert_not_called()
+
+
+def test_ask_without_a_server(run, sample, notify):
+    code, _ = run("ask", "today summary")
+    assert code == 1, "no server, no answer"
+    notify.assert_called_once_with("Set Model server in the workflow configuration")
+
+
+def test_ask_when_the_server_is_down(run, served, sample, mocker, notify):
+    mocker.patch("wisp.cli.oracle.post", side_effect=urllib.error.URLError("refused"))
+    code, _ = run("ask", "today summary")
+    assert code == 1, "an unreachable server fails the command"
+    notify.assert_called_with("Model not reachable at http://127.0.0.1:8080")
+
+
+def test_ask_when_the_server_refuses(run, served, sample, mocker, notify):
+    error = urllib.error.HTTPError("http://127.0.0.1:8080", 401, "nope", {}, None)
+    mocker.patch("wisp.cli.oracle.post", side_effect=error)
+    code, _ = run("ask", "today summary")
+    assert code == 1, "a refused request fails the command"
+    notify.assert_called_with("Model answered 401 at http://127.0.0.1:8080")
+
+
+def test_ask_when_the_answer_is_malformed(run, served, sample, mocker, notify):
+    mocker.patch("wisp.cli.oracle.post", return_value={"error": "boom"})
+    code, _ = run("ask", "today summary")
+    assert code == 1, "a bad answer fails the command"
+    notify.assert_called_with("Model gave no answer")
+
+
+def test_ask_with_blank_question(run, served, sample, notify):
+    code, _ = run("ask", " ")
+    assert code == 1, "nothing to ask"

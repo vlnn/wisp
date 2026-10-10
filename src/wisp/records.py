@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-import subprocess
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from datetime import datetime
@@ -50,6 +49,12 @@ def first_line(content: str) -> str:
     return next((line.strip() for line in content.splitlines() if line.strip()), "")
 
 
+def body(content: str) -> str:
+    lines = content.splitlines()
+    first = next((n for n, line in enumerate(lines) if line.strip()), len(lines))
+    return "\n".join(lines[first + 1 :]).strip()
+
+
 def newest_first(record: Record):
     return (-record.created.timestamp(), record.path.name)
 
@@ -89,12 +94,3 @@ def suffixes() -> Iterator[str]:
     yield ""
     for n in count(2):
         yield f"-{n}"
-
-
-def trash(path: Path) -> None:
-    script = f'tell application "Finder" to delete POSIX file "{applescript_string(str(path))}"'
-    subprocess.run(["osascript", "-e", script], check=True, capture_output=True)
-
-
-def applescript_string(text: str) -> str:
-    return text.replace("\\", "\\\\").replace('"', '\\"')

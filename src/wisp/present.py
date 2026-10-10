@@ -3,8 +3,9 @@ from __future__ import annotations
 from collections.abc import Iterable
 from datetime import datetime
 
-from wisp.records import Record
-from wisp.search import search
+from wisp.oracle import Answer
+from wisp.records import Record, first_line
+from wisp.search import matches, search
 
 
 def when(created: datetime, now: datetime) -> str:
@@ -62,3 +63,44 @@ def rename_row(text: str) -> dict:
     if not stripped:
         return {"title": "Type the new text", "valid": False}
     return {"title": f'Rename to "{stripped}"', "subtitle": "↩ renames", "arg": stripped}
+
+
+NO_SERVER = "Set Model server in the workflow configuration"
+
+
+def question_rows(
+    question: str, answers: Iterable[Answer], now: datetime, lines: int, served: bool
+) -> list[dict]:
+    if not served:
+        return [{"title": NO_SERVER, "subtitle": "to ask questions about the log", "valid": False}]
+    asked = [a for a in answers if matches(question, a.question)]
+    offered = [ask_row(question, lines)] if question else []
+    return offered + [answer_row(answer, now) for answer in asked]
+
+
+def ask_row(question: str, lines: int) -> dict:
+    return {
+        "title": f'Ask "{question}"',
+        "subtitle": f"↩ asks the model about {lines} lines · the answer opens when it arrives",
+        "arg": question,
+        "variables": {"action": "ask"},
+        "mods": {mod: {"valid": False, "subtitle": ""} for mod in ("shift", "alt", "cmd")},
+    }
+
+
+def answer_row(answer: Answer, now: datetime) -> dict:
+    path = str(answer.path)
+    return {
+        "title": answer.question,
+        "subtitle": f"{when(answer.created, now)} · {first_line(answer.answer)}",
+        "arg": path,
+        "type": "file",
+        "quicklookurl": path,
+        "variables": {"action": "open"},
+        "text": {"copy": answer.answer, "largetype": answer.answer},
+        "mods": {
+            "shift": {"arg": answer.answer, "subtitle": "Copy the answer"},
+            "alt": {"arg": path, "subtitle": "Move to Trash", "variables": {"action": "trash"}},
+            "cmd": {"valid": False, "subtitle": ""},
+        },
+    }

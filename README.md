@@ -41,6 +41,31 @@ ignored. There is no cap on the number of rows.
 Nothing to install: the bundle runs on macOS's own `/usr/bin/python3` (3.9+) with the standard
 library only.
 
+## Ask the log: `l ?`
+
+Run [llama.cpp](https://github.com/ggml-org/llama.cpp)'s `llama-server` (or anything else that
+answers OpenAI-style `/v1/chat/completions`) and set **Model server** in the workflow configuration,
+e.g. `http://127.0.0.1:8080`. Until it is set, `l ?` only tells you to set it.
+
+```
+l ? today summary            Ask "today summary"   ↩ asks the model about 1 240 lines · the answer opens when it arrives
+l ? what did I do with api   …
+l ?                          every earlier answer, newest first
+```
+
+↩ on **Ask** sends the question with the log, newest line first and cut at about 12 000
+characters so the recent days always fit, waits for the model in the background, and when the
+answer arrives posts it as a notification, saves it and opens it. Answers are markdown files
+(question on the first line, answer below) in Alfred's data folder for the workflow; `l ?` lists
+them like log lines: ↩ opens, ⇧↩ copies the answer, ⌥↩ trashes it.
+
+The model only ever runs when you press ↩ on **Ask**, never while you type. Pick an instruct model
+rather than a thinking one — the workflow asks the template not to think, which Qwen3-style models
+honour, and strips a `<think>` block if one comes back anyway. **Model** names the alias when the
+server serves several; **Model server API key** is sent as a bearer token.
+
+`wisp ask --dry-run "today summary"` prints exactly what the model would be sent.
+
 ## How files are named
 
 `reading docs` becomes `reading-docs.md`; a second `reading docs` becomes `reading-docs-2.md`. The
@@ -55,9 +80,14 @@ uv run wisp keep "reading docs"
 uv run wisp filter api | jq '.items[].title'
 uv run wisp rename ~/log/reading-docs.md "reading Apache docs"
 uv run wisp trash ~/log/reading-docs.md
+oracle_url=http://127.0.0.1:8080 uv run wisp ask "today summary"
 ```
 
-`filter` and `rename-filter` print Alfred's JSON; the rest print the text they acted on.
+`oracle_url`, `oracle_model` and `oracle_key` configure the model the way the panel does;
+`alfred_workflow_data` is where answers go (default `~/Library/Application Support/wisp`).
+
+`filter` and `rename-filter` print Alfred's JSON, `ask` prints the answer file's path, the rest
+print the text they acted on.
 
 ## Development
 

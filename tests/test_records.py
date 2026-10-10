@@ -103,29 +103,3 @@ def test_rename_avoids_an_existing_name(folder):
     path = records.keep(folder, "reading docs")
     renamed = records.rename(path, "reading Apache docs")
     assert renamed.name == "reading-apache-docs-2.md", "rename should not overwrite another record"
-
-
-def test_trash_asks_finder(folder, mocker):
-    run = mocker.patch("wisp.records.subprocess.run")
-    path = folder / 'it"s.md'
-    records.trash(path)
-    (argv,), kwargs = run.call_args
-    assert argv[:2] == ["osascript", "-e"], "trash should go through osascript"
-    assert 'POSIX file "' + str(path).replace('"', '\\"') + '"' in argv[2], (
-        "the path should be quoted for AppleScript"
-    )
-    assert kwargs["check"] is True, "a failed trash should raise"
-
-
-@pytest.mark.parametrize(
-    "path, quoted",
-    [
-        ("/a/b.md", "/a/b.md"),
-        ('/a/say "hi".md', '/a/say \\"hi\\".md'),
-        ("/a/back\\slash.md", "/a/back\\\\slash.md"),
-    ],
-)
-def test_applescript_string(path, quoted):
-    assert records.applescript_string(path) == quoted, (
-        f"{path!r} should be escaped as {quoted!r} inside an AppleScript string"
-    )

@@ -179,6 +179,7 @@
 				<string>case "$action" in
   keep) /usr/bin/python3 -m wisp keep "$1" ;;
   open) open "$1" ;;
+  ask)  path=$(/usr/bin/python3 -m wisp ask "$1") &amp;&amp; open "$path" ;;
 esac
 </string>
 				<key>scriptargtype</key>
@@ -311,7 +312,7 @@ esac
 		</dict>
 	</array>
 	<key>readme</key>
-	<string>Type `l` followed by anything. The first row logs it; the rows below are the records that match, newest first. ↩ opens a record's file, ⇧↩ copies its text, ⌥↩ moves it to the Trash, ⌘↩ renames it. The hotkey object opens the same list; set its combination (HYPER+L is a good one) by double-clicking it.
+	<string>Type `l` followed by anything. The first row logs it; the rows below are the records that match, newest first. ↩ opens a record's file, ⇧↩ copies its text, ⌥↩ moves it to the Trash, ⌘↩ renames it. The hotkey object opens the same list; set its combination (HYPER+L is a good one) by double-clicking it. `l ? &lt;question&gt;` asks a local model about the log once Model server is set.
 
 Records are markdown files in the Log folder, one per line; their creation time is the file's creation time.</string>
 	<key>uidata</key>
@@ -388,6 +389,69 @@ Records are markdown files in the Log folder, one per line; their creation time 
 			<string>textfield</string>
 			<key>variable</key>
 			<string>log_folder</string>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string></string>
+				<key>placeholder</key>
+				<string></string>
+				<key>required</key>
+				<false/>
+				<key>trim</key>
+				<true/>
+			</dict>
+			<key>description</key>
+			<string>llama-server or any OpenAI-compatible /v1/chat/completions, e.g. http://127.0.0.1:8080. Empty: l ? is off.</string>
+			<key>label</key>
+			<string>Model server</string>
+			<key>type</key>
+			<string>textfield</string>
+			<key>variable</key>
+			<string>oracle_url</string>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string></string>
+				<key>placeholder</key>
+				<string></string>
+				<key>required</key>
+				<false/>
+				<key>trim</key>
+				<true/>
+			</dict>
+			<key>description</key>
+			<string>Model name or alias the server should answer with. Empty: the server's default.</string>
+			<key>label</key>
+			<string>Model</string>
+			<key>type</key>
+			<string>textfield</string>
+			<key>variable</key>
+			<string>oracle_model</string>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string></string>
+				<key>placeholder</key>
+				<string></string>
+				<key>required</key>
+				<false/>
+				<key>trim</key>
+				<true/>
+			</dict>
+			<key>description</key>
+			<string>Sent as a bearer token when the server was started with --api-key.</string>
+			<key>label</key>
+			<string>Model server API key</string>
+			<key>type</key>
+			<string>textfield</string>
+			<key>variable</key>
+			<string>oracle_key</string>
 		</dict>
 	</array>
 	<key>variablesdontexport</key>

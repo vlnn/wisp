@@ -2,13 +2,15 @@
 
 ## What is here
 
-Four small modules, each with one job, so a feature lands in one of them:
+Six small modules, each with one job, so a feature lands in one of them:
 
 | Module | Owns | Grows when |
 | --- | --- | --- |
 | `records` | the folder: reading, naming, keep, rename, trash | a record gets a new attribute, a new verb touches files |
 | `search` | folding and word-prefix matching | matching gets smarter (tags, dates, kinds) |
 | `present` | time words and Alfred rows | a row gets a new key, a new kind of row appears |
+| `macos` | Finder trash and notifications | another osascript call is needed |
+| `oracle` | the model: evidence, prompt, request, answers on disk | a new question shape, a different budget |
 | `cli` | subcommands, the folder setting | a new subcommand, a new setting |
 
 Alfred wiring is `workflow/info.plist`: one script filter (`l`) whose ↩ runs `keep` or `open` by the
@@ -42,8 +44,10 @@ model for tags, like and digests) is all compatible with the current files:
 - `sweep` is a new subcommand in `cli` that proposes moves between the log folder and an archive
   folder; `present` renders the proposal rows; `records` moves.
 - `promote` is a verb in `records` with a target per kind, settings in the plist.
-- Model work (tags, embeddings, digest) is a separate module that only ever runs from a `Run Script`
-  object in the background and writes its answers next to the log, never into the files.
+- Model work beyond `l ?` (tags, embeddings, digest) extends `oracle`; it only ever runs from a
+  `Run Script` object, never on a keystroke, and writes next to the log, never into the files.
+  `digest` is `ask` with a fixed question over one day; `like` needs an embeddings endpoint and a
+  vector file, the one piece of state the current design has no home for yet.
 
 None of it requires hoard. If the folder ever wants an index, a journal and a conformance suite,
 `records` is the reader a hoard kind would wrap.
