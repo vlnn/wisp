@@ -3,8 +3,15 @@ from __future__ import annotations
 import re
 import unicodedata
 from collections.abc import Iterable
+from dataclasses import dataclass
 
-from wisp.records import Record
+from wisp.records import Kind, Record, parse
+
+
+@dataclass(frozen=True)
+class Query:
+    kind: Kind | None
+    words: str
 
 
 def fold(text: str) -> str:
@@ -21,5 +28,15 @@ def matches(query: str, text: str) -> bool:
     return all(any(word.startswith(wanted) for word in have) for wanted in words(query))
 
 
-def search(query: str, records: Iterable[Record]) -> list[Record]:
-    return [record for record in records if matches(query, record.text)]
+def query(text: str) -> Query:
+    kind, rest = parse(text.strip())
+    return Query(None if kind is Kind.LOG else kind, rest)
+
+
+def wanted(query: Query, record: Record) -> bool:
+    return query.kind in (None, record.kind) and matches(query.words, record.line)
+
+
+def search(text: str, records: Iterable[Record]) -> list[Record]:
+    asked = query(text)
+    return [record for record in records if wanted(asked, record)]

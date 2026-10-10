@@ -1,6 +1,27 @@
+from datetime import timedelta
+from pathlib import Path
+
 import pytest
 
+from conftest import NOW
 from wisp import search
+from wisp.records import Kind, Record
+
+MIXED = (
+    "! api keys are in 1password",
+    "* test api manually",
+    ". document api",
+    ". fix the build",
+    "api v1",
+)
+
+
+@pytest.fixture
+def mixed():
+    return [
+        Record(Path(f"/log/{n}.md"), text, NOW - timedelta(minutes=n), NOW - timedelta(minutes=n))
+        for n, text in enumerate(MIXED)
+    ]
 
 
 @pytest.mark.parametrize(
@@ -40,3 +61,51 @@ def test_matches(query, text, hit):
 )
 def test_words(text, expected):
     assert search.words(text) == expected, f"words of {text!r} should be {expected}"
+
+
+@pytest.mark.parametrize(
+    "query, kind, words",
+    [
+        ("api", None, "api"),
+        ("", None, ""),
+        (".", Kind.TASK, ""),
+        (". api", Kind.TASK, "api"),
+        ("*", Kind.DONE, ""),
+        ("! api", Kind.NOTE, "api"),
+        (".gitignore", None, ".gitignore"),
+    ],
+)
+def test_query_splits_a_leading_sigil_from_the_words(query, kind, words):
+    assert search.query(query) == search.Query(kind, words), (
+        f"{query!r} should ask for kind {kind} and words {words!r}"
+    )
+
+
+def test_search_without_a_sigil_matches_every_kind(mixed):
+    found = [r.text for r in search.search("api", mixed)]
+    assert found == [
+        "! api keys are in 1password",
+        "* test api manually",
+        ". document api",
+        "api v1",
+    ], "words alone should match the line of any kind"
+
+
+@pytest.mark.parametrize(
+    "query, expected",
+    [
+        (".", [". document api", ". fix the build"]),
+        (". api", [". document api"]),
+        ("*", ["* test api manually"]),
+        ("!", ["! api keys are in 1password"]),
+        ("! build", []),
+    ],
+)
+def test_search_with_a_sigil_keeps_that_kind_only(mixed, query, expected):
+    assert [r.text for r in search.search(query, mixed)] == expected, (
+        f"{query!r} should list {expected}"
+    )
+
+
+def test_a_sigil_word_does_not_match_the_sigil_itself(mixed):
+    assert search.search("* document", mixed) == [], "the sigil is not part of the searched line"
