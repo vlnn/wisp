@@ -24,10 +24,18 @@ def record(text, minutes_ago):
             {"oracle_url": "http://h:1", "oracle_model": "qwen", "oracle_key": "s3cret"},
             oracle.Server("http://h:1", "qwen", "s3cret"),
         ),
+        ({"oracle_apple": "1"}, oracle.APPLE),
+        ({"oracle_apple": "1", "oracle_url": "http://h:1"}, oracle.APPLE),
+        ({"oracle_apple": "0", "oracle_url": "http://h:1"}, oracle.Server("http://h:1", "", "")),
+        ({"oracle_apple": "0"}, None),
     ],
 )
 def test_server_from_env(env, expected):
     assert oracle.server(env) == expected, f"{env} should give {expected}"
+
+
+def test_apple_is_not_a_url():
+    assert oracle.APPLE.apple and not oracle.APPLE.url, "Apple Intelligence needs no server URL"
 
 
 def test_line_is_date_time_and_text():

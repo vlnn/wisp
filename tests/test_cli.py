@@ -204,9 +204,7 @@ def test_log_folder(env, expected, monkeypatch):
 def test_question_without_a_server_says_what_to_set(run, sample):
     _, out = run("filter", "? today summary")
     (row,) = rows(out)
-    assert row["title"] == "Set Model server in the workflow configuration", (
-        "without a server the only row says how to get one"
-    )
+    assert row["title"] == present.NO_SERVER, "without a server the only row says how to get one"
     assert row["valid"] is False, "and it cannot be actioned"
 
 
@@ -275,7 +273,7 @@ def test_ask_dry_run_prints_the_prompt_and_asks_nothing(run, served, sample, moc
 def test_ask_without_a_server(run, sample, notify):
     code, _ = run("ask", "today summary")
     assert code == 1, "no server, no answer"
-    notify.assert_called_once_with("Set Model server in the workflow configuration")
+    notify.assert_called_once_with(present.NO_SERVER)
 
 
 def test_ask_when_the_server_is_down(run, served, sample, mocker, notify):
@@ -306,7 +304,7 @@ def test_ask_with_blank_question(run, served, sample, notify):
 
 
 def test_question_row_counts_only_the_lines_that_fit(run, env, sample):
-    env["oracle_url"] = "apple"
+    env["oracle_apple"] = "1"
     _, out = run("filter", "? today summary")
     assert rows(out)[0]["subtitle"] == "↩ asks the model about 5 lines", "five short lines fit"
 
@@ -336,7 +334,7 @@ def test_ask_with_a_job_records_the_failure(run, served, sample, mocker, notify,
 
 
 def test_ask_apple_errors_are_messages(run, env, sample, mocker, notify):
-    env["oracle_url"] = "apple"
+    env["oracle_apple"] = "1"
     model_fails(mocker, apple.AppleError("Apple Intelligence is not enabled"))
     code, _ = run("ask", "today summary")
     assert code == 1, "an Apple failure fails the command"

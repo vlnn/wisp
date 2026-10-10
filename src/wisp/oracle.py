@@ -29,9 +29,14 @@ SYSTEM = (
 
 @dataclass(frozen=True)
 class Server:
-    url: str
-    model: str
-    key: str
+    url: str = ""
+    model: str = ""
+    key: str = ""
+    apple: bool = False
+
+
+APPLE = Server(apple=True)
+CHECKED = {"1", "true", "yes", "on"}
 
 
 @dataclass(frozen=True)
@@ -48,6 +53,8 @@ UNCLOSED_THINKING = re.compile(r"<think>.*\Z", re.DOTALL)
 
 
 def server(env: Mapping[str, str]) -> Server | None:
+    if env.get("oracle_apple", "").strip().lower() in CHECKED:
+        return APPLE
     url = env.get("oracle_url", "").strip().rstrip("/")
     if not url:
         return None
@@ -115,7 +122,7 @@ def visible(text: str) -> str:
 
 
 def budget_for(server: Server) -> int:
-    return APPLE_BUDGET if apple.is_apple(server.url) else BUDGET
+    return APPLE_BUDGET if server.apple else BUDGET
 
 
 def deltas(lines: Iterable[bytes]) -> Iterator[str]:
@@ -149,7 +156,7 @@ def stream(server: Server, body: dict, on_text: OnText | None) -> str:
 
 
 def answer(server: Server, messages: list[dict], on_text: OnText | None, data: str) -> str:
-    if apple.is_apple(server.url):
+    if server.apple:
         return apple.respond(messages, data)
     return visible(stream(server, payload(server, messages), on_text))
 

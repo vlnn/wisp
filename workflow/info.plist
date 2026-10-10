@@ -447,7 +447,7 @@ esac
 		</dict>
 	</array>
 	<key>readme</key>
-	<string>Type `l` followed by anything. The first row logs it; the rows below are the records that match, newest first. ↩ opens a record's file, ⇧↩ copies its text, ⌥↩ moves it to the Trash, ⌘↩ renames it. The hotkey object opens the same list; set its combination (HYPER+L is a good one) by double-clicking it. `l ? &lt;question&gt;` asks a local model about the log once Model server is set (a URL, or apple for the on-device model); the answer streams into a Text View, ↩ there copies it, ⌥↩ opens the saved file.
+	<string>Type `l` followed by anything. The first row logs it; the rows below are the records that match, newest first. ↩ opens a record's file, ⇧↩ copies its text, ⌥↩ moves it to the Trash, ⌘↩ renames it. The hotkey object opens the same list; set its combination (HYPER+L is a good one) by double-clicking it. `l ? &lt;question&gt;` asks a local model about the log once Model server is set or Apple Intelligence is ticked; the answer streams into a Text View, ↩ there copies it, ⌥↩ opens the saved file.
 
 Records are markdown files in the Log folder, one per line; their creation time is the file's creation time.</string>
 	<key>uidata</key>
@@ -550,6 +550,23 @@ Records are markdown files in the Log folder, one per line; their creation time 
 			<key>config</key>
 			<dict>
 				<key>default</key>
+				<false/>
+				<key>required</key>
+				<false/>
+			</dict>
+			<key>description</key>
+			<string>Ask Apple's on-device model instead of the server below. Needs macOS 26, an Apple-silicon Mac with Apple Intelligence turned on, and the Command Line Tools for a one-time compile.</string>
+			<key>label</key>
+			<string>Apple Intelligence</string>
+			<key>type</key>
+			<string>checkbox</string>
+			<key>variable</key>
+			<string>oracle_apple</string>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
 				<string></string>
 				<key>placeholder</key>
 				<string></string>
@@ -559,7 +576,7 @@ Records are markdown files in the Log folder, one per line; their creation time 
 				<true/>
 			</dict>
 			<key>description</key>
-			<string>llama-server or any OpenAI-compatible /v1/chat/completions, e.g. http://127.0.0.1:8080, or the word apple for Apple's on-device model (macOS 26, Apple Intelligence on, Command Line Tools). Empty: l ? is off.</string>
+			<string>llama-server or any OpenAI-compatible /v1/chat/completions, e.g. http://127.0.0.1:8080. Ignored while Apple Intelligence is on. Empty: l ? is off.</string>
 			<key>label</key>
 			<string>Model server</string>
 			<key>type</key>

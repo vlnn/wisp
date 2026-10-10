@@ -22,3 +22,9 @@ def test_when(created, expected):
     assert present.when(created, NOW) == expected, (
         f"{created} seen at {NOW} should read {expected!r}"
     )
+
+
+def test_no_server_names_both_ways_to_get_one():
+    assert present.NO_SERVER == (
+        "Set Model server or turn on Apple Intelligence in the workflow configuration"
+    ), "the hint covers the URL field and the checkbox"

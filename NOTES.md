@@ -29,6 +29,9 @@ it; the answer file itself is in the data folder. If the view ever comes up empt
 conditional in the editor reads *action is equal to ask*: that match mode is the one number in the
 plist written from memory.
 
+The **Apple Intelligence** checkbox arrives as `oracle_apple` (`1` or `0`); when on, `oracle.server`
+returns `oracle.APPLE`, a `Server` with `apple=True` and no URL, and the server fields are not read.
+
 `apple.swift` compiles with `swiftc -O -parse-as-library` into `<data>/bin/wisp-apple` the first time
 it is needed, and again whenever the shipped source is newer than the binary. It takes the system
 instructions as its argument and the prompt on stdin, prints the answer, and exits 2 with a message

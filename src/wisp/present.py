@@ -65,7 +65,7 @@ def rename_row(text: str) -> dict:
     return {"title": f'Rename to "{stripped}"', "subtitle": "↩ renames", "arg": stripped}
 
 
-NO_SERVER = "Set Model server in the workflow configuration"
+NO_SERVER = "Set Model server or turn on Apple Intelligence in the workflow configuration"
 
 
 def question_rows(

@@ -13,10 +13,6 @@ class AppleError(Exception):
     pass
 
 
-def is_apple(url: str) -> bool:
-    return url.strip().lower() == "apple"
-
-
 def binary(data: Path | str) -> Path:
     return Path(data) / "bin" / NAME
 

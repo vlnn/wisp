@@ -57,11 +57,11 @@ def test_visible(text, expected):
     "server, expected",
     [
         (SERVER, oracle.BUDGET),
-        (oracle.Server("apple", "", ""), oracle.APPLE_BUDGET),
+        (oracle.APPLE, oracle.APPLE_BUDGET),
     ],
 )
 def test_budget_for(server, expected):
-    assert oracle.budget_for(server) == expected, f"{server.url} should send {expected} characters"
+    assert oracle.budget_for(server) == expected, f"{server} should send {expected} characters"
 
 
 def test_answer_streams_from_a_server(mocker):
@@ -75,5 +75,5 @@ def test_answer_streams_from_a_server(mocker):
 def test_answer_asks_apple(mocker):
     respond = mocker.patch("wisp.oracle.apple.respond", return_value="done")
     messages = [{"role": "system", "content": "s"}, {"role": "user", "content": "q"}]
-    assert oracle.answer(oracle.Server("apple", "", ""), messages, None, "/data") == "done"
+    assert oracle.answer(oracle.APPLE, messages, None, "/data") == "done"
     respond.assert_called_once_with(messages, "/data")

@@ -43,15 +43,16 @@ library only.
 
 ## Ask the log: `l ?`
 
-Set **Model server** in the workflow configuration to one of:
+Pick a model in the workflow configuration, one of:
 
-- the URL of [llama.cpp](https://github.com/ggml-org/llama.cpp)'s `llama-server`, or anything else
-  that answers OpenAI-style `/v1/chat/completions`, e.g. `http://127.0.0.1:8080`;
-- the word `apple` for Apple's on-device model (macOS 26 or later, an Apple-silicon Mac with
-  Apple Intelligence turned on, and the Command Line Tools for a one-time compile of a small Swift
-  helper into the workflow's data folder).
+- **Model server**: the URL of [llama.cpp](https://github.com/ggml-org/llama.cpp)'s `llama-server`,
+  or anything else that answers OpenAI-style `/v1/chat/completions`, e.g. `http://127.0.0.1:8080`;
+- **Apple Intelligence**: a checkbox for Apple's on-device model (macOS 26 or later, an
+  Apple-silicon Mac with Apple Intelligence turned on, and the Command Line Tools for a one-time
+  compile of a small Swift helper into the workflow's data folder). While it is ticked the server
+  fields are ignored.
 
-Until it is set, `l ?` only tells you to set it.
+Until one of them is set, `l ?` only tells you to set it.
 
 ```
 l ? today summary            Ask "today summary"   ↩ asks the model about 1 240 lines

@@ -85,11 +85,6 @@ def test_respond_when_the_model_refuses(tmp_path, mocker):
         apple.respond(MESSAGES, tmp_path)
 
 
-@pytest.mark.parametrize("url, expected", [("apple", True), ("Apple", True), ("http://h", False)])
-def test_is_apple(url, expected):
-    assert apple.is_apple(url) is expected, f"{url!r} should {'' if expected else 'not '}be Apple"
-
-
 def test_stale_compares_times(tmp_path):
     binary = tmp_path / "wisp-apple"
     assert apple.stale(binary) is True, "a missing binary is stale"
