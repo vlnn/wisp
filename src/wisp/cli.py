@@ -13,11 +13,9 @@ from typing import Callable
 from wisp import apple, macos, oracle, present, records, view
 
 DEFAULT_FOLDER = "~/log"
-QUESTION = "?"
 DRY_RUN = "--dry-run"
 JOB = "--job"
 KEEP = "--keep"
-USAGE = "usage: wisp filter|keep|rename-filter|rename|trash|mark|menu|ask|view|keep-answer ..."
 
 
 class Context:
@@ -75,13 +73,14 @@ def fail(text: str) -> int:
 
 
 def filter_command(args: list[str], ctx: Context) -> int:
-    query = (args[0] if args else "").strip()
-    if query.startswith(QUESTION):
-        question = query[len(QUESTION) :].strip()
-        server = ctx.server()
-        lines = ctx.lines_sent(server) if server else 0
-        return emit(present.question_rows(question, ctx.answers(), ctx.now, lines, bool(server)))
-    return emit(present.rows(query, ctx.logs(), ctx.now))
+    return emit(present.rows((args[0] if args else "").strip(), ctx.logs(), ctx.now))
+
+
+def ask_filter_command(args: list[str], ctx: Context) -> int:
+    question = (args[0] if args else "").strip()
+    server = ctx.server()
+    lines = ctx.lines_sent(server) if server else 0
+    return emit(present.question_rows(question, ctx.answers(), ctx.now, lines, bool(server)))
 
 
 def keep_command(args: list[str], ctx: Context) -> int:
@@ -222,10 +221,13 @@ COMMANDS: dict[str, Callable[[list[str], Context], int]] = {
     "trash": trash_command,
     "mark": mark_command,
     "menu": menu_command,
+    "ask-filter": ask_filter_command,
     "ask": ask_command,
     "view": view_command,
     "keep-answer": keep_answer_command,
 }
+
+USAGE = "usage: wisp " + "|".join(COMMANDS) + " ..."
 
 
 def run(

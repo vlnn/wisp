@@ -158,6 +158,12 @@ def test_keep_writes_a_task(run, folder):
     )
 
 
+def test_filter_treats_a_question_mark_as_a_kind(run, logged):
+    logged("? ship friday", 5)
+    _, out = run("filter", "?")
+    assert titles(out) == ["? ship friday"], "? is a sigil in the list, not the ask mode"
+
+
 def test_filter_by_sigil_lists_that_kind(run, logged):
     logged(". fix the build", 5)
     logged("* test api manually", 3)
@@ -239,7 +245,7 @@ def test_log_folder(env, expected, monkeypatch):
 
 
 def test_question_without_a_server_says_what_to_set(run, sample):
-    _, out = run("filter", "? today summary")
+    _, out = run("ask-filter", "today summary")
     (row,) = rows(out)
     assert row["title"] == present.NO_SERVER, "without a server the only row says how to get one"
     assert row["valid"] is False, "and it cannot be actioned"
@@ -248,7 +254,7 @@ def test_question_without_a_server_says_what_to_set(run, sample):
 def test_question_offers_to_ask_then_lists_past_answers(run, served, sample, answered):
     answered("today summary", "Docs, mostly.", 60)
     answered("what about api", "Made v1.", 30)
-    _, out = run("filter", "? today summary")
+    _, out = run("ask-filter", "today summary")
     assert titles(out) == ['Ask "today summary"', "today summary"], (
         "the Ask row first, then earlier answers whose question matches"
     )
@@ -262,7 +268,7 @@ def test_question_offers_to_ask_then_lists_past_answers(run, served, sample, ans
 def test_bare_question_mark_lists_every_answer_newest_first(run, served, answered):
     answered("today summary", "Docs, mostly.", 60)
     answered("what about api", "Made v1.", 30)
-    _, out = run("filter", "?")
+    _, out = run("ask-filter", "")
     assert titles(out) == ["what about api", "today summary"], (
         "all answers, newest first, no Ask row"
     )
@@ -270,7 +276,7 @@ def test_bare_question_mark_lists_every_answer_newest_first(run, served, answere
 
 def test_answer_row_shape(run, served, answered):
     path = str(answered("today summary", "Docs, mostly.\nAnd a meeting.", 10))
-    _, out = run("filter", "?")
+    _, out = run("ask-filter", "")
     (row,) = rows(out)
     assert row["subtitle"] == "14:50 today · Docs, mostly.", (
         "when it was answered and how it starts"
@@ -363,7 +369,7 @@ def test_ask_with_blank_question(run, served, sample, notify):
 
 def test_question_row_counts_only_the_lines_that_fit(run, env, sample):
     env["oracle_apple"] = "1"
-    _, out = run("filter", "? today summary")
+    _, out = run("ask-filter", "today summary")
     assert rows(out)[0]["subtitle"] == "↩ asks the model about 5 lines", "five short lines fit"
 
 

@@ -24,12 +24,14 @@ SYSTEM = (
     "Today is {today}. The log is below the question, newest line first, "
     "each line as `YYYY-MM-DD HH:MM  text`. Some lines carry a word before the text: "
     "TODO is a task still open, DONE is a finished task (the time after DONE is when it "
-    "was finished), NOTE is something the person flagged as important. Lines without "
-    "a word are plain log entries. Answer from the log only, briefly, "
+    "was finished), QUESTION is a question still open, DECIDED is a question settled or a "
+    "decision made (the time after DECIDED is when), NOTE is something the person flagged as "
+    "important. Lines without a word are plain log entries. Answer from the log only, briefly, "
     "in the language of the question, as plain text without headings."
 )
 
-TAGS = {Kind.TASK: "TODO", Kind.NOTE: "NOTE"}
+TAGS = {Kind.TASK: "TODO", Kind.NOTE: "NOTE", Kind.QUESTION: "QUESTION"}
+SETTLED = {Kind.DONE: "DONE", Kind.DECISION: "DECIDED"}
 STAMP = "%Y-%m-%d %H:%M"
 
 
@@ -77,8 +79,8 @@ def line(record: Record) -> str:
 
 
 def tagged(record: Record) -> str:
-    if record.kind is Kind.DONE:
-        return f"DONE {record.changed:{STAMP}}  {record.line}"
+    if record.kind in SETTLED:
+        return f"{SETTLED[record.kind]} {record.changed:{STAMP}}  {record.line}"
     if record.kind in TAGS:
         return f"{TAGS[record.kind]}  {record.line}"
     return record.text

@@ -18,8 +18,8 @@ folder needs no index, no database and no sync of its own.
 
 | Key | On a record |
 | --- | --- |
-| ↩ | a menu of what this record can do, the usual thing on the first row: *Open* for a log, *Finish* for a task, *Reopen* for a done one, then Open, Rename, Copy, Trash. ↩ again runs it; type to narrow |
-| ⇧↩ | copy the text; on a task, mark it done (and on a done task, reopen it) |
+| ↩ | a menu of what this record can do, the usual thing on the first row: *Open* for a log, *Finish* for a task, *Decide* for a question, *Reopen* for a done or decided one, then Open, Rename, Copy, Trash. ↩ again runs it; type to narrow |
+| ⇧↩ | copy the text; on a task or a question, settle it (and on a settled one, reopen it) |
 | ⌥↩ | move the file to the Trash (Finder's, with Put Back) |
 | ⌘↩ | rename: the text is prefilled, edit it, ↩ |
 | ⌘C | copy the text |
@@ -29,28 +29,35 @@ folder needs no index, no database and no sync of its own.
 Matching: every word you type must be a prefix of a word in the line; case and diacritics are
 ignored. There is no cap on the number of rows.
 
-## Tasks and notes
+## Tasks, notes, questions, decisions
 
 A line is a plain log unless it starts with a sigil and a space:
 
 ```
 l . fix the build            Task "fix the build"      ↩ keeps `. fix the build`
 l ! keys are in 1password    Note "keys are in 1password"
+l ? postgres or sqlite       Question "postgres or sqlite"
+l = postgres, two writers    Decision "postgres, two writers"
 l .                          open tasks, newest first
 l . build                    open tasks about build
 l *                          done tasks: "done 16:40 today · 09:12 today"
+l ?                          open questions
+l =                          decisions: "decided Tue 7 Oct 11:02 · Mon 6 Oct 16:30"
 l !                          notes
 ```
 
 ⇧↩ (or ↩ ↩, *Finish*) on a task turns `. fix the build` into `* fix the build` in place; the file keeps its creation
 time and its name, and the time it was marked is the file's modification time, so a done task
-knows both when it was written and when it was finished. ⇧↩ again reopens it. The sigil has to be
+knows both when it was written and when it was finished. ⇧↩ again reopens it. A question works the
+same way: *Decide* turns `? ship friday` into `= ship friday`, and a decision that needs more words
+than the question had is a ⌘↩ rename away. A decision can also be logged directly with `=`. The sigil has to be
 followed by a space: `.gitignore moved` and `*args again` are plain logs. Words without a sigil
 match every kind, so `l build` finds the task too.
 
 The sigils are deliberately the bullet journal's: `.` a task, `*` crossed out, `!` worth
-remembering. Each kind has its own dot in the list: green for a log, ochre for a task, an ochre
-ring once it is done, terracotta for a note. The colours are the top of `workflow/icons.py`;
+remembering, with `?` and `=` for the thing a work log is worst at answering months later, why.
+Each kind has its own dot in the list: green for a log, ochre for a task, blue for a question,
+terracotta for a note, and a ring of the same colour once a task is done or a question decided. The colours are the top of `workflow/icons.py`;
 `uv run python workflow/icons.py` redraws them.
 
 ## Install
@@ -58,14 +65,15 @@ ring once it is done, terracotta for a note. The colours are the top of `workflo
 1. Build `dist/Wisp.alfredworkflow` with `./build.sh` (or take it from Releases) and double-click it.
 2. In the workflow's configuration set **Log folder**. The default is `~/log`; it is created on the
    first log.
-3. Optional: a hotkey. The workflow ships a Hotkey object wired to the `l` list, meant for
-   HYPER+L (⌃⌥⇧⌘L). Alfred clears hotkey combinations on import so they never clash with yours, so
-   double-click the object once and press the combination you want.
+3. Optional: hotkeys. The workflow ships two Hotkey objects, one wired to the `l` list and meant
+   for HYPER+L (⌃⌥⇧⌘L), one wired to `ask` and meant for HYPER+/ (⌃⌥⇧⌘/). Alfred clears hotkey
+   combinations on import so they never clash with yours, so double-click each object once and
+   press the combination you want.
 
 Nothing to install: the bundle runs on macOS's own `/usr/bin/python3` (3.9+) with the standard
 library only.
 
-## Ask the log: `l ?`
+## Ask the log: `ask`
 
 Pick a model in the workflow configuration, one of:
 
@@ -76,23 +84,23 @@ Pick a model in the workflow configuration, one of:
   compile of a small Swift helper into the workflow's data folder). While it is ticked the server
   fields are ignored.
 
-Until one of them is set, `l ?` only tells you to set it.
+Until one of them is set, `ask` only tells you to set it.
 
 ```
-l ? today summary            Ask "today summary"   ↩ asks the model about 1 240 lines
-l ? what did I do with api   …
-l ?                          every earlier answer, newest first
+ask today summary            Ask "today summary"   ↩ asks the model about 1 240 lines
+ask what did I do with api   …
+ask                          every earlier answer, newest first
 ```
 
 ↩ on **Ask** opens a text view inside Alfred and the answer streams into it as the model writes
 (the Apple model answers in one go). In the view, ↩ copies the answer and ⌥↩ keeps it as a file
 and opens it; Esc closes the view and the answer is gone unless you kept it. Kept answers are
 markdown files (question on the first line, answer below) in Alfred's data folder for the
-workflow; `l ?` lists them like log lines: ↩ opens, ⇧↩ copies the answer, ⌥↩ trashes it.
+workflow; `ask` lists them like log lines: ↩ opens, ⇧↩ copies the answer, ⌥↩ trashes it.
 
-The model sees each line as `YYYY-MM-DD HH:MM  text`; tasks and notes carry a word before the
-text, `TODO`, `NOTE`, or `DONE` with the time they were finished, so "what is still open?" and
-"what did I finish this week?" are questions it can answer. The question goes with the log, newest
+The model sees each line as `YYYY-MM-DD HH:MM  text`; the other kinds carry a word before the
+text, `TODO`, `QUESTION`, `NOTE`, or `DONE` and `DECIDED` with the time they were settled, so "what
+is still open?", "what did I finish this week?" and "why postgres?" are questions it can answer. The question goes with the log, newest
 line first, cut at about 12 000 characters for a server and
 6 000 for the Apple model, whose context window is 4 096 tokens; the **Ask** row says how many lines
 that is. The model only ever runs when you press ↩ on **Ask**, never while you type. On a server,
@@ -127,7 +135,7 @@ oracle_url=http://127.0.0.1:8080 uv run wisp ask "today summary"
 `oracle_url`, `oracle_model` and `oracle_key` configure the model the way the panel does;
 `alfred_workflow_data` is where kept answers go (default `~/Library/Application Support/wisp`).
 
-`filter`, `rename-filter`, `menu` and `view` print Alfred's JSON, `mark` prints the flipped line, `ask` prints the answer (`ask --keep` and
+`filter`, `ask-filter`, `rename-filter`, `menu` and `view` print Alfred's JSON, `mark` prints the flipped line, `ask` prints the answer (`ask --keep` and
 `keep-answer "<question>" "<answer>"` save it and print the file's path), the rest print the text
 they acted on. `wisp ask --job <folder> "…"` is what the text view runs in the background: progress
 goes to that folder instead of notifications.

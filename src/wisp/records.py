@@ -22,10 +22,17 @@ class Kind(Enum):
     TASK = "."
     DONE = "*"
     NOTE = "!"
+    QUESTION = "?"
+    DECISION = "="
 
 
 SIGILS = {kind.value: kind for kind in Kind if kind.value}
-FLIPPED = {Kind.TASK: Kind.DONE, Kind.DONE: Kind.TASK}
+FLIPPED = {
+    Kind.TASK: Kind.DONE,
+    Kind.DONE: Kind.TASK,
+    Kind.QUESTION: Kind.DECISION,
+    Kind.DECISION: Kind.QUESTION,
+}
 
 
 @dataclass(frozen=True)

@@ -12,6 +12,8 @@ MIXED = (
     "* test api manually",
     ". document api",
     ". fix the build",
+    "? api v2 or patch v1",
+    "= patch v1, api v2 in spring",
     "api v1",
 )
 
@@ -72,6 +74,8 @@ def test_words(text, expected):
         (". api", Kind.TASK, "api"),
         ("*", Kind.DONE, ""),
         ("! api", Kind.NOTE, "api"),
+        ("?", Kind.QUESTION, ""),
+        ("= api", Kind.DECISION, "api"),
         (".gitignore", None, ".gitignore"),
     ],
 )
@@ -83,12 +87,8 @@ def test_query_splits_a_leading_sigil_from_the_words(query, kind, words):
 
 def test_search_without_a_sigil_matches_every_kind(mixed):
     found = [r.text for r in search.search("api", mixed)]
-    assert found == [
-        "! api keys are in 1password",
-        "* test api manually",
-        ". document api",
-        "api v1",
-    ], "words alone should match the line of any kind"
+    expected = [text for text in MIXED if text != ". fix the build"]
+    assert found == expected, "words alone should match the line of any kind"
 
 
 @pytest.mark.parametrize(
@@ -98,6 +98,8 @@ def test_search_without_a_sigil_matches_every_kind(mixed):
         (". api", [". document api"]),
         ("*", ["* test api manually"]),
         ("!", ["! api keys are in 1password"]),
+        ("?", ["? api v2 or patch v1"]),
+        ("= spring", ["= patch v1, api v2 in spring"]),
         ("! build", []),
     ],
 )

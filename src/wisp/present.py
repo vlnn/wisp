@@ -7,14 +7,34 @@ from wisp.oracle import Answer
 from wisp.records import Kind, Record, first_line, normalise, parse
 from wisp.search import matches, query, search
 
-OFFERS = {Kind.LOG: "Log", Kind.TASK: "Task", Kind.DONE: "Done", Kind.NOTE: "Note"}
-FLIPS = {Kind.TASK: "Mark done", Kind.DONE: "Reopen"}
-FINISHES = {Kind.TASK: "Finish", Kind.DONE: "Reopen"}
+OFFERS = {
+    Kind.LOG: "Log",
+    Kind.TASK: "Task",
+    Kind.DONE: "Done",
+    Kind.NOTE: "Note",
+    Kind.QUESTION: "Question",
+    Kind.DECISION: "Decision",
+}
+FLIPS = {
+    Kind.TASK: "Mark done",
+    Kind.DONE: "Reopen",
+    Kind.QUESTION: "Decide",
+    Kind.DECISION: "Reopen",
+}
+FINISHES = {
+    Kind.TASK: "Finish",
+    Kind.DONE: "Reopen",
+    Kind.QUESTION: "Decide",
+    Kind.DECISION: "Reopen",
+}
+SETTLED = {Kind.DONE: "done", Kind.DECISION: "decided"}
 ICONS = {
     Kind.LOG: "icons/log.png",
     Kind.TASK: "icons/task.png",
     Kind.DONE: "icons/done.png",
     Kind.NOTE: "icons/note.png",
+    Kind.QUESTION: "icons/question.png",
+    Kind.DECISION: "icons/decision.png",
 }
 
 
@@ -75,8 +95,8 @@ def icon(kind: Kind) -> dict:
 
 def record_when(record: Record, now: datetime) -> str:
     written = when(record.created, now)
-    if record.kind is Kind.DONE:
-        return f"done {when(record.changed, now)} · {written}"
+    if record.kind in SETTLED:
+        return f"{SETTLED[record.kind]} {when(record.changed, now)} · {written}"
     return written
 
 

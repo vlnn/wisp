@@ -14,12 +14,15 @@ RING = 0.11
 OCHRE = (0xC8, 0x90, 0x2A)
 GREEN = (0x5B, 0x9A, 0x6A)
 TERRACOTTA = (0xC2, 0x50, 0x3D)
+BLUE = (0x4A, 0x7F, 0xB5)
 
 ICONS = {
     "log": (GREEN, False),
     "task": (OCHRE, False),
     "done": (OCHRE, True),
     "note": (TERRACOTTA, False),
+    "question": (BLUE, False),
+    "decision": (BLUE, True),
 }
 
 

@@ -40,6 +40,8 @@ def test_no_server_names_both_ways_to_get_one():
         (".   fix the build", 'Task "fix the build"', ". fix the build"),
         ("! keys in 1password", 'Note "keys in 1password"', "! keys in 1password"),
         ("* did it already", 'Done "did it already"', "* did it already"),
+        ("? ship friday", 'Question "ship friday"', "? ship friday"),
+        ("= ship friday", 'Decision "ship friday"', "= ship friday"),
     ],
 )
 def test_keep_row_names_the_kind(text, title, arg):
@@ -48,7 +50,7 @@ def test_keep_row_names_the_kind(text, title, arg):
     assert row["arg"] == arg, f"↩ should keep {arg!r}"
 
 
-@pytest.mark.parametrize("query", [".", "*", "!", "  .  "])
+@pytest.mark.parametrize("query", [".", "*", "!", "?", "=", "  .  "])
 def test_a_bare_sigil_only_filters(query):
     assert present.rows(query, [], NOW) == [], f"{query!r} has nothing to keep"
 
@@ -78,6 +80,18 @@ def test_done_row_shows_both_times_and_reopens_on_shift():
     assert row["mods"]["shift"]["variables"] == {"action": "mark"}, "the same action flips back"
 
 
+def test_question_row_decides_on_shift_and_a_decision_reopens():
+    asked = datetime(2026, 10, 9, 9, 12)
+    question = present.record_row(a_record("? ship friday", asked), NOW)
+    assert question["mods"]["shift"]["subtitle"] == "Decide", "⇧↩ on a question settles it"
+    assert question["mods"]["shift"]["variables"] == {"action": "mark"}, "it is the mark action"
+    decision = present.record_row(a_record("= ship friday", asked, NOW), NOW)
+    assert decision["subtitle"] == "decided 15:00 today · yesterday 09:12", (
+        "a decision shows when it was made and when the question was raised"
+    )
+    assert decision["mods"]["shift"]["subtitle"] == "Reopen", "⇧↩ on a decision reopens it"
+
+
 @pytest.mark.parametrize("text", ["plain log", "! keys in 1password"])
 def test_other_rows_still_copy_on_shift(text):
     row = present.record_row(a_record(text, NOW), NOW)
@@ -93,6 +107,8 @@ def test_other_rows_still_copy_on_shift(text):
         ("! keys in 1password", ["Open", "Rename", "Copy", "Trash"]),
         (". fix the build", ["Finish", "Open", "Rename", "Copy", "Trash"]),
         ("* fix the build", ["Reopen", "Open", "Rename", "Copy", "Trash"]),
+        ("? ship friday", ["Decide", "Open", "Rename", "Copy", "Trash"]),
+        ("= ship friday", ["Reopen", "Open", "Rename", "Copy", "Trash"]),
     ],
 )
 def test_menu_lists_what_the_kind_can_do(text, titles):
@@ -142,6 +158,8 @@ def test_record_row_opens_the_menu_on_enter():
         (". fix the build", "icons/task.png"),
         ("* fix the build", "icons/done.png"),
         ("! keys in 1password", "icons/note.png"),
+        ("? ship friday", "icons/question.png"),
+        ("= ship friday", "icons/decision.png"),
     ],
 )
 def test_rows_carry_the_icon_of_their_kind(text, icon):

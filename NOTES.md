@@ -15,7 +15,8 @@ Eight small modules, each with one job, so a feature lands in one of them:
 | `view` | the Text View protocol: a job's files, the JSON for each state | the view shows something new |
 | `cli` | subcommands, the folder setting | a new subcommand, a new setting |
 
-Alfred wiring is `workflow/info.plist`: one script filter (`l`) whose ↩ passes a conditional on the
+Alfred wiring is `workflow/info.plist`: two script filters, `l` for the log and `ask` for the model,
+each with a hotkey object. Both ↩ into one conditional on the
 `action` variable: `ask` goes to the Text View (script file `view` at the bundle root), `menu` to a
 second, keywordless script filter (`menu`) that lists what the record can do, anything else (`keep`,
 and `open` from an answer row) to the ↩ script. The menu's rows carry the same `action` values the
@@ -52,11 +53,11 @@ a clock on its own.
 
 ## Kinds
 
-A kind is the first character of the line when a space follows it: `.` task, `*` done, `!` note,
-anything else a plain log. `records.parse` is the one place that knows this; `Record.kind` and
+A kind is the first character of the line when a space follows it: `.` task, `*` done, `?`
+question, `=` decision, `!` note, anything else a plain log. `records.parse` is the one place that knows this; `Record.kind` and
 `Record.line` read through it, `compose` writes it back, and `keep` and `rename` normalise the
-spacing. `mark` flips `.` and `*` by rewriting the first line and nothing else, so the body and the
-birth time survive and `st_mtime` becomes the done time. The sigils are not word characters, so the
+spacing. `mark` flips `.` and `*`, and `?` and `=`, by rewriting the first line and nothing else, so the
+body and the birth time survive and `st_mtime` becomes the time it was settled. The sigils are not word characters, so the
 slug ignores them and marking never moves a file.
 
 The query carries the same sigil as a filter on kind (`search.query`), with the words matched
@@ -88,13 +89,13 @@ the choice is between a second sigil position (`!. `) and making `!` orthogonal 
 The design discussed before this was built (statuses, questions, snippets, sweep, promote, a local
 model for tags, like and digests) is all compatible with the current files:
 
-- Kinds are in (`.`, `*`, `!`); a `?` question kind cannot use `?` at the filter level, which is
-  the ask mode, and a code span would be read by `records` the same way as the sigils.
+- Kinds are in (`.`, `*`, `?`, `=`, `!`); the ask mode moved to its own `ask` keyword to free `?`.
+  A code span would be read by `records` the same way as the sigils.
 - `sweep` is a new subcommand in `cli` that proposes moves between the log folder and an archive
   folder; `present` renders the proposal rows; `records` moves. Done tasks are the first thing it
   would propose.
 - `promote` is a verb in `records` with a target per kind, settings in the plist.
-- Model work beyond `l ?` (tags, embeddings, digest) extends `oracle`; it only ever runs from a
+- Model work beyond `ask` (tags, embeddings, digest) extends `oracle`; it only ever runs from a
   `Run Script` object, never on a keystroke, and writes next to the log, never into the files.
   `digest` is `ask` with a fixed question over one day; `like` needs an embeddings endpoint and a
   vector file, the one piece of state the current design has no home for yet.

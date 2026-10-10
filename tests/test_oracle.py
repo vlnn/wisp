@@ -50,6 +50,7 @@ def test_line_is_date_time_and_text():
     [
         (". fix the build", "2026-10-10 14:50  TODO  fix the build"),
         ("! keys in 1password", "2026-10-10 14:50  NOTE  keys in 1password"),
+        ("? ship friday", "2026-10-10 14:50  QUESTION  ship friday"),
         (".gitignore moved", "2026-10-10 14:50  .gitignore moved"),
     ],
 )
@@ -65,11 +66,18 @@ def test_done_line_carries_the_time_it_was_done():
     )
 
 
-def test_system_prompt_explains_the_kinds():
-    system, _ = (m["content"] for m in oracle.prompt("q", [], NOW))
-    assert "TODO" in system and "DONE" in system and "NOTE" in system, (
-        "the model should be told what the kind words mean"
+def test_decision_line_carries_the_time_it_was_made():
+    asked = NOW - timedelta(days=1, minutes=10)
+    decision = records.Record(Path("/log/x.md"), "= ship friday", asked, NOW)
+    assert oracle.line(decision) == "2026-10-09 14:50  DECIDED 2026-10-10 15:00  ship friday", (
+        "a decision should show when it was raised and when it was settled"
     )
+
+
+@pytest.mark.parametrize("word", ["TODO", "DONE", "NOTE", "QUESTION", "DECIDED"])
+def test_system_prompt_explains_the_kinds(word):
+    system, _ = (m["content"] for m in oracle.prompt("q", [], NOW))
+    assert word in system, f"the model should be told what {word} means"
 
 
 def test_evidence_lists_newest_first():

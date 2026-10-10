@@ -114,11 +114,15 @@ def test_rename_avoids_an_existing_name(folder):
         (". another task", records.Kind.TASK, "another task"),
         ("* another task", records.Kind.DONE, "another task"),
         ("! remember this", records.Kind.NOTE, "remember this"),
+        ("? postgres or sqlite", records.Kind.QUESTION, "postgres or sqlite"),
+        ("= postgres, concurrent writers", records.Kind.DECISION, "postgres, concurrent writers"),
         (".   spaced out", records.Kind.TASK, "spaced out"),
         (".", records.Kind.TASK, ""),
         (".gitignore moved", records.Kind.LOG, ".gitignore moved"),
         ("*args again", records.Kind.LOG, "*args again"),
         ("!!!", records.Kind.LOG, "!!!"),
+        ("?!", records.Kind.LOG, "?!"),
+        ("== compare", records.Kind.LOG, "== compare"),
         ("", records.Kind.LOG, ""),
     ],
 )
@@ -133,6 +137,8 @@ def test_parse_reads_a_sigil_followed_by_a_space(text, kind, line):
         (records.Kind.TASK, "another task", ". another task"),
         (records.Kind.DONE, "another task", "* another task"),
         (records.Kind.NOTE, "remember this", "! remember this"),
+        (records.Kind.QUESTION, "why", "? why"),
+        (records.Kind.DECISION, "because", "= because"),
     ],
 )
 def test_compose_puts_the_sigil_back(kind, line, expected):
@@ -167,6 +173,8 @@ def test_read_folder_reads_when_a_record_changed(folder, created, changed, stamp
     [
         (". fix the build", "* fix the build"),
         ("* fix the build", ". fix the build"),
+        ("? deploy on friday", "= deploy on friday"),
+        ("= deploy on friday", "? deploy on friday"),
     ],
 )
 def test_mark_flips_a_task_between_open_and_done(folder, before, after):
@@ -180,7 +188,7 @@ def test_mark_flips_a_task_between_open_and_done(folder, before, after):
 def test_mark_leaves_other_kinds_alone(folder, text):
     path = records.keep(folder, text)
     records.mark(path)
-    assert path.read_text() == f"{text}\n", "only tasks have a done state to flip"
+    assert path.read_text() == f"{text}\n", "only tasks and questions have a state to flip"
 
 
 def test_mark_keeps_the_body(folder):
