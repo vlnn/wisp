@@ -75,6 +75,7 @@ def test_words(text, expected):
         ("*", Kind.DONE, ""),
         ("! api", Kind.NOTE, "api"),
         ("?", Kind.QUESTION, ""),
+        ("?api", Kind.QUESTION, "api"),
         ("= api", Kind.DECISION, "api"),
         (".gitignore", None, ".gitignore"),
     ],

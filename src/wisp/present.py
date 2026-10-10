@@ -36,6 +36,7 @@ ICONS = {
     Kind.QUESTION: "icons/question.png",
     Kind.DECISION: "icons/decision.png",
 }
+ANSWER_ICON = "icons/answer.png"
 
 
 def when(created: datetime, now: datetime) -> str:
@@ -156,6 +157,7 @@ def ask_row(question: str, lines: int) -> dict:
         "title": f'Ask "{question}"',
         "subtitle": f"↩ asks the model about {lines} lines",
         "arg": question,
+        "icon": {"path": ANSWER_ICON},
         "variables": {"action": "ask"},
         "mods": {mod: {"valid": False, "subtitle": ""} for mod in ("shift", "alt", "cmd")},
     }
@@ -167,6 +169,7 @@ def answer_row(answer: Answer, now: datetime) -> dict:
         "title": answer.question,
         "subtitle": f"{when(answer.created, now)} · {first_line(answer.answer)}",
         "arg": path,
+        "icon": {"path": ANSWER_ICON},
         "type": "file",
         "quicklookurl": path,
         "variables": {"action": "open"},

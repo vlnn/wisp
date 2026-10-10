@@ -118,15 +118,16 @@ def test_rename_avoids_an_existing_name(folder):
         ("= postgres, concurrent writers", records.Kind.DECISION, "postgres, concurrent writers"),
         (".   spaced out", records.Kind.TASK, "spaced out"),
         (".", records.Kind.TASK, ""),
+        ("?will it work", records.Kind.QUESTION, "will it work"),
+        ("!important", records.Kind.NOTE, "important"),
+        ("=42", records.Kind.DECISION, "42"),
         (".gitignore moved", records.Kind.LOG, ".gitignore moved"),
         ("*args again", records.Kind.LOG, "*args again"),
-        ("!!!", records.Kind.LOG, "!!!"),
-        ("?!", records.Kind.LOG, "?!"),
-        ("== compare", records.Kind.LOG, "== compare"),
+        ("...", records.Kind.LOG, "..."),
         ("", records.Kind.LOG, ""),
     ],
 )
-def test_parse_reads_a_sigil_followed_by_a_space(text, kind, line):
+def test_parse_reads_a_leading_sigil(text, kind, line):
     assert records.parse(text) == (kind, line), f"{text!r} should parse as {kind} {line!r}"
 
 

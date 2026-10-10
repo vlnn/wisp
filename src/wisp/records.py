@@ -27,6 +27,7 @@ class Kind(Enum):
 
 
 SIGILS = {kind.value: kind for kind in Kind if kind.value}
+TIGHT = {Kind.QUESTION, Kind.NOTE, Kind.DECISION}
 FLIPPED = {
     Kind.TASK: Kind.DONE,
     Kind.DONE: Kind.TASK,
@@ -52,8 +53,9 @@ class Record:
 
 
 def parse(text: str) -> tuple[Kind, str]:
-    if text[:1] in SIGILS and (len(text) == 1 or text[1].isspace()):
-        return SIGILS[text[0]], text[1:].strip()
+    kind = SIGILS.get(text[:1])
+    if kind and (kind in TIGHT or len(text) == 1 or text[1].isspace()):
+        return kind, text[1:].strip()
     return Kind.LOG, text
 
 

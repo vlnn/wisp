@@ -53,8 +53,9 @@ a clock on its own.
 
 ## Kinds
 
-A kind is the first character of the line when a space follows it: `.` task, `*` done, `?`
-question, `=` decision, `!` note, anything else a plain log. `records.parse` is the one place that knows this; `Record.kind` and
+A kind is the first character of the line: `.` task, `*` done, `?` question, `=` decision, `!`
+note, anything else a plain log. `.` and `*` count only when a space follows them, since they
+start file names and globs; `?`, `!` and `=` count on their own (`records.TIGHT`). `records.parse` is the one place that knows this; `Record.kind` and
 `Record.line` read through it, `compose` writes it back, and `keep` and `rename` normalise the
 spacing. `mark` flips `.` and `*`, and `?` and `=`, by rewriting the first line and nothing else, so the
 body and the birth time survive and `st_mtime` becomes the time it was settled. The sigils are not word characters, so the

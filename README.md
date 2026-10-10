@@ -31,7 +31,7 @@ ignored. There is no cap on the number of rows.
 
 ## Tasks, notes, questions, decisions
 
-A line is a plain log unless it starts with a sigil and a space:
+A line is a plain log unless it starts with a sigil:
 
 ```
 l . fix the build            Task "fix the build"      ↩ keeps `. fix the build`
@@ -50,15 +50,16 @@ l !                          notes
 time and its name, and the time it was marked is the file's modification time, so a done task
 knows both when it was written and when it was finished. ⇧↩ again reopens it. A question works the
 same way: *Decide* turns `? ship friday` into `= ship friday`, and a decision that needs more words
-than the question had is a ⌘↩ rename away. A decision can also be logged directly with `=`. The sigil has to be
-followed by a space: `.gitignore moved` and `*args again` are plain logs. Words without a sigil
+than the question had is a ⌘↩ rename away. A decision can also be logged directly with `=`. `.` and `*` need a space after them, so
+`.gitignore moved` and `*args again` stay plain logs; `?`, `!` and `=` never start a word, so
+`?will it work` is the same question as `? will it work`. Words without a sigil
 match every kind, so `l build` finds the task too.
 
 The sigils are deliberately the bullet journal's: `.` a task, `*` crossed out, `!` worth
 remembering, with `?` and `=` for the thing a work log is worst at answering months later, why.
 Each kind has its own dot in the list: green for a log, terracotta for a note, and for the kinds
 that get settled a ring while they are open and a filled dot once they are: ochre for a task,
-blue for a question. The colours are the top of `workflow/icons.py`;
+blue for a question. The model's answers under `ask` are plum. The colours are the top of `workflow/icons.py`;
 `uv run python workflow/icons.py` redraws them.
 
 ## Install

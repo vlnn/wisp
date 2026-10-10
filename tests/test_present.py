@@ -5,6 +5,7 @@ import pytest
 
 from conftest import NOW
 from wisp import present
+from wisp.oracle import Answer
 from wisp.records import Kind, Record
 
 
@@ -41,6 +42,7 @@ def test_no_server_names_both_ways_to_get_one():
         ("! keys in 1password", 'Note "keys in 1password"', "! keys in 1password"),
         ("* did it already", 'Done "did it already"', "* did it already"),
         ("? ship friday", 'Question "ship friday"', "? ship friday"),
+        ("?ship friday", 'Question "ship friday"', "? ship friday"),
         ("= ship friday", 'Decision "ship friday"', "= ship friday"),
     ],
 )
@@ -166,6 +168,16 @@ def test_rows_carry_the_icon_of_their_kind(text, icon):
     row = present.record_row(a_record(text, NOW), NOW)
     assert row["icon"] == {"path": icon}, f"{text!r} should show {icon}"
     assert present.keep_row(text)["icon"] == {"path": icon}, "the offer row shows the kind too"
+
+
+def test_ask_rows_carry_the_answer_icon():
+    asked = Answer(Path("/data/answers/x.md"), "today summary", "Docs, mostly.", NOW)
+    ask, answer = present.question_rows("today", [asked], NOW, 5, served=True)
+    assert ask["icon"] == {"path": present.ANSWER_ICON}, "the Ask row shows the answer icon"
+    assert answer["icon"] == {"path": present.ANSWER_ICON}, "a kept answer shows it too"
+    assert (Path(__file__).parent.parent / "workflow" / present.ANSWER_ICON).is_file(), (
+        "the answer icon is in the bundle"
+    )
 
 
 def test_every_kind_has_an_icon_file():
