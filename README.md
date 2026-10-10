@@ -34,6 +34,9 @@ ignored. There is no cap on the number of rows.
 1. Build `dist/Wisp.alfredworkflow` with `./build.sh` (or take it from Releases) and double-click it.
 2. In the workflow's configuration set **Log folder**. The default is `~/log`; it is created on the
    first log.
+3. Optional: a hotkey. The workflow ships a Hotkey object wired to the `l` list, meant for
+   HYPER+L (⌃⌥⇧⌘L). Alfred clears hotkey combinations on import so they never clash with yours, so
+   double-click the object once and press the combination you want.
 
 Nothing to install: the bundle runs on macOS's own `/usr/bin/python3` (3.9+) with the standard
 library only.

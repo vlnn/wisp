@@ -64,6 +64,19 @@
 				<false/>
 			</dict>
 		</array>
+		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C07</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C01</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
 	</dict>
 	<key>createdby</key>
 	<string>Volodymyr Anokhin</string>
@@ -75,6 +88,37 @@
 	<string>Wisp</string>
 	<key>objects</key>
 	<array>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>action</key>
+				<integer>0</integer>
+				<key>argument</key>
+				<integer>0</integer>
+				<key>focusedappvariable</key>
+				<false/>
+				<key>focusedappvariablename</key>
+				<string></string>
+				<key>hotkey</key>
+				<integer>37</integer>
+				<key>hotmod</key>
+				<integer>1966080</integer>
+				<key>hotstring</key>
+				<string>L</string>
+				<key>leftcursor</key>
+				<false/>
+				<key>modsmode</key>
+				<integer>0</integer>
+				<key>relatedAppsMode</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.trigger.hotkey</string>
+			<key>uid</key>
+			<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C07</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
 		<dict>
 			<key>config</key>
 			<dict>
@@ -267,7 +311,7 @@ esac
 		</dict>
 	</array>
 	<key>readme</key>
-	<string>Type `l` followed by anything. The first row logs it; the rows below are the records that match, newest first. ↩ opens a record's file, ⇧↩ copies its text, ⌥↩ moves it to the Trash, ⌘↩ renames it.
+	<string>Type `l` followed by anything. The first row logs it; the rows below are the records that match, newest first. ↩ opens a record's file, ⇧↩ copies its text, ⌥↩ moves it to the Trash, ⌘↩ renames it. The hotkey object opens the same list; set its combination (HYPER+L is a good one) by double-clicking it.
 
 Records are markdown files in the Log folder, one per line; their creation time is the file's creation time.</string>
 	<key>uidata</key>
@@ -277,7 +321,7 @@ Records are markdown files in the Log folder, one per line; their creation time 
 			<key>xpos</key>
 			<integer>40</integer>
 			<key>ypos</key>
-			<integer>170</integer>
+			<integer>230</integer>
 		</dict>
 		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C02</key>
 		<dict>
@@ -313,6 +357,13 @@ Records are markdown files in the Log folder, one per line; their creation time 
 			<integer>580</integer>
 			<key>ypos</key>
 			<integer>410</integer>
+		</dict>
+		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C07</key>
+		<dict>
+			<key>xpos</key>
+			<integer>40</integer>
+			<key>ypos</key>
+			<integer>50</integer>
 		</dict>
 	</dict>
 	<key>userconfigurationconfig</key>
