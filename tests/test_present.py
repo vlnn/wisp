@@ -84,3 +84,51 @@ def test_other_rows_still_copy_on_shift(text):
     assert row["mods"]["shift"] == {"arg": text, "subtitle": "Copy to clipboard"}, (
         "⇧↩ keeps copying on anything that is not a task"
     )
+
+
+@pytest.mark.parametrize(
+    "text, titles",
+    [
+        ("plain log", ["Open", "Rename", "Copy", "Trash"]),
+        ("! keys in 1password", ["Open", "Rename", "Copy", "Trash"]),
+        (". fix the build", ["Finish", "Open", "Rename", "Copy", "Trash"]),
+        ("* fix the build", ["Reopen", "Open", "Rename", "Copy", "Trash"]),
+    ],
+)
+def test_menu_lists_what_the_kind_can_do(text, titles):
+    menu = present.menu_rows(a_record(text, NOW), "")
+    assert [row["title"] for row in menu] == titles, f"{text!r} should offer {titles}"
+
+
+def test_menu_rows_carry_the_same_actions_as_the_keys():
+    record = a_record(". fix the build", NOW)
+    by_title = {row["title"]: row for row in present.menu_rows(record, "")}
+    assert by_title["Finish"]["arg"] == "/log/x.md", "finish acts on the file"
+    assert by_title["Finish"]["variables"] == {"action": "mark"}, "finish is the mark action"
+    assert by_title["Open"]["variables"] == {"action": "open"}, "open is the open action"
+    assert by_title["Rename"]["arg"] == ". fix the build", "rename prefills the text"
+    assert by_title["Rename"]["variables"] == {"action": "rename", "path": "/log/x.md"}, (
+        "rename carries the path along"
+    )
+    assert by_title["Copy"]["arg"] == ". fix the build", "copy passes the text"
+    assert by_title["Copy"]["variables"] == {"action": "copy"}, "copy is its own action"
+    assert by_title["Trash"]["variables"] == {"action": "trash"}, "trash is the trash action"
+
+
+def test_menu_rows_say_which_record_they_act_on():
+    (row, *_) = present.menu_rows(a_record("plain log", NOW), "")
+    assert row["subtitle"] == "plain log", "the subtitle names the record"
+
+
+def test_menu_narrows_as_you_type():
+    menu = present.menu_rows(a_record(". fix the build", NOW), "re")
+    assert [row["title"] for row in menu] == ["Rename"], "typed words filter the menu by title"
+
+
+def test_record_row_opens_the_menu_on_ctrl():
+    row = present.record_row(a_record("plain log", NOW), NOW)
+    assert row["mods"]["ctrl"] == {
+        "arg": "",
+        "subtitle": "Actions…",
+        "variables": {"action": "menu", "path": "/log/x.md"},
+    }, "⌃↩ should open the menu for the file with an empty query"

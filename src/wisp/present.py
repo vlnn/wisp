@@ -9,6 +9,7 @@ from wisp.search import matches, query, search
 
 OFFERS = {Kind.LOG: "Log", Kind.TASK: "Task", Kind.DONE: "Done", Kind.NOTE: "Note"}
 FLIPS = {Kind.TASK: "Mark done", Kind.DONE: "Reopen"}
+FINISHES = {Kind.TASK: "Finish", Kind.DONE: "Reopen"}
 
 
 def when(created: datetime, now: datetime) -> str:
@@ -57,6 +58,11 @@ def record_row(record: Record, now: datetime) -> dict:
                 "subtitle": "Rename",
                 "variables": {"action": "rename", "path": path},
             },
+            "ctrl": {
+                "arg": "",
+                "subtitle": "Actions…",
+                "variables": {"action": "menu", "path": path},
+            },
         },
     }
 
@@ -76,6 +82,27 @@ def shift_mod(record: Record) -> dict:
             "variables": {"action": "mark"},
         }
     return {"arg": record.text, "subtitle": "Copy to clipboard"}
+
+
+def menu_rows(record: Record, typed: str) -> list[dict]:
+    return [row for row in menu(record) if matches(typed, row["title"])]
+
+
+def menu(record: Record) -> list[dict]:
+    path, text = str(record.path), record.text
+    flip = [(FINISHES[record.kind], path, {"action": "mark"})] if record.kind in FINISHES else []
+    actions = [
+        *flip,
+        ("Open", path, {"action": "open"}),
+        ("Rename", text, {"action": "rename", "path": path}),
+        ("Copy", text, {"action": "copy"}),
+        ("Trash", path, {"action": "trash"}),
+    ]
+    return [menu_row(title, text, arg, variables) for title, arg, variables in actions]
+
+
+def menu_row(title: str, subtitle: str, arg: str, variables: dict) -> dict:
+    return {"title": title, "subtitle": subtitle, "arg": arg, "variables": variables}
 
 
 def rename_row(text: str) -> dict:

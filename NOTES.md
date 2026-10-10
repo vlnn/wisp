@@ -18,11 +18,14 @@ Eight small modules, each with one job, so a feature lands in one of them:
 Alfred wiring is `workflow/info.plist`: one script filter (`l`) whose ↩ runs `keep` or `open` by the
 `action` variable, ⇧↩ passes a conditional (`action` equal to `mark` goes to the ↩ script, anything
 else to a clipboard object), ⌥↩ to `trash`, ⌘↩ to a second, keywordless script
-filter that prefills the text and runs `rename` with the `path` variable. ↩ passes a conditional
+filter that prefills the text and runs `rename` with the `path` variable, and ⌃↩ to a third,
+keywordless script filter (`menu`) whose rows carry the same `action` values; its ↩ passes a
+conditional that sends `rename`, `copy` and `trash` to the objects the modifier keys use and
+everything else to the ↩ script. A new row action is a new `variables.action` value handled in
+the ↩ script, and a new line in `present.menu`; a new key is a new connection from the first
+filter. Esc in the menu closes Alfred rather than going back to the list. ↩ passes a conditional
 first: `action` equal to `ask` goes to the Text View (script file `view` at the bundle root), anything
-else to the ↩ script. A new key is a new connection from the first filter; a new row action is a new
-`variables.action` value handled in the ↩ script.
-
+else to the ↩ script. 
 The Text View runs `wisp view <question>` with no `job` variable, which starts `wisp ask --job
 <folder>` detached and returns a rerun of 0.2 s; each rerun reads the job folder (`partial.md`,
 `done`, `error`) and renders it. The job folder is under Alfred's cache folder, so Alfred may clear

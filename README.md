@@ -22,6 +22,7 @@ folder needs no index, no database and no sync of its own.
 | ⇧↩ | copy the text; on a task, mark it done (and on a done task, reopen it) |
 | ⌥↩ | move the file to the Trash (Finder's, with Put Back) |
 | ⌘↩ | rename: the text is prefilled, edit it, ↩ |
+| ⌃↩ | a menu of everything this record can do; type to narrow it, ↩ runs it |
 | ⌘C | copy the text |
 | ⌘L | large type |
 | ⇧ or ⌘Y | Quick Look |
@@ -42,7 +43,7 @@ l *                          done tasks: "done 16:40 today · 09:12 today"
 l !                          notes
 ```
 
-⇧↩ on a task turns `. fix the build` into `* fix the build` in place; the file keeps its creation
+⇧↩ (or ⌃↩, *Finish*) on a task turns `. fix the build` into `* fix the build` in place; the file keeps its creation
 time and its name, and the time it was marked is the file's modification time, so a done task
 knows both when it was written and when it was finished. ⇧↩ again reopens it. The sigil has to be
 followed by a space: `.gitignore moved` and `*args again` are plain logs. Words without a sigil
@@ -118,13 +119,14 @@ uv run wisp rename ~/log/reading-docs.md "reading Apache docs"
 uv run wisp trash ~/log/reading-docs.md
 uv run wisp keep ". fix the build"
 uv run wisp mark ~/log/fix-the-build.md      → * fix the build (and back again)
+uv run wisp menu ~/log/fix-the-build.md      the ⌃↩ rows, as Alfred's JSON
 oracle_url=http://127.0.0.1:8080 uv run wisp ask "today summary"
 ```
 
 `oracle_url`, `oracle_model` and `oracle_key` configure the model the way the panel does;
 `alfred_workflow_data` is where kept answers go (default `~/Library/Application Support/wisp`).
 
-`filter`, `rename-filter` and `view` print Alfred's JSON, `mark` prints the flipped line, `ask` prints the answer (`ask --keep` and
+`filter`, `rename-filter`, `menu` and `view` print Alfred's JSON, `mark` prints the flipped line, `ask` prints the answer (`ask --keep` and
 `keep-answer "<question>" "<answer>"` save it and print the file's path), the rest print the text
 they acted on. `wisp ask --job <folder> "…"` is what the text view runs in the background: progress
 goes to that folder instead of notifications.

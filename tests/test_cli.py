@@ -427,3 +427,13 @@ def test_view_polls_a_running_job(run, served, sample, mocker, tmp_path):
 def test_view_without_a_server(run, sample):
     _, out = run("view", "today summary")
     assert json.loads(out)["response"] == f"**{present.NO_SERVER}**", "the view says what to set"
+
+
+def test_menu_lists_the_actions_for_one_record(run, logged):
+    path = logged(". fix the build", 5)
+    _, out = run("menu", str(path), "")
+    assert titles(out) == ["Finish", "Open", "Rename", "Copy", "Trash"], (
+        "the menu should be built from the record at that path"
+    )
+    _, out = run("menu", str(path), "fi")
+    assert titles(out) == ["Finish"], "the typed query narrows the menu"

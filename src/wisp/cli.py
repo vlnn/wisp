@@ -17,7 +17,7 @@ QUESTION = "?"
 DRY_RUN = "--dry-run"
 JOB = "--job"
 KEEP = "--keep"
-USAGE = "usage: wisp filter|keep|rename-filter|rename|trash|mark|ask|view|keep-answer ..."
+USAGE = "usage: wisp filter|keep|rename-filter|rename|trash|mark|menu|ask|view|keep-answer ..."
 
 
 class Context:
@@ -109,6 +109,11 @@ def trash_command(args: list[str], ctx: Context) -> int:
     text = records.first_line(path.read_text(encoding="utf-8"))
     macos.trash(path)
     return say(text)
+
+
+def menu_command(args: list[str], ctx: Context) -> int:
+    record = records.read_record(Path(args[0]), ctx.created, ctx.changed)
+    return emit(present.menu_rows(record, args[1] if len(args) > 1 else ""))
 
 
 def mark_command(args: list[str], ctx: Context) -> int:
@@ -216,6 +221,7 @@ COMMANDS: dict[str, Callable[[list[str], Context], int]] = {
     "rename": rename_command,
     "trash": trash_command,
     "mark": mark_command,
+    "menu": menu_command,
     "ask": ask_command,
     "view": view_command,
     "keep-answer": keep_answer_command,
