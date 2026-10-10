@@ -10,6 +10,12 @@ from wisp.search import matches, query, search
 OFFERS = {Kind.LOG: "Log", Kind.TASK: "Task", Kind.DONE: "Done", Kind.NOTE: "Note"}
 FLIPS = {Kind.TASK: "Mark done", Kind.DONE: "Reopen"}
 FINISHES = {Kind.TASK: "Finish", Kind.DONE: "Reopen"}
+ICONS = {
+    Kind.LOG: "icons/log.png",
+    Kind.TASK: "icons/task.png",
+    Kind.DONE: "icons/done.png",
+    Kind.NOTE: "icons/note.png",
+}
 
 
 def when(created: datetime, now: datetime) -> str:
@@ -35,6 +41,7 @@ def keep_row(text: str) -> dict:
         "title": f'{OFFERS[kind]} "{line}"',
         "subtitle": "↩ keeps it",
         "arg": normalise(text),
+        "icon": icon(kind),
         "variables": {"action": "keep"},
         "mods": {mod: {"valid": False, "subtitle": ""} for mod in ("shift", "alt", "cmd")},
     }
@@ -46,6 +53,7 @@ def record_row(record: Record, now: datetime) -> dict:
         "title": record.text,
         "subtitle": record_when(record, now),
         "arg": "",
+        "icon": icon(record.kind),
         "quicklookurl": path,
         "variables": {"action": "menu", "path": path},
         "text": {"copy": record.text, "largetype": record.text},
@@ -59,6 +67,10 @@ def record_row(record: Record, now: datetime) -> dict:
             },
         },
     }
+
+
+def icon(kind: Kind) -> dict:
+    return {"path": ICONS[kind]}
 
 
 def record_when(record: Record, now: datetime) -> str:

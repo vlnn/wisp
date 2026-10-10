@@ -49,7 +49,9 @@ followed by a space: `.gitignore moved` and `*args again` are plain logs. Words 
 match every kind, so `l build` finds the task too.
 
 The sigils are deliberately the bullet journal's: `.` a task, `*` crossed out, `!` worth
-remembering.
+remembering. Each kind has its own dot in the list: green for a log, ochre for a task, an ochre
+ring once it is done, terracotta for a note. The colours are the top of `workflow/icons.py`;
+`uv run python workflow/icons.py` redraws them.
 
 ## Install
 

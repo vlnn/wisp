@@ -8,7 +8,7 @@ Eight small modules, each with one job, so a feature lands in one of them:
 | --- | --- | --- |
 | `records` | the folder: reading, naming, kinds, keep, rename, mark, trash | a record gets a new attribute, a new verb touches files |
 | `search` | folding, word-prefix matching, the kind axis of a query | matching gets smarter (tags, dates) |
-| `present` | time words and Alfred rows | a row gets a new key, a new kind of row appears |
+| `present` | time words, Alfred rows, the icon per kind | a row gets a new key, a new kind of row appears |
 | `macos` | Finder trash and notifications | another osascript call is needed |
 | `oracle` | the model: evidence, prompt, request, streaming, answers on disk, which backend | a new question shape, a different budget |
 | `apple` | the on-device model: Swift helper source, compile, run | the Swift side changes |
@@ -62,6 +62,10 @@ slug ignores them and marking never moves a file.
 The query carries the same sigil as a filter on kind (`search.query`), with the words matched
 against `Record.line`; no sigil means every kind. The oracle spells kinds out as `TODO`, `DONE
 <time>` and `NOTE` because a small model follows a word over 1 200 lines better than a dot.
+
+Alfred colours nothing in a row but the icon, so a kind's colour is a PNG in `workflow/icons/`,
+drawn by `workflow/icons.py` with the standard library (a disc, or a ring for done). Paths in
+`present.ICONS` are relative to the bundle, which is where `build.sh` copies the folder.
 
 `!` is a kind here, not a flag, so an important task has no spelling yet. If one is ever wanted,
 the choice is between a second sigil position (`!. `) and making `!` orthogonal to the others;

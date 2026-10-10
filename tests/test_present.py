@@ -5,7 +5,7 @@ import pytest
 
 from conftest import NOW
 from wisp import present
-from wisp.records import Record
+from wisp.records import Kind, Record
 
 
 @pytest.mark.parametrize(
@@ -133,3 +133,24 @@ def test_record_row_opens_the_menu_on_enter():
     )
     assert row["quicklookurl"] == "/log/x.md", "Quick Look still shows the file"
     assert "ctrl" not in row["mods"], "⌃↩ is Alfred's own key and is left alone"
+
+
+@pytest.mark.parametrize(
+    "text, icon",
+    [
+        ("plain log", "icons/log.png"),
+        (". fix the build", "icons/task.png"),
+        ("* fix the build", "icons/done.png"),
+        ("! keys in 1password", "icons/note.png"),
+    ],
+)
+def test_rows_carry_the_icon_of_their_kind(text, icon):
+    row = present.record_row(a_record(text, NOW), NOW)
+    assert row["icon"] == {"path": icon}, f"{text!r} should show {icon}"
+    assert present.keep_row(text)["icon"] == {"path": icon}, "the offer row shows the kind too"
+
+
+def test_every_kind_has_an_icon_file():
+    for kind in Kind:
+        path = Path(__file__).parent.parent / "workflow" / present.ICONS[kind]
+        assert path.is_file(), f"{kind} needs {path.name} in the bundle"

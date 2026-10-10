@@ -6,6 +6,8 @@ stage=$(mktemp -d)
 trap 'rm -rf "$stage"' EXIT
 
 cp workflow/info.plist workflow/icon.png workflow/view "$stage"/
+mkdir -p "$stage/icons"
+cp workflow/icons/*.png "$stage/icons"/
 chmod +x "$stage/view"
 mkdir -p "$stage/wisp"
 cp src/wisp/*.py src/wisp/*.swift "$stage/wisp"/
