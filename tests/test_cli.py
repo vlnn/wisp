@@ -50,9 +50,9 @@ def model_fails(mocker, error):
 
 
 @pytest.fixture
-def run(env, created, capsys):
+def run(env, created, changed, capsys):
     def go(*argv):
-        code = cli.run(list(argv), env, now=NOW, created=created)
+        code = cli.run(list(argv), env, now=NOW, created=created, changed=changed)
         return code, capsys.readouterr().out
 
     return go
@@ -143,10 +143,47 @@ def test_keep_writes_a_record(run, folder):
     assert names(folder) == ["reading-docs.md"], "keep should create the file"
 
 
-def test_keep_ignores_blank_text(run, folder):
-    code, _out = run("keep", "   ")
-    assert code == 1, "blank text is not a log line"
+@pytest.mark.parametrize("text", ["   ", ".", ". ", "!  "])
+def test_keep_ignores_blank_text(run, folder, text):
+    code, _out = run("keep", text)
+    assert code == 1, f"{text!r} is not a log line"
     assert not folder.exists(), "nothing should be written"
+
+
+def test_keep_writes_a_task(run, folder):
+    code, out = run("keep", ".", "fix", "the", "build")
+    assert code == 0 and out.strip() == ". fix the build", "keep should echo the normalised line"
+    assert (folder / "fix-the-build.md").read_text() == ". fix the build\n", (
+        "the file should hold the task line"
+    )
+
+
+def test_filter_by_sigil_lists_that_kind(run, logged):
+    logged(". fix the build", 5)
+    logged("* test api manually", 3)
+    logged("api v1", 1)
+    _, out = run("filter", ".")
+    assert titles(out) == [". fix the build"], "a bare sigil lists open tasks and offers nothing"
+    _, out = run("filter", ". api")
+    assert titles(out) == ['Task "api"'], "a sigil with words offers a task of that kind"
+
+
+def test_mark_flips_a_task_and_echoes_the_new_line(run, logged):
+    path = logged(". fix the build", 5)
+    code, out = run("mark", str(path))
+    assert code == 0 and out.strip() == "* fix the build", "mark should echo the flipped line"
+    assert path.read_text() == "* fix the build\n", "the file should now be done"
+    code, out = run("mark", str(path))
+    assert out.strip() == ". fix the build", "a second mark reopens it"
+
+
+def test_done_row_reads_the_time_it_was_marked(run, logged, touched):
+    path = logged("* fix the build", 120)
+    touched[path.name] = NOW
+    _, out = run("filter", "*")
+    assert rows(out)[0]["subtitle"] == "done 15:00 today · 13:00 today", (
+        "the view should read the done time from the injected changed callable"
+    )
 
 
 def test_rename_filter_offers_the_new_text(run):

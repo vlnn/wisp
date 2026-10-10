@@ -17,18 +17,25 @@ QUESTION = "?"
 DRY_RUN = "--dry-run"
 JOB = "--job"
 KEEP = "--keep"
-USAGE = "usage: wisp filter|keep|rename-filter|rename|trash|ask|view|keep-answer ..."
+USAGE = "usage: wisp filter|keep|rename-filter|rename|trash|mark|ask|view|keep-answer ..."
 
 
 class Context:
-    def __init__(self, env: Mapping[str, str], now: datetime, created: records.Created):
+    def __init__(
+        self,
+        env: Mapping[str, str],
+        now: datetime,
+        created: records.Created,
+        changed: records.Changed,
+    ):
         self.env = env
         self.now = now
         self.created = created
+        self.changed = changed
         self.folder = log_folder(env)
 
     def logs(self) -> list[records.Record]:
-        return records.read_folder(self.folder, self.created)
+        return records.read_folder(self.folder, self.created, self.changed)
 
     def answers(self) -> list[oracle.Answer]:
         return oracle.read_answers(oracle.answers_folder(self.env), self.created)
@@ -78,8 +85,8 @@ def filter_command(args: list[str], ctx: Context) -> int:
 
 
 def keep_command(args: list[str], ctx: Context) -> int:
-    text = " ".join(args).strip()
-    if not text:
+    text = records.normalise(" ".join(args))
+    if not records.parse(text)[1]:
         return 1
     records.keep(ctx.folder, text)
     return say(text)
@@ -102,6 +109,11 @@ def trash_command(args: list[str], ctx: Context) -> int:
     text = records.first_line(path.read_text(encoding="utf-8"))
     macos.trash(path)
     return say(text)
+
+
+def mark_command(args: list[str], ctx: Context) -> int:
+    path = records.mark(Path(args[0]))
+    return say(records.first_line(path.read_text(encoding="utf-8")))
 
 
 def ask_command(args: list[str], ctx: Context) -> int:
@@ -203,6 +215,7 @@ COMMANDS: dict[str, Callable[[list[str], Context], int]] = {
     "rename-filter": rename_filter_command,
     "rename": rename_command,
     "trash": trash_command,
+    "mark": mark_command,
     "ask": ask_command,
     "view": view_command,
     "keep-answer": keep_answer_command,
@@ -214,11 +227,14 @@ def run(
     env: Mapping[str, str],
     now: datetime | None = None,
     created: records.Created | None = None,
+    changed: records.Changed | None = None,
 ) -> int:
     if not argv or argv[0] not in COMMANDS:
         print(USAGE, file=sys.stderr)
         return 2
-    ctx = Context(env, now or datetime.now(), created or records.birth_time)
+    ctx = Context(
+        env, now or datetime.now(), created or records.birth_time, changed or records.modified_time
+    )
     return COMMANDS[argv[0]](argv[1:], ctx)
 
 
