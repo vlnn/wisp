@@ -9,7 +9,7 @@ def job(tmp_path):
 
 
 def test_job_starts_empty(job):
-    assert job.partial() == "" and job.done() is None and job.error() is None, (
+    assert job.partial() == "" and job.done() is False and job.error() is None, (
         "a fresh job has no text, no result and no error"
     )
 
@@ -20,10 +20,10 @@ def test_job_records_progress(job):
     assert job.partial() == "You read", "the latest text wins"
 
 
-def test_job_finishes_with_the_answer_path(job, tmp_path):
+def test_job_finishes(job):
     job.progress("You read docs.")
-    job.finish(tmp_path / "answers" / "q.md")
-    assert job.done() == tmp_path / "answers" / "q.md", "done names the saved answer"
+    job.finish()
+    assert job.done() is True, "done says the answer is complete"
     assert job.partial() == "You read docs.", "the text stays readable after finishing"
 
 
@@ -54,15 +54,16 @@ def test_running_view_shows_the_text_so_far(job):
     assert shown["behaviour"] == {"response": "replace", "scroll": "end"}, "replace and follow"
 
 
-def test_finished_view_stops_polling_and_offers_keys(job, tmp_path):
-    path = tmp_path / "answers" / "today-summary.md"
+def test_finished_view_stops_polling_and_offers_keys(job):
     job.progress("You read docs.")
-    job.finish(path)
+    job.finish()
     shown = view.showing("today summary", job)
     assert "rerun" not in shown, "no more polling"
     assert shown["response"] == "You read docs.", "the answer, nothing else, so ↩ copies just it"
-    assert shown["variables"] == {"job": "", "answer": str(path)}, "⌥↩ can open the saved file"
-    assert shown["footer"] == '"today summary" · ↩ copy · ⌥↩ open the saved answer', (
+    assert shown["variables"] == {"job": "", "question": "today summary"}, (
+        "⌥↩ can save the answer under its question"
+    )
+    assert shown["footer"] == '"today summary" · ↩ copy · ⌥↩ keep as a file and open it', (
         "the question moves to the footer"
     )
 

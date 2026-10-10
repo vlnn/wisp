@@ -17,9 +17,8 @@ class Job:
     def partial(self) -> str:
         return self.read(PARTIAL)
 
-    def done(self) -> Path | None:
-        path = self.read(DONE)
-        return Path(path) if path else None
+    def done(self) -> bool:
+        return (self.folder / DONE).exists()
 
     def error(self) -> str | None:
         return self.read(ERROR) or None
@@ -27,8 +26,8 @@ class Job:
     def progress(self, text: str) -> None:
         self.write(PARTIAL, text)
 
-    def finish(self, path: Path) -> None:
-        self.write(DONE, str(path))
+    def finish(self) -> None:
+        self.write(DONE, "")
 
     def fail(self, message: str) -> None:
         self.write(ERROR, message)
@@ -64,12 +63,11 @@ def showing(question: str, job: Job) -> dict:
     if error:
         return {"response": f"**{error}**", "variables": {"job": ""}}
     text = visible(job.partial())
-    done = job.done()
-    if done:
+    if job.done():
         return {
             "response": text,
-            "footer": f'"{question}" · ↩ copy · ⌥↩ open the saved answer',
-            "variables": {"job": "", "answer": str(done)},
+            "footer": f'"{question}" · ↩ copy · ⌥↩ keep as a file and open it',
+            "variables": {"job": "", "question": question},
             "behaviour": {"response": "replace", "scroll": "end"},
         }
     return {

@@ -16,7 +16,8 @@ DEFAULT_FOLDER = "~/log"
 QUESTION = "?"
 DRY_RUN = "--dry-run"
 JOB = "--job"
-USAGE = "usage: wisp filter|keep|rename-filter|rename|trash|ask|view ..."
+KEEP = "--keep"
+USAGE = "usage: wisp filter|keep|rename-filter|rename|trash|ask|view|keep-answer ..."
 
 
 class Context:
@@ -105,6 +106,7 @@ def trash_command(args: list[str], ctx: Context) -> int:
 
 def ask_command(args: list[str], ctx: Context) -> int:
     dry_run = DRY_RUN in args
+    keep = KEEP in args
     job = view.Job(args[args.index(JOB) + 1]) if JOB in args else None
     question = " ".join(words_after_flags(args)).strip()
     if not question:
@@ -128,20 +130,31 @@ def ask_command(args: list[str], ctx: Context) -> int:
         return report(str(error), job)
     except (KeyError, IndexError, TypeError, ValueError):
         return report("Model gave no answer", job)
-    path = oracle.remember(oracle.answers_folder(ctx.env), question, answer)
     if job:
         job.progress(answer)
-        job.finish(path)
+        job.finish()
     else:
         macos.notify(answer)
-    return say(str(path))
+    if keep:
+        return say(str(keep_answer(ctx, question, answer)))
+    return say(answer)
+
+
+def keep_answer(ctx: Context, question: str, answer: str) -> Path:
+    return oracle.remember(oracle.answers_folder(ctx.env), question, answer)
+
+
+def keep_answer_command(args: list[str], ctx: Context) -> int:
+    if len(args) < 2 or not args[0].strip() or not args[1].strip():
+        return 1
+    return say(str(keep_answer(ctx, args[0], args[1])))
 
 
 def words_after_flags(args: list[str]) -> list[str]:
     words = []
     skip = False
     for arg in args:
-        if skip or arg == DRY_RUN:
+        if skip or arg in (DRY_RUN, KEEP):
             skip = False
             continue
         if arg == JOB:
@@ -192,6 +205,7 @@ COMMANDS: dict[str, Callable[[list[str], Context], int]] = {
     "trash": trash_command,
     "ask": ask_command,
     "view": view_command,
+    "keep-answer": keep_answer_command,
 }
 
 

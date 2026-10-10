@@ -246,18 +246,39 @@ def test_answer_row_shape(run, served, answered):
     assert row["mods"]["cmd"]["valid"] is False, "answers are not renamed"
 
 
-def test_ask_saves_opens_and_notifies(run, served, sample, mocker, notify):
+def test_ask_prints_the_answer_and_keeps_nothing(run, served, sample, mocker, notify, env):
     model_says(mocker, "<think>x</think>\nYou read docs.")
     code, out = run("ask", "today summary")
-    path = Path(out.strip())
-    assert code == 0 and path.name == "today-summary.md", "ask prints the answer file"
-    assert path.read_text() == "today summary\n\nYou read docs.\n", (
-        "the file holds question and answer"
-    )
+    assert code == 0 and out == "You read docs.\n", "ask prints the answer"
+    assert not (Path(env["alfred_workflow_data"]) / "answers").exists(), "nothing is saved"
     assert [c.args[0] for c in notify.call_args_list] == [
         "Asking about 5 lines…",
         "You read docs.",
     ], "one notification when asking, one with the answer"
+
+
+def test_ask_keep_saves_the_answer(run, served, sample, mocker, notify):
+    model_says(mocker, "You read docs.")
+    code, out = run("ask", "--keep", "today summary")
+    path = Path(out.strip())
+    assert code == 0 and path.name == "today-summary.md", "ask --keep prints the answer file"
+    assert path.read_text() == "today summary\n\nYou read docs.\n", (
+        "the file holds question and answer"
+    )
+
+
+def test_keep_answer_saves_what_the_view_shows(run, env):
+    code, out = run("keep-answer", "today summary", "You read docs.")
+    path = Path(out.strip())
+    assert code == 0 and path.name == "today-summary.md", "keep-answer prints the answer file"
+    assert path.read_text() == "today summary\n\nYou read docs.\n", (
+        "the file holds question and answer"
+    )
+    assert path.parent == Path(env["alfred_workflow_data"]) / "answers", "next to the others"
+
+
+def test_keep_answer_needs_both(run):
+    assert run("keep-answer", "today summary")[0] == 1, "no answer, nothing to keep"
 
 
 def test_ask_dry_run_prints_the_prompt_and_asks_nothing(run, served, sample, mocker, notify):
@@ -310,16 +331,17 @@ def test_question_row_counts_only_the_lines_that_fit(run, env, sample):
 
 
 def test_ask_with_a_job_reports_progress_instead_of_notifying(
-    run, served, sample, mocker, notify, tmp_path
+    run, served, sample, mocker, notify, tmp_path, env
 ):
     model_says(mocker, "You read docs.")
     job = tmp_path / "jobs" / "j1"
     code, out = run("ask", "--job", str(job), "today summary")
-    assert code == 0, "ask with a job succeeds"
+    assert code == 0 and out == "You read docs.\n", "ask with a job succeeds"
     done = view.Job(job)
-    assert done.partial() == "You read docs." and done.done() == Path(out.strip()), (
-        "the job carries the text and the saved path"
+    assert done.partial() == "You read docs." and done.done() is True, (
+        "the job carries the text and knows it is finished"
     )
+    assert not (Path(env["alfred_workflow_data"]) / "answers").exists(), "nothing is saved"
     notify.assert_not_called()
 
 

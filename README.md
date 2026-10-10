@@ -61,10 +61,10 @@ l ?                          every earlier answer, newest first
 ```
 
 ↩ on **Ask** opens a text view inside Alfred and the answer streams into it as the model writes
-(the Apple model answers in one go). In the view, ↩ copies the answer and ⌥↩ opens the saved file;
-Esc closes it, the answer stays saved. Answers are markdown files (question on the first line,
-answer below) in Alfred's data folder for the workflow; `l ?` lists them like log lines: ↩ opens,
-⇧↩ copies the answer, ⌥↩ trashes it.
+(the Apple model answers in one go). In the view, ↩ copies the answer and ⌥↩ keeps it as a file
+and opens it; Esc closes the view and the answer is gone unless you kept it. Kept answers are
+markdown files (question on the first line, answer below) in Alfred's data folder for the
+workflow; `l ?` lists them like log lines: ↩ opens, ⇧↩ copies the answer, ⌥↩ trashes it.
 
 The question goes with the log, newest line first, cut at about 12 000 characters for a server and
 6 000 for the Apple model, whose context window is 4 096 tokens; the **Ask** row says how many lines
@@ -73,7 +73,8 @@ pick an instruct model rather than a thinking one — the workflow asks the temp
 which Qwen3-style models honour, and hides a `<think>` block if one comes back anyway. **Model**
 names the alias when the server serves several; **Model server API key** is sent as a bearer token.
 
-`wisp ask --dry-run "today summary"` prints exactly what the model would be sent.
+`wisp ask --dry-run "today summary"` prints exactly what the model would be sent;
+`wisp ask --keep "today summary"` saves the answer the way ⌥↩ does.
 
 ## How files are named
 
@@ -93,11 +94,12 @@ oracle_url=http://127.0.0.1:8080 uv run wisp ask "today summary"
 ```
 
 `oracle_url`, `oracle_model` and `oracle_key` configure the model the way the panel does;
-`alfred_workflow_data` is where answers go (default `~/Library/Application Support/wisp`).
+`alfred_workflow_data` is where kept answers go (default `~/Library/Application Support/wisp`).
 
-`filter`, `rename-filter` and `view` print Alfred's JSON, `ask` prints the answer file's path, the
-rest print the text they acted on. `wisp ask --job <folder> "…"` is what the text view runs in the
-background: progress goes to that folder instead of notifications.
+`filter`, `rename-filter` and `view` print Alfred's JSON, `ask` prints the answer (`ask --keep` and
+`keep-answer "<question>" "<answer>"` save it and print the file's path), the rest print the text
+they acted on. `wisp ask --job <folder> "…"` is what the text view runs in the background: progress
+goes to that folder instead of notifications.
 
 ## Development
 

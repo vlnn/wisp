@@ -120,7 +120,7 @@
 				<key>modifiers</key>
 				<integer>524288</integer>
 				<key>modifiersubtext</key>
-				<string>Open the saved answer</string>
+				<string>Keep as a file and open it</string>
 				<key>vitoclose</key>
 				<false/>
 			</dict>
@@ -399,7 +399,7 @@ esac
 				<key>fontsizing</key>
 				<integer>0</integer>
 				<key>footertext</key>
-				<string>↩ copy · ⌥↩ open the saved answer</string>
+				<string>↩ copy · ⌥↩ keep as a file and open it</string>
 				<key>inputfile</key>
 				<string>view</string>
 				<key>inputtype</key>
@@ -430,7 +430,7 @@ esac
 				<key>escaping</key>
 				<integer>102</integer>
 				<key>script</key>
-				<string>open "$answer"</string>
+				<string>path=$(/usr/bin/python3 -m wisp keep-answer "$question" "$1") &amp;&amp; open "$path"</string>
 				<key>scriptargtype</key>
 				<integer>1</integer>
 				<key>scriptfile</key>
@@ -447,7 +447,7 @@ esac
 		</dict>
 	</array>
 	<key>readme</key>
-	<string>Type `l` followed by anything. The first row logs it; the rows below are the records that match, newest first. ↩ opens a record's file, ⇧↩ copies its text, ⌥↩ moves it to the Trash, ⌘↩ renames it. The hotkey object opens the same list; set its combination (HYPER+L is a good one) by double-clicking it. `l ? &lt;question&gt;` asks a local model about the log once Model server is set or Apple Intelligence is ticked; the answer streams into a Text View, ↩ there copies it, ⌥↩ opens the saved file.
+	<string>Type `l` followed by anything. The first row logs it; the rows below are the records that match, newest first. ↩ opens a record's file, ⇧↩ copies its text, ⌥↩ moves it to the Trash, ⌘↩ renames it. The hotkey object opens the same list; set its combination (HYPER+L is a good one) by double-clicking it. `l ? &lt;question&gt;` asks a local model about the log once Model server is set or Apple Intelligence is ticked; the answer streams into a Text View, ↩ there copies it, ⌥↩ keeps it as a file and opens it.
 
 Records are markdown files in the Log folder, one per line; their creation time is the file's creation time.</string>
 	<key>uidata</key>

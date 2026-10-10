@@ -25,7 +25,8 @@ else to the ↩ script. A new key is a new connection from the first filter; a n
 The Text View runs `wisp view <question>` with no `job` variable, which starts `wisp ask --job
 <folder>` detached and returns a rerun of 0.2 s; each rerun reads the job folder (`partial.md`,
 `done`, `error`) and renders it. The job folder is under Alfred's cache folder, so Alfred may clear
-it; the answer file itself is in the data folder. If the view ever comes up empty on ↩, check the
+it; nothing is saved until ⌥↩ in the finished view runs `wisp keep-answer "$question" "$1"` (the
+question travels back as a variable, the answer is the view's output) and opens the file it printed. If the view ever comes up empty on ↩, check the
 conditional in the editor reads *action is equal to ask*: that match mode is the one number in the
 plist written from memory.
 
