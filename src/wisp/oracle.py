@@ -12,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Union
 
-from wisp import apple, records
+from wisp import apple, records, search
 from wisp.records import Kind, Record
 
 BUDGET = 12_000
@@ -128,19 +128,48 @@ def tagged(record: Record) -> str:
     return record.text
 
 
-def evidence_lines(logs: Iterable[Record], budget: int = BUDGET) -> list[str]:
-    kept: list[str] = []
-    size = 0
-    for text in map(line, sorted(logs, key=records.newest_first)):
-        size += len(text) + 1
-        if size > budget and kept:
+@dataclass(frozen=True)
+class Evidence:
+    matching: list[Record]
+    filling: list[Record]
+
+    def records(self) -> list[Record]:
+        return sorted(self.matching + self.filling, key=records.newest_first)
+
+    def lines(self) -> list[str]:
+        return [line(record) for record in self.records()]
+
+    def text(self) -> str:
+        return "\n".join(self.lines())
+
+
+def evidence(question: str, logs: Iterable[Record], budget: int = BUDGET) -> Evidence:
+    newest = sorted(logs, key=records.newest_first)
+    matching = fit(singled_out(question, newest), budget)
+    left = {record.path for record in matching}
+    filling = fit((r for r in newest if r.path not in left), budget - size(matching))
+    if not matching and not filling:
+        filling = newest[:1]
+    return Evidence(matching, filling)
+
+
+def singled_out(question: str, logs: list[Record]) -> list[Record]:
+    return search.search(question, logs) if search.query(question).words else []
+
+
+def fit(logs: Iterable[Record], budget: int) -> list[Record]:
+    kept: list[Record] = []
+    used = 0
+    for record in logs:
+        used += len(line(record)) + 1
+        if used > budget:
             break
-        kept.append(text)
+        kept.append(record)
     return kept
 
 
-def evidence(logs: Iterable[Record], budget: int = BUDGET) -> str:
-    return "\n".join(evidence_lines(logs, budget))
+def size(logs: list[Record]) -> int:
+    return sum(len(line(record)) + 1 for record in logs)
 
 
 def prompt(
@@ -148,7 +177,10 @@ def prompt(
 ) -> list[dict]:
     return [
         {"role": "system", "content": SYSTEM.format(today=f"{now:%A %Y-%m-%d}")},
-        {"role": "user", "content": f"{question}\n\nLog:\n{evidence(logs, budget)}"},
+        {
+            "role": "user",
+            "content": f"{question}\n\nLog:\n{evidence(question, logs, budget).text()}",
+        },
     ]
 
 

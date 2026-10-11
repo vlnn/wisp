@@ -87,7 +87,7 @@ def test_system_prompt_explains_the_kinds(word):
 
 
 def test_evidence_lists_newest_first():
-    lines = oracle.evidence([record("old", 60), record("new", 1)]).splitlines()
+    lines = oracle.evidence("", [record("old", 60), record("new", 1)]).lines()
     assert [line.split("  ", 1)[1] for line in lines] == ["new", "old"], (
         "evidence should start with the newest line"
     )
@@ -95,7 +95,7 @@ def test_evidence_lists_newest_first():
 
 def test_evidence_stops_at_the_budget_on_a_line_boundary():
     logs = [record(f"line {n}", n) for n in range(1, 50)]
-    text = oracle.evidence(logs, budget=100)
+    text = oracle.evidence("", logs, budget=100).text()
     assert 0 < len(text) <= 100, "evidence should fit the budget"
     assert all(line.startswith("2026-") for line in text.splitlines()), (
         "a cut should never leave half a line"
@@ -103,14 +103,52 @@ def test_evidence_stops_at_the_budget_on_a_line_boundary():
     assert text.splitlines()[0].endswith("line 1"), "the newest line is always sent"
 
 
-def test_evidence_lines_are_what_evidence_joins():
+def test_evidence_sends_the_newest_line_even_past_the_budget():
+    (line,) = oracle.evidence("", [record("a line longer than the budget", 1)], budget=5).lines()
+    assert line.endswith("a line longer than the budget"), "one line is better than none"
+
+
+def test_evidence_lines_are_what_text_joins():
     logs = [record(f"line {n}", n) for n in range(1, 50)]
-    lines = oracle.evidence_lines(logs, budget=100)
-    assert "\n".join(lines) == oracle.evidence(logs, budget=100), "same cut, counted not split"
+    found = oracle.evidence("", logs, budget=100)
+    assert "\n".join(found.lines()) == found.text(), "same cut, counted not split"
 
 
 def test_evidence_of_nothing_is_empty():
-    assert oracle.evidence([]) == "", "an empty log sends nothing"
+    assert oracle.evidence("", []).text() == "", "an empty log sends nothing"
+
+
+def test_evidence_keeps_old_matching_lines_past_the_budget():
+    logs = [record(f"line {n}", n) for n in range(1, 50)] + [record("api work", 500)]
+    found = oracle.evidence("api", logs, budget=100)
+    assert [r.text for r in found.matching] == ["api work"], "the one match is sent"
+    assert found.lines()[-1].endswith("api work"), "sent last, since it is the oldest"
+    assert 3 <= len(found.lines()) <= 4, "the rest of the budget goes to the newest lines"
+    assert len(found.text()) <= 100, "all within the budget"
+
+
+def test_evidence_matches_the_way_the_list_does():
+    logs = [record(". fix api", 1), record("api v1", 2), record("docs", 3)]
+    found = oracle.evidence(". ap", logs)
+    assert [r.text for r in found.matching] == [". fix api"], (
+        "a sigil narrows the kind and words prefix-match, as `l` does"
+    )
+    assert [r.text for r in found.records()] == [". fix api", "api v1", "docs"], (
+        "with room to spare the whole log goes, newest first"
+    )
+
+
+def test_evidence_without_words_matches_nothing_in_particular():
+    found = oracle.evidence("", [record("a", 1), record("b", 2)])
+    assert found.matching == [], "no words, nothing singled out"
+    assert len(found.filling) == 2, "everything is filling"
+
+
+def test_evidence_prefers_newest_matches_when_they_overflow():
+    logs = [record(f"api {n}", n) for n in range(1, 50)]
+    found = oracle.evidence("api", logs, budget=100)
+    assert found.filling == [], "matches alone fill the budget"
+    assert found.lines()[0].endswith("api 1"), "the newest match comes first"
 
 
 def test_prompt_carries_question_date_and_log():

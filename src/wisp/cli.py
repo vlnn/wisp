@@ -76,8 +76,10 @@ class Context:
         cache = self.env.get("alfred_workflow_cache")
         return Path(cache) / "jobs" if cache else oracle.data_folder(self.env) / "jobs"
 
-    def lines_sent(self, backend: oracle.Backend, logs: list[records.Record]) -> int:
-        return len(oracle.evidence_lines(logs, backend.budget))
+    def evidence(
+        self, question: str, backend: oracle.Backend, logs: list[records.Record]
+    ) -> oracle.Evidence:
+        return oracle.evidence(question, logs, backend.budget)
 
 
 def log_folder(env: Mapping[str, str]) -> Path:
@@ -107,9 +109,11 @@ def filter_command(args: list[str], ctx: Context) -> int:
 def ask_filter_command(args: list[str], ctx: Context) -> int:
     question = (args[0] if args else "").strip()
     backend = ctx.backend()
+    if backend is None:
+        return emit([present.unserved_row()])
     logs = ctx.logs()
-    lines = ctx.lines_sent(backend, logs) if backend else 0
-    return emit(present.question_rows(question, logs, ctx.now, lines, bool(backend)))
+    found = ctx.evidence(question, backend, logs)
+    return emit(present.question_rows(question, logs, ctx.now, found))
 
 
 def keep_command(args: list[str], ctx: Context) -> int:
@@ -218,7 +222,8 @@ def view_command(args: list[str], ctx: Context) -> int:
         stderr=subprocess.DEVNULL,
         start_new_session=True,
     )
-    return emit_view(view.starting(question, job, ctx.lines_sent(backend, ctx.logs())))
+    found = ctx.evidence(question, backend, ctx.logs())
+    return emit_view(view.starting(question, job, len(found.lines())))
 
 
 def check_command(args: list[str], ctx: Context) -> int:

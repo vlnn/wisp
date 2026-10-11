@@ -285,7 +285,9 @@ def test_question_offers_to_ask_then_lists_the_log(run, served, sample):
         "the Ask row first, then the log lines the words match, as `l api` lists them"
     )
     ask = rows(out)[0]
-    assert ask["subtitle"] == "↩ asks the model about 5 lines"
+    assert ask["subtitle"] == "↩ asks the model about 5 lines, 2 matching", (
+        "the Ask row says how many lines go and how many the words single out"
+    )
     assert ask["arg"] == "api" and ask["variables"] == {"action": "ask"}, (
         "↩ should ask with the bare question"
     )
@@ -391,7 +393,20 @@ def test_ask_args(argv, expected):
 def test_question_row_counts_only_the_lines_that_fit(run, env, sample):
     env["oracle_apple"] = "1"
     _, out = run("ask-filter", "today summary")
-    assert rows(out)[0]["subtitle"] == "↩ asks the model about 5 lines", "five short lines fit"
+    assert rows(out)[0]["subtitle"] == "↩ asks the model about 5 lines", (
+        "five short lines fit, and words matching none of them count nothing"
+    )
+
+
+def test_ask_sends_old_matching_lines_the_budget_would_cut(run, served, logged, mocker):
+    small = oracle.Llama("http://127.0.0.1:8080", budget=60)
+    mocker.patch("wisp.oracle.backend", return_value=small)
+    logged("api work", 60 * 24 * 30)
+    for n in range(1, 10):
+        logged(f"line {n}", n)
+    _, out = run("ask", "--dry-run", "api")
+    assert "api work" in out, "the old match is sent"
+    assert out.count("\n") < 12, "but the budget still holds"
 
 
 def test_ask_with_a_job_reports_progress_instead_of_notifying(

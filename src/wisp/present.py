@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from datetime import datetime
 
+from wisp.oracle import Evidence
 from wisp.records import RESOLVED, Kind, Record, normalise, parse
 from wisp.search import matches, query, search
 
@@ -168,19 +169,22 @@ def rename_row(text: str) -> dict:
 NO_SERVER = "Set Model server or turn on Apple Intelligence in the workflow configuration"
 
 
+def unserved_row() -> dict:
+    return {"title": NO_SERVER, "subtitle": "to ask questions about the log", "valid": False}
+
+
 def question_rows(
-    question: str, records: Iterable[Record], now: datetime, lines: int, served: bool
+    question: str, records: Iterable[Record], now: datetime, found: Evidence
 ) -> list[dict]:
-    if not served:
-        return [{"title": NO_SERVER, "subtitle": "to ask questions about the log", "valid": False}]
-    offered = [ask_row(question, lines)] if question else []
+    offered = [ask_row(question, len(found.lines()), len(found.matching))] if question else []
     return offered + [record_row(record, now) for record in search(question, records)]
 
 
-def ask_row(question: str, lines: int) -> dict:
+def ask_row(question: str, lines: int, matching: int = 0) -> dict:
+    singled = f", {matching} matching" if 0 < matching < lines else ""
     return {
         "title": f'Ask "{question}"',
-        "subtitle": f"↩ asks the model about {lines} lines",
+        "subtitle": f"↩ asks the model about {lines} lines{singled}",
         "arg": question,
         "icon": icon(Kind.QUESTION),
         "variables": {"action": "ask"},

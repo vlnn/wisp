@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from conftest import NOW
-from wisp import present
+from wisp import oracle, present
 from wisp.records import Kind, Record
 
 
@@ -213,8 +213,29 @@ def test_rows_carry_the_icon_of_their_kind(text, icon):
 
 
 def test_ask_row_is_an_open_question():
-    (ask,) = present.question_rows("today", [], NOW, 5, served=True)
+    (ask,) = present.question_rows("today", [], NOW, oracle.Evidence([], []))
     assert ask["icon"] == {"path": "icons/question.png"}, "the Ask row wears the question ring"
+
+
+@pytest.mark.parametrize(
+    "lines, matching, subtitle",
+    [
+        (5, 0, "↩ asks the model about 5 lines"),
+        (5, 2, "↩ asks the model about 5 lines, 2 matching"),
+        (5, 5, "↩ asks the model about 5 lines"),
+    ],
+)
+def test_ask_row_counts_what_the_words_single_out(lines, matching, subtitle):
+    assert present.ask_row("q", lines, matching)["subtitle"] == subtitle, (
+        "matches are counted only when they are a part of what goes"
+    )
+
+
+def test_unserved_row_cannot_be_actioned():
+    row = present.unserved_row()
+    assert row["title"] == present.NO_SERVER and row["valid"] is False, (
+        "without a model the row only says how to get one"
+    )
 
 
 def test_every_kind_has_an_icon_file():

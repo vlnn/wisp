@@ -93,7 +93,7 @@ Until one of them is set, `ask` only tells you to set it.
 
 ```
 ask today summary            Ask "today summary"   ↩ asks the model about 1 240 lines
-ask what did I do with api   Ask "what did I do with api"
+ask what did I do with api   Ask "what did I do with api"   ↩ asks the model about 1 240 lines, 23 matching
                              testing api manually      14:31 today
                              making API v1             14:02 today
 ask                          the whole log, newest first
@@ -112,8 +112,10 @@ The model sees each line as `YYYY-MM-DD HH:MM  text`; the other kinds carry a wo
 text, `TODO`, `QUESTION`, `NOTE`, or `DONE` and `DECIDED` with the time they were settled, so "what
 is still open?", "what did I finish this week?" and "why postgres?" are questions it can answer. The question goes with the log, newest
 line first, cut at about 12 000 characters for a server and
-6 000 for the Apple model, whose context window is 4 096 tokens; the **Ask** row says how many lines
-that is. The model only ever runs when you press ↩ on **Ask**, never while you type. On a server,
+6 000 for the Apple model, whose context window is 4 096 tokens. The lines the question's words
+match (the rows listed under **Ask**) always go, however old they are; the rest of the budget is
+filled with the newest lines, so "what did I do with api" still works once the log has outgrown
+the budget. The **Ask** row says how many lines that is and how many of them the words match. The model only ever runs when you press ↩ on **Ask**, never while you type. On a server,
 pick an instruct model rather than a thinking one — the workflow asks the template not to think,
 which Qwen3-style models honour, and hides a `<think>` block if one comes back anyway. **Model**
 names the alias when the server serves several; **Model server API key** is sent as a bearer token.
