@@ -183,8 +183,6 @@ def ask_command(args: list[str], ctx: Context) -> int:
         return report(f"Model not reachable at {server.url}", job)
     except apple.AppleError as error:
         return report(str(error), job)
-    except (KeyError, IndexError, TypeError, ValueError):
-        return report("Model gave no answer", job)
     if job:
         job.progress(answer)
         job.finish()

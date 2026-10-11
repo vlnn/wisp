@@ -365,7 +365,6 @@ def test_ask_without_a_server(run, sample, notify):
             urllib.error.HTTPError("http://127.0.0.1:8080", 401, "nope", {}, None),
             "Model answered 401 at http://127.0.0.1:8080",
         ),
-        (KeyError("choices"), "Model gave no answer"),
     ],
 )
 def test_ask_failures_become_messages(run, served, sample, mocker, notify, error, message):

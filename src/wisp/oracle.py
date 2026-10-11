@@ -48,7 +48,6 @@ APPLE = Server(apple=True)
 CHECKED = {"1", "true", "yes", "on"}
 
 
-Post = Callable[[Server, dict], dict]
 OnText = Callable[[str], None]
 UNCLOSED_THINKING = re.compile(r"<think>.*\Z", re.DOTALL)
 
@@ -111,21 +110,6 @@ def payload(server: Server, messages: list[dict]) -> dict:
     return body
 
 
-def post(server: Server, body: dict) -> dict:
-    headers = {"Content-Type": "application/json"}
-    if server.key:
-        headers["Authorization"] = f"Bearer {server.key}"
-    request = urllib.request.Request(
-        f"{server.url}/v1/chat/completions", json.dumps(body).encode(), headers, method="POST"
-    )
-    with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
-        return json.loads(response.read())
-
-
-def answer_text(response: dict) -> str:
-    return visible(response["choices"][0]["message"]["content"])
-
-
 def visible(text: str) -> str:
     return UNCLOSED_THINKING.sub("", THINKING.sub("", text)).strip()
 
@@ -168,10 +152,6 @@ def answer(server: Server, messages: list[dict], on_text: OnText | None, data: s
     if server.apple:
         return apple.respond(messages, data)
     return visible(stream(server, payload(server, messages), on_text))
-
-
-def ask(question: str, logs: Iterable[Record], now: datetime, server: Server, post: Post) -> str:
-    return answer_text(post(server, payload(server, prompt(question, logs, now))))
 
 
 def remember(folder: Path, question: str, answer: str) -> Path:

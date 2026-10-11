@@ -1,4 +1,3 @@
-import json
 from datetime import timedelta
 from pathlib import Path
 
@@ -120,50 +119,6 @@ def test_payload(server, has_model):
         "the template is asked not to think so the answer is not spent inside <think>"
     )
     assert payload["messages"] == [{"role": "user", "content": "q"}], "messages pass through"
-
-
-@pytest.mark.parametrize(
-    "content, expected",
-    [
-        ("Three things.\n", "Three things."),
-        ("<think>\nhmm\n</think>\n\nThree things.", "Three things."),
-        ("  spaced  ", "spaced"),
-    ],
-)
-def test_answer_text(content, expected):
-    response = {"choices": [{"message": {"content": content}}]}
-    assert oracle.answer_text(response) == expected, f"{content!r} should read as {expected!r}"
-
-
-def test_post_sends_json_with_bearer_key(mocker):
-    opened = mocker.MagicMock()
-    opened.__enter__.return_value.read.return_value = b'{"choices": []}'
-    urlopen = mocker.patch("wisp.oracle.urllib.request.urlopen", return_value=opened)
-    server = oracle.Server("http://h:1", "m", "s3cret")
-    result = oracle.post(server, {"a": 1})
-    request = urlopen.call_args.args[0]
-    assert request.full_url == "http://h:1/v1/chat/completions", "chat completions endpoint"
-    assert json.loads(request.data) == {"a": 1}, "payload goes as the JSON body"
-    assert request.get_header("Authorization") == "Bearer s3cret", "the key is a bearer token"
-    assert request.get_header("Content-type") == "application/json", "body is declared as JSON"
-    assert result == {"choices": []}, "the JSON answer is returned decoded"
-
-
-def test_post_without_key_sends_no_authorization(mocker):
-    opened = mocker.MagicMock()
-    opened.__enter__.return_value.read.return_value = b"{}"
-    urlopen = mocker.patch("wisp.oracle.urllib.request.urlopen", return_value=opened)
-    oracle.post(SERVER, {})
-    assert urlopen.call_args.args[0].get_header("Authorization") is None, "no key, no header"
-
-
-def test_ask_returns_the_model_answer():
-    def post(server, payload):
-        assert "today summary" in payload["messages"][-1]["content"], "the question is sent"
-        return {"choices": [{"message": {"content": "You read docs."}}]}
-
-    answer = oracle.ask("today summary", [record("reading docs", 5)], NOW, SERVER, post)
-    assert answer == "You read docs.", "ask should hand back the model's text"
 
 
 def test_remember_writes_question_then_answer(tmp_path):
