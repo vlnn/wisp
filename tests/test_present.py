@@ -66,9 +66,9 @@ def test_task_row_marks_done_on_shift():
     assert row["subtitle"] == "15:00 today", "an open task shows when it was written"
     assert row["mods"]["shift"] == {
         "arg": "/log/x.md",
-        "subtitle": "Mark done",
+        "subtitle": "Finish",
         "variables": {"action": "mark"},
-    }, "⇧↩ on a task should mark it done"
+    }, "⇧↩ on a task should finish it, with the word the menu uses"
 
 
 def test_done_row_shows_both_times_and_reopens_on_shift():

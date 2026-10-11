@@ -14,15 +14,10 @@ OFFERS = {
     Kind.QUESTION: "Question",
     Kind.DECISION: "Decision",
 }
-FLIPS = {
-    Kind.TASK: "Mark done",
-    Kind.DONE: "Reopen",
-    Kind.QUESTION: "Decide",
-    Kind.DECISION: "Reopen",
-}
-FINISHES = {
+SETTLE = {
     Kind.TASK: "Finish",
     Kind.DONE: "Reopen",
+    Kind.QUESTION: "Decide",
     Kind.DECISION: "Reopen",
 }
 SETTLED = {Kind.DONE: "done", Kind.DECISION: "decided"}
@@ -99,9 +94,9 @@ def record_when(record: Record, now: datetime) -> str:
 
 
 def shift_mod(record: Record) -> dict:
-    if record.kind in FLIPS:
+    if record.kind in SETTLE:
         arg, variables = settling(record)
-        return {"arg": arg, "subtitle": FLIPS[record.kind], "variables": variables}
+        return {"arg": arg, "subtitle": SETTLE[record.kind], "variables": variables}
     return {"arg": record.text, "subtitle": "Copy to clipboard"}
 
 
@@ -114,15 +109,24 @@ def settling(record: Record) -> tuple[str, dict]:
 
 def menu_rows(record: Record, typed: str) -> list[dict]:
     if record.kind is Kind.QUESTION:
-        return [decide_row(record, typed), *menu(record)]
+        return [decide_row(record, typed), *always_rows(record)]
     return [row for row in menu(record) if matches(typed, row["title"])]
 
 
 def menu(record: Record) -> list[dict]:
+    return [*settle_rows(record), *always_rows(record)]
+
+
+def settle_rows(record: Record) -> list[dict]:
+    if record.kind not in SETTLE:
+        return []
+    arg, variables = settling(record)
+    return [menu_row(SETTLE[record.kind], record.text, arg, variables)]
+
+
+def always_rows(record: Record) -> list[dict]:
     path, text = str(record.path), record.text
-    settle = [(FINISHES[record.kind], *settling(record))] if record.kind in FINISHES else []
     actions = [
-        *settle,
         ("Open", path, {"action": "open"}),
         ("Rename", text, {"action": "rename", "path": path}),
         ("Copy", text, {"action": "copy"}),
