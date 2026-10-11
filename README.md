@@ -158,7 +158,7 @@ goes to that folder instead of notifications.
 
 ```
 make test                                pytest
-make lint                                ruff check and format
+make lint                                ruff check and format, mypy
 make build                               → dist/Wisp.alfredworkflow
 uv run --isolated --python 3.9 pytest    the interpreter the workflow runs on
 ```

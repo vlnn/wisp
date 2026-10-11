@@ -10,6 +10,7 @@ wisp = "wisp.cli:main"
 
 [dependency-groups]
 dev = [
+    "mypy>=1.10",
     "pytest>=8",
     "pytest-mock>=3",
     "ruff>=0.5",
@@ -35,3 +36,8 @@ select = ["E", "F", "I", "UP", "RUF", "B"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["wisp", "conftest"]
+
+[tool.mypy]
+files = ["src"]
+warn_unused_ignores = true
+warn_redundant_casts = true
