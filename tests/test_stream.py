@@ -1,10 +1,13 @@
 import json
+import urllib.error
+from pathlib import Path
 
 import pytest
 
-from wisp import oracle
+from wisp import apple, oracle
 
-SERVER = oracle.Server("http://127.0.0.1:8080", "oracle", "")
+SERVER = oracle.Llama("http://127.0.0.1:8080", "oracle", "")
+MESSAGES = [{"role": "system", "content": "s"}, {"role": "user", "content": "q"}]
 
 
 def sse(*chunks):
@@ -53,32 +56,44 @@ def test_visible(text, expected):
     assert oracle.visible(text) == expected, f"{text!r} should show as {expected!r}"
 
 
-@pytest.mark.parametrize(
-    "server, expected",
-    [
-        (SERVER, oracle.BUDGET),
-        (oracle.APPLE, oracle.APPLE_BUDGET),
-    ],
-)
-def test_budget_for(server, expected):
-    assert oracle.budget_for(server) == expected, f"{server} should send {expected} characters"
-
-
-def test_answer_streams_from_a_server(mocker):
-    stream = mocker.patch("wisp.oracle.stream", return_value="done")
+def test_llama_streams_the_answer(mocker):
+    stream = mocker.patch("wisp.oracle.stream", return_value="<think>x</think>done")
     seen = []
-    answer = oracle.answer(SERVER, [{"role": "user", "content": "q"}], seen.append, "/data")
-    assert answer == "done", "a server answer is what stream returned"
+    assert SERVER.respond(MESSAGES, seen.append) == "done", "the visible part of the stream"
     body = stream.call_args.args[1]
-    assert body["model"] == "oracle" and body["messages"] == [{"role": "user", "content": "q"}], (
+    assert body["model"] == "oracle" and body["messages"] == MESSAGES, (
         "the payload names the model and carries the messages"
     )
 
 
-def test_answer_asks_apple(mocker):
+@pytest.mark.parametrize(
+    "error, message",
+    [
+        (urllib.error.URLError("refused"), "Model not reachable at http://127.0.0.1:8080"),
+        (TimeoutError(), "Model not reachable at http://127.0.0.1:8080"),
+        (ConnectionResetError(), "Model not reachable at http://127.0.0.1:8080"),
+        (
+            urllib.error.HTTPError("http://127.0.0.1:8080", 401, "nope", {}, None),
+            "Model answered 401 at http://127.0.0.1:8080",
+        ),
+    ],
+    ids=["unreachable", "timeout", "reset", "refused"],
+)
+def test_llama_failures_are_model_errors(mocker, error, message):
+    mocker.patch("wisp.oracle.stream", side_effect=error)
+    with pytest.raises(oracle.ModelError, match=message):
+        SERVER.respond(MESSAGES, None)
+
+
+def test_apple_asks_the_helper(mocker):
     respond = mocker.patch("wisp.oracle.apple.respond", return_value="done")
-    messages = [{"role": "system", "content": "s"}, {"role": "user", "content": "q"}]
-    assert oracle.answer(oracle.APPLE, messages, None, "/data") == "done", (
-        "the Apple answer is what respond returned"
+    assert oracle.Apple(Path("/data")).respond(MESSAGES, None) == "done", (
+        "the Apple answer is what the helper returned"
     )
-    respond.assert_called_once_with(messages, "/data")
+    respond.assert_called_once_with(MESSAGES, Path("/data"))
+
+
+def test_apple_failures_are_model_errors(mocker):
+    mocker.patch("wisp.oracle.apple.respond", side_effect=apple.AppleError("not enabled"))
+    with pytest.raises(oracle.ModelError, match="not enabled"):
+        oracle.Apple(Path("/data")).respond(MESSAGES, None)

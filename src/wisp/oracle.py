@@ -3,11 +3,13 @@ from __future__ import annotations
 import json
 import os
 import re
+import urllib.error
 import urllib.request
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Union
 
 from wisp import apple, records
 from wisp.records import Kind, Record
@@ -36,34 +38,61 @@ SETTLED = {Kind.DONE: "DONE", Kind.DECISION: "DECIDED"}
 STAMP = "%Y-%m-%d %H:%M"
 
 
-@dataclass(frozen=True)
-class Server:
-    url: str = ""
-    model: str = ""
-    key: str = ""
-    apple: bool = False
-
-
-APPLE = Server(apple=True)
 CHECKED = {"1", "true", "yes", "on"}
-
-
 OnText = Callable[[str], None]
 UNCLOSED_THINKING = re.compile(r"<think>.*\Z", re.DOTALL)
 
 
-def server(env: Mapping[str, str]) -> Server | None:
+class ModelError(Exception):
+    pass
+
+
+@dataclass(frozen=True)
+class Llama:
+    url: str
+    model: str = ""
+    key: str = ""
+    budget: int = BUDGET
+
+    def respond(self, messages: list[dict], on_text: OnText | None) -> str:
+        try:
+            return visible(stream(self, payload(self, messages), on_text))
+        except urllib.error.HTTPError as error:
+            raise ModelError(f"Model answered {error.code} at {self.url}") from None
+        except (urllib.error.URLError, TimeoutError, OSError):
+            raise ModelError(f"Model not reachable at {self.url}") from None
+
+
+@dataclass(frozen=True)
+class Apple:
+    data: Path
+    budget: int = APPLE_BUDGET
+
+    def respond(self, messages: list[dict], on_text: OnText | None) -> str:
+        try:
+            return apple.respond(messages, self.data)
+        except apple.AppleError as error:
+            raise ModelError(str(error)) from None
+
+
+Backend = Union[Llama, Apple]
+
+
+def backend(env: Mapping[str, str]) -> Backend | None:
     if env.get("oracle_apple", "").strip().lower() in CHECKED:
-        return APPLE
+        return Apple(data_folder(env))
     url = env.get("oracle_url", "").strip().rstrip("/")
     if not url:
         return None
-    return Server(url, env.get("oracle_model", "").strip(), env.get("oracle_key", "").strip())
+    return Llama(url, env.get("oracle_model", "").strip(), env.get("oracle_key", "").strip())
+
+
+def data_folder(env: Mapping[str, str]) -> Path:
+    return Path(env.get("alfred_workflow_data") or os.path.expanduser(DEFAULT_DATA))
 
 
 def answers_folder(env: Mapping[str, str]) -> Path:
-    data = env.get("alfred_workflow_data") or os.path.expanduser(DEFAULT_DATA)
-    return Path(data) / "answers"
+    return data_folder(env) / "answers"
 
 
 def line(record: Record) -> str:
@@ -98,7 +127,7 @@ def prompt(
     ]
 
 
-def payload(server: Server, messages: list[dict]) -> dict:
+def payload(server: Llama, messages: list[dict]) -> dict:
     body = {
         "messages": messages,
         "temperature": 0.2,
@@ -114,10 +143,6 @@ def visible(text: str) -> str:
     return UNCLOSED_THINKING.sub("", THINKING.sub("", text)).strip()
 
 
-def budget_for(server: Server) -> int:
-    return APPLE_BUDGET if server.apple else BUDGET
-
-
 def deltas(lines: Iterable[bytes]) -> Iterator[str]:
     for raw in lines:
         line = raw.decode("utf-8", "replace").strip()
@@ -131,7 +156,7 @@ def deltas(lines: Iterable[bytes]) -> Iterator[str]:
             yield delta
 
 
-def stream(server: Server, body: dict, on_text: OnText | None) -> str:
+def stream(server: Llama, body: dict, on_text: OnText | None) -> str:
     headers = {"Content-Type": "application/json"}
     if server.key:
         headers["Authorization"] = f"Bearer {server.key}"
@@ -146,12 +171,6 @@ def stream(server: Server, body: dict, on_text: OnText | None) -> str:
             if on_text:
                 on_text(text)
     return text
-
-
-def answer(server: Server, messages: list[dict], on_text: OnText | None, data: str) -> str:
-    if server.apple:
-        return apple.respond(messages, data)
-    return visible(stream(server, payload(server, messages), on_text))
 
 
 def remember(folder: Path, question: str, answer: str) -> Path:

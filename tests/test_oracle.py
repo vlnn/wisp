@@ -6,7 +6,8 @@ import pytest
 from conftest import NOW
 from wisp import oracle, records
 
-SERVER = oracle.Server("http://127.0.0.1:8080", "oracle", "")
+SERVER = oracle.Llama("http://127.0.0.1:8080", "oracle", "")
+DATA = Path("/Users/me/Library/Application Support/wisp")
 
 
 def record(text, minutes_ago):
@@ -19,23 +20,29 @@ def record(text, minutes_ago):
     [
         ({}, None),
         ({"oracle_url": ""}, None),
-        ({"oracle_url": "http://127.0.0.1:8080/"}, oracle.Server("http://127.0.0.1:8080", "", "")),
+        ({"oracle_url": "http://127.0.0.1:8080/"}, oracle.Llama("http://127.0.0.1:8080", "", "")),
         (
             {"oracle_url": "http://h:1", "oracle_model": "qwen", "oracle_key": "s3cret"},
-            oracle.Server("http://h:1", "qwen", "s3cret"),
+            oracle.Llama("http://h:1", "qwen", "s3cret"),
         ),
-        ({"oracle_apple": "1"}, oracle.APPLE),
-        ({"oracle_apple": "1", "oracle_url": "http://h:1"}, oracle.APPLE),
-        ({"oracle_apple": "0", "oracle_url": "http://h:1"}, oracle.Server("http://h:1", "", "")),
+        ({"oracle_apple": "1"}, oracle.Apple(DATA)),
+        ({"oracle_apple": "1", "oracle_url": "http://h:1"}, oracle.Apple(DATA)),
+        ({"oracle_apple": "1", "alfred_workflow_data": "/data"}, oracle.Apple(Path("/data"))),
+        ({"oracle_apple": "0", "oracle_url": "http://h:1"}, oracle.Llama("http://h:1", "", "")),
         ({"oracle_apple": "0"}, None),
     ],
 )
-def test_server_from_env(env, expected):
-    assert oracle.server(env) == expected, f"{env} should give {expected}"
+def test_backend_from_env(env, expected, monkeypatch):
+    monkeypatch.setenv("HOME", "/Users/me")
+    assert oracle.backend(env) == expected, f"{env} should give {expected}"
 
 
-def test_apple_is_not_a_url():
-    assert oracle.APPLE.apple and not oracle.APPLE.url, "Apple Intelligence needs no server URL"
+@pytest.mark.parametrize(
+    "backend, expected",
+    [(SERVER, oracle.BUDGET), (oracle.Apple(DATA), oracle.APPLE_BUDGET)],
+)
+def test_each_backend_has_its_budget(backend, expected):
+    assert backend.budget == expected, f"{backend} should send {expected} characters"
 
 
 def test_line_is_date_time_and_text():
@@ -110,7 +117,7 @@ def test_prompt_carries_question_date_and_log():
 
 @pytest.mark.parametrize(
     "server, has_model",
-    [(SERVER, True), (oracle.Server("http://h", "", ""), False)],
+    [(SERVER, True), (oracle.Llama("http://h", "", ""), False)],
 )
 def test_payload(server, has_model):
     payload = oracle.payload(server, [{"role": "user", "content": "q"}])

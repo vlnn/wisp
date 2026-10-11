@@ -4,13 +4,12 @@ import json
 import os
 import subprocess
 import sys
-import urllib.error
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from wisp import apple, macos, oracle, present, records, view
+from wisp import macos, oracle, present, records, view
 
 DEFAULT_FOLDER = "~/log"
 DRY_RUN = "--dry-run"
@@ -70,18 +69,15 @@ class Context:
     def logs(self) -> list[records.Record]:
         return records.read_folder(self.folder, self.created, self.changed)
 
-    def server(self) -> oracle.Server | None:
-        return oracle.server(self.env)
-
-    def data(self) -> Path:
-        return oracle.answers_folder(self.env).parent
+    def backend(self) -> oracle.Backend | None:
+        return oracle.backend(self.env)
 
     def jobs(self) -> Path:
         cache = self.env.get("alfred_workflow_cache")
-        return Path(cache) / "jobs" if cache else self.data() / "jobs"
+        return Path(cache) / "jobs" if cache else oracle.data_folder(self.env) / "jobs"
 
-    def lines_sent(self, server: oracle.Server) -> int:
-        return len(oracle.evidence(self.logs(), oracle.budget_for(server)).splitlines())
+    def lines_sent(self, backend: oracle.Backend) -> int:
+        return len(oracle.evidence(self.logs(), backend.budget).splitlines())
 
 
 def log_folder(env: Mapping[str, str]) -> Path:
@@ -110,10 +106,10 @@ def filter_command(args: list[str], ctx: Context) -> int:
 
 def ask_filter_command(args: list[str], ctx: Context) -> int:
     question = (args[0] if args else "").strip()
-    server = ctx.server()
+    backend = ctx.backend()
     logs = ctx.logs()
-    lines = len(oracle.evidence(logs, oracle.budget_for(server)).splitlines()) if server else 0
-    return emit(present.question_rows(question, logs, ctx.now, lines, bool(server)))
+    lines = len(oracle.evidence(logs, backend.budget).splitlines()) if backend else 0
+    return emit(present.question_rows(question, logs, ctx.now, lines, bool(backend)))
 
 
 def keep_command(args: list[str], ctx: Context) -> int:
@@ -166,22 +162,18 @@ def ask_command(args: list[str], ctx: Context) -> int:
     job = view.Job(asked.job) if asked.job else None
     if not question:
         return 1
-    server = ctx.server()
-    if server is None:
+    backend = ctx.backend()
+    if backend is None:
         return report(present.NO_SERVER, job)
     logs = ctx.logs()
-    messages = oracle.prompt(question, logs, ctx.now, oracle.budget_for(server))
+    messages = oracle.prompt(question, logs, ctx.now, backend.budget)
     if dry_run:
         return say("\n\n".join(m["content"] for m in reversed(messages)))
     if job is None:
         macos.notify(f"Asking about {len(logs)} lines…")
     try:
-        answer = oracle.answer(server, messages, job.progress if job else None, str(ctx.data()))
-    except urllib.error.HTTPError as error:
-        return report(f"Model answered {error.code} at {server.url}", job)
-    except (urllib.error.URLError, TimeoutError, OSError):
-        return report(f"Model not reachable at {server.url}", job)
-    except apple.AppleError as error:
+        answer = backend.respond(messages, job.progress if job else None)
+    except oracle.ModelError as error:
         return report(str(error), job)
     if job:
         job.progress(answer)
@@ -213,8 +205,8 @@ def report(message: str, job: view.Job | None) -> int:
 
 def view_command(args: list[str], ctx: Context) -> int:
     question = (args[0] if args else "").strip()
-    server = ctx.server()
-    if server is None:
+    backend = ctx.backend()
+    if backend is None:
         return emit_view(view.failed(present.NO_SERVER))
     running = ctx.env.get("job")
     if running:
@@ -228,7 +220,7 @@ def view_command(args: list[str], ctx: Context) -> int:
         stderr=subprocess.DEVNULL,
         start_new_session=True,
     )
-    return emit_view(view.starting(question, job, ctx.lines_sent(server)))
+    return emit_view(view.starting(question, job, ctx.lines_sent(backend)))
 
 
 def emit_view(shown: dict) -> int:

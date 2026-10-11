@@ -1,5 +1,4 @@
 import json
-import urllib.error
 from pathlib import Path
 
 import pytest
@@ -25,17 +24,17 @@ def notify(mocker):
 
 
 def model_says(mocker, text):
-    def answer(server, messages, on_text, data):
+    def respond(self, messages, on_text):
         if on_text:
             on_text(text[:3])
             on_text(text)
         return oracle.visible(text)
 
-    return mocker.patch("wisp.cli.oracle.answer", side_effect=answer)
+    return mocker.patch("wisp.oracle.Llama.respond", respond)
 
 
 def model_fails(mocker, error):
-    return mocker.patch("wisp.cli.oracle.answer", side_effect=error)
+    return mocker.patch("wisp.oracle.Llama.respond", side_effect=error)
 
 
 @pytest.fixture
@@ -342,12 +341,12 @@ def test_keep_answer_needs_both(run):
 
 
 def test_ask_dry_run_prints_the_prompt_and_asks_nothing(run, served, sample, mocker, notify):
-    post = model_says(mocker, "unused")
+    stream = mocker.patch("wisp.oracle.stream")
     code, out = run("ask", "--dry-run", "today summary")
     assert code == 0 and out.startswith("today summary\n") and "making API v1" in out, (
         "dry run prints what the model would be sent"
     )
-    post.assert_not_called()
+    stream.assert_not_called()
     notify.assert_not_called()
 
 
@@ -357,21 +356,11 @@ def test_ask_without_a_server(run, sample, notify):
     notify.assert_called_once_with(present.NO_SERVER)
 
 
-@pytest.mark.parametrize(
-    "error, message",
-    [
-        (urllib.error.URLError("refused"), "Model not reachable at http://127.0.0.1:8080"),
-        (
-            urllib.error.HTTPError("http://127.0.0.1:8080", 401, "nope", {}, None),
-            "Model answered 401 at http://127.0.0.1:8080",
-        ),
-    ],
-)
-def test_ask_failures_become_messages(run, served, sample, mocker, notify, error, message):
-    model_fails(mocker, error)
+def test_ask_failures_become_messages(run, served, sample, mocker, notify):
+    model_fails(mocker, oracle.ModelError("Model not reachable at http://h"))
     code, _ = run("ask", "today summary")
-    assert code == 1, f"{error!r} fails the command"
-    notify.assert_called_with(message)
+    assert code == 1, "a model failure fails the command"
+    notify.assert_called_with("Model not reachable at http://h")
 
 
 def test_ask_with_blank_question(run, served, sample, notify):
@@ -421,10 +410,10 @@ def test_ask_with_a_job_reports_progress_instead_of_notifying(
 
 
 def test_ask_with_a_job_records_the_failure(run, served, sample, mocker, notify, tmp_path):
-    model_fails(mocker, urllib.error.URLError("refused"))
+    model_fails(mocker, oracle.ModelError("Model not reachable at http://h"))
     job = tmp_path / "jobs" / "j1"
     code, _ = run("ask", "--job", str(job), "today summary")
-    assert code == 1 and view.Job(job).error() == "Model not reachable at http://127.0.0.1:8080", (
+    assert code == 1 and view.Job(job).error() == "Model not reachable at http://h", (
         "the failure goes to the job, not to a notification"
     )
     notify.assert_not_called()
@@ -432,10 +421,10 @@ def test_ask_with_a_job_records_the_failure(run, served, sample, mocker, notify,
 
 def test_ask_apple_errors_are_messages(run, env, sample, mocker, notify):
     env["oracle_apple"] = "1"
-    model_fails(mocker, apple.AppleError("Apple Intelligence is not enabled"))
+    mocker.patch("wisp.oracle.apple.respond", side_effect=apple.AppleError("not enabled"))
     code, _ = run("ask", "today summary")
     assert code == 1, "an Apple failure fails the command"
-    notify.assert_called_with("Apple Intelligence is not enabled")
+    notify.assert_called_with("not enabled")
 
 
 def test_view_starts_a_job_in_the_background(run, served, sample, mocker):

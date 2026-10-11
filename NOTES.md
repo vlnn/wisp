@@ -41,8 +41,10 @@ question travels back as a variable, the answer is the view's output) and opens 
 conditional in the editor reads *action is equal to ask*: that match mode is the one number in the
 plist written from memory.
 
-The **Apple Intelligence** checkbox arrives as `oracle_apple` (`1` or `0`); when on, `oracle.server`
-returns `oracle.APPLE`, a `Server` with `apple=True` and no URL, and the server fields are not read.
+The **Apple Intelligence** checkbox arrives as `oracle_apple` (`1` or `0`); when on, `oracle.backend`
+returns an `oracle.Apple` and the server fields are not read, otherwise an `oracle.Llama` or `None`.
+Both carry a `budget` and answer `respond(messages, on_text)`, and every failure comes back as one
+`oracle.ModelError` whose message is what the user sees.
 
 `apple.swift` compiles with `swiftc -O -parse-as-library` into `<data>/bin/wisp-apple` the first time
 it is needed, and again whenever the shipped source is newer than the binary. It takes the system
