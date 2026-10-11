@@ -16,7 +16,8 @@ Eight small modules, each with one job, so a feature lands in one of them:
 | `cli` | subcommands, the folder setting | a new subcommand, a new setting |
 
 Alfred wiring is `workflow/info.plist`: two script filters, `l` for the log and `ask` for the model,
-each with a hotkey object. Both ↩ into one conditional on the
+each with a hotkey object; `ask` lists the same log rows under its own, so it has the same four
+connections as `l`. Both ↩ into one conditional on the
 `action` variable: `ask` goes to the Text View (script file `view` at the bundle root), `menu` to a
 second, keywordless script filter (`menu`) that lists what the record can do, anything else (`keep`,
 and `open` from an answer row) to the ↩ script. The menu's rows carry the same `action` values the

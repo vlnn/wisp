@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import NOW, names
+from conftest import LINES, NOW, names
 from wisp import apple, cli, oracle, present, view
 
 
@@ -256,7 +256,7 @@ def test_question_offers_to_ask_then_lists_past_answers(run, served, sample, ans
     answered("what about api", "Made v1.", 30)
     _, out = run("ask-filter", "today summary")
     assert titles(out) == ['Ask "today summary"', "today summary"], (
-        "the Ask row first, then earlier answers whose question matches"
+        "the Ask row first, then earlier answers whose question matches, then matching log lines"
     )
     ask = rows(out)[0]
     assert ask["subtitle"] == "↩ asks the model about 5 lines"
@@ -265,13 +265,24 @@ def test_question_offers_to_ask_then_lists_past_answers(run, served, sample, ans
     )
 
 
-def test_bare_question_mark_lists_every_answer_newest_first(run, served, answered):
+def test_bare_question_mark_lists_every_answer_newest_first(run, served, answered, sample):
     answered("today summary", "Docs, mostly.", 60)
     answered("what about api", "Made v1.", 30)
     _, out = run("ask-filter", "")
-    assert titles(out) == ["what about api", "today summary"], (
-        "all answers, newest first, no Ask row"
+    assert titles(out) == ["what about api", "today summary", *reversed(LINES)], (
+        "all answers newest first, then the whole log as `l` shows it, no Ask row"
     )
+
+
+def test_ask_filter_lists_the_log_lines_the_words_match(run, served, logged):
+    logged(". document api", 5)
+    logged("api v1", 1)
+    _, out = run("ask-filter", "api")
+    assert titles(out) == ['Ask "api"', "api v1", ". document api"], (
+        "the log rows under Ask are the same rows `l api` shows"
+    )
+    assert rows(out)[2]["icon"] == {"path": "icons/task.png"}, "with the same icons"
+    assert rows(out)[2]["variables"]["action"] == "menu", "and the same ↩"
 
 
 def test_answer_row_shape(run, served, answered):

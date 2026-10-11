@@ -79,8 +79,9 @@ def filter_command(args: list[str], ctx: Context) -> int:
 def ask_filter_command(args: list[str], ctx: Context) -> int:
     question = (args[0] if args else "").strip()
     server = ctx.server()
-    lines = ctx.lines_sent(server) if server else 0
-    return emit(present.question_rows(question, ctx.answers(), ctx.now, lines, bool(server)))
+    logs = ctx.logs()
+    lines = len(oracle.evidence(logs, oracle.budget_for(server)).splitlines()) if server else 0
+    return emit(present.question_rows(question, ctx.answers(), logs, ctx.now, lines, bool(server)))
 
 
 def keep_command(args: list[str], ctx: Context) -> int:

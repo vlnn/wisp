@@ -142,13 +142,20 @@ NO_SERVER = "Set Model server or turn on Apple Intelligence in the workflow conf
 
 
 def question_rows(
-    question: str, answers: Iterable[Answer], now: datetime, lines: int, served: bool
+    question: str,
+    answers: Iterable[Answer],
+    records: Iterable[Record],
+    now: datetime,
+    lines: int,
+    served: bool,
 ) -> list[dict]:
     if not served:
         return [{"title": NO_SERVER, "subtitle": "to ask questions about the log", "valid": False}]
     asked = [a for a in answers if matches(question, a.question)]
     offered = [ask_row(question, lines)] if question else []
-    return offered + [answer_row(answer, now) for answer in asked]
+    answered = [answer_row(answer, now) for answer in asked]
+    logged = [record_row(record, now) for record in search(question, records)]
+    return offered + answered + logged
 
 
 def ask_row(question: str, lines: int) -> dict:

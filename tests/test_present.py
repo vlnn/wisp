@@ -172,7 +172,7 @@ def test_rows_carry_the_icon_of_their_kind(text, icon):
 
 def test_ask_rows_use_the_question_and_decision_icons():
     asked = Answer(Path("/data/answers/x.md"), "today summary", "Docs, mostly.", NOW)
-    ask, answer = present.question_rows("today", [asked], NOW, 5, served=True)
+    ask, answer = present.question_rows("today", [asked], [], NOW, 5, served=True)
     assert ask["icon"] == {"path": "icons/question.png"}, "the Ask row is an open question"
     assert answer["icon"] == {"path": "icons/decision.png"}, "a kept answer is a settled one"
 

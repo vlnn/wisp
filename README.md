@@ -91,15 +91,21 @@ Until one of them is set, `ask` only tells you to set it.
 
 ```
 ask today summary            Ask "today summary"   ↩ asks the model about 1 240 lines
-ask what did I do with api   …
-ask                          every earlier answer, newest first
+ask what did I do with api   Ask "what did I do with api"
+                             testing api manually      14:31 today
+                             making API v1             14:02 today
+ask                          every earlier answer, then the whole log, newest first
 ```
+
+Under the **Ask** row come the earlier answers whose question matches, then the log lines the
+words match, exactly as `l` would list them, same dots and same keys, so you can see what the
+model has to go on before you ask.
 
 ↩ on **Ask** opens a text view inside Alfred and the answer streams into it as the model writes
 (the Apple model answers in one go). In the view, ↩ copies the answer and ⌥↩ keeps it as a file
 and opens it; Esc closes the view and the answer is gone unless you kept it. Kept answers are
 markdown files (question on the first line, answer below) in Alfred's data folder for the
-workflow; `ask` lists them like log lines: ↩ opens, ⇧↩ copies the answer, ⌥↩ trashes it.
+workflow; `ask` lists them above the log lines: ↩ opens, ⇧↩ copies the answer, ⌥↩ trashes it.
 
 The model sees each line as `YYYY-MM-DD HH:MM  text`; the other kinds carry a word before the
 text, `TODO`, `QUESTION`, `NOTE`, or `DONE` and `DECIDED` with the time they were settled, so "what

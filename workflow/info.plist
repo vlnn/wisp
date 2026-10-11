@@ -246,6 +246,16 @@
 				<key>vitoclose</key>
 				<false/>
 			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C05</string>
+				<key>modifiers</key>
+				<integer>1048576</integer>
+				<key>modifiersubtext</key>
+				<string>Rename</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
 		</array>
 		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C09</key>
 		<array>
@@ -377,7 +387,7 @@
 				<key>scriptfile</key>
 				<string></string>
 				<key>subtext</key>
-				<string>Ask the model about the log, or see earlier answers</string>
+				<string>Ask the model about the log; the lines it will see are listed below</string>
 				<key>title</key>
 				<string>Ask the log</string>
 				<key>type</key>
