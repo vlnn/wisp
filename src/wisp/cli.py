@@ -15,6 +15,7 @@ from wisp import macos, oracle, present, records, view
 DEFAULT_FOLDER = "~/log"
 DRY_RUN = "--dry-run"
 JOB = "--job"
+THREAD = "--thread"
 KEEP = "--keep"
 END_OF_FLAGS = "--"
 
@@ -29,6 +30,7 @@ class AskArgs:
     dry_run: bool = False
     keep: bool = False
     job: str | None = None
+    thread: str | None = None
 
     @classmethod
     def parse(cls, argv: list[str]) -> AskArgs:
@@ -44,10 +46,10 @@ class AskArgs:
                 flags["dry_run"] = True
             elif arg == KEEP:
                 flags["keep"] = True
-            elif arg == JOB:
+            elif arg in (JOB, THREAD):
                 if not rest:
-                    raise Usage(f"{JOB} needs a folder")
-                flags["job"] = rest.pop(0)
+                    raise Usage(f"{arg} needs a folder")
+                flags[arg.lstrip("-")] = rest.pop(0)
             else:
                 words.append(arg)
         return cls(" ".join(words).strip(), **flags)
@@ -191,21 +193,26 @@ def mark_command(args: list[str], ctx: Context) -> int:
 
 def ask_command(args: list[str], ctx: Context) -> int:
     asked = AskArgs.parse(args)
-    sink: Sink = view.Job(asked.job) if asked.job else Notify()
+    job = view.Job(asked.job) if asked.job else None
+    sink: Sink = job or Notify()
     if not asked.question:
         return 1
     backend = ctx.backend()
     if backend is None:
         return fail(present.NO_SERVER, sink)
     logs = ctx.logs()
-    messages = oracle.prompt(asked.question, logs, ctx.now, backend.budget)
+    earlier = view.Job(asked.thread) if asked.thread else None
+    turns = earlier.turns() if earlier else []
+    messages = oracle.prompt(asked.question, logs, ctx.now, backend.budget, turns)
     if asked.dry_run:
-        return say("\n\n".join(m["content"] for m in reversed(messages)))
+        return say("\n\n".join(m["content"] for m in [*messages[1:], messages[0]]))
     sink.begin(len(logs))
     try:
         answer = backend.respond(messages, sink.progress)
     except oracle.ModelError as error:
         return fail(str(error), sink)
+    if job:
+        job.remember(asked.question, answer, after=earlier)
     sink.finish(answer)
     if asked.keep:
         return say(str(keep_answer(ctx, asked.question, answer)))
@@ -222,6 +229,21 @@ def keep_answer_command(args: list[str], ctx: Context) -> int:
     return say(str(keep_answer(ctx, args[0], args[1])))
 
 
+def ask_more_command(args: list[str], ctx: Context) -> int:
+    question = (args[0] if args else "").strip()
+    backend = ctx.backend()
+    if backend is None:
+        return emit([present.unserved_row()])
+    thread = view.Job(ctx.env.get("thread", ""))
+    turns = thread.turns()
+    if not turns:
+        return emit([present.unserved_row()])
+    found = ctx.evidence(turns[0][0], backend, ctx.logs())
+    return emit(
+        [present.followup_row(question, turns[0][0], str(thread.folder), len(found.lines()))]
+    )
+
+
 def view_command(args: list[str], ctx: Context) -> int:
     question = (args[0] if args else "").strip()
     backend = ctx.backend()
@@ -232,8 +254,10 @@ def view_command(args: list[str], ctx: Context) -> int:
         return emit_view(view.showing(question, view.Job(running), ctx.now))
     job = view.Job(ctx.jobs() / view.job_id())
     job.start(ctx.now)
+    thread = ctx.env.get("thread")
+    continued = [THREAD, thread] if thread else []
     subprocess.Popen(
-        [sys.executable, "-m", "wisp", "ask", JOB, str(job.folder), question],
+        [sys.executable, "-m", "wisp", "ask", JOB, str(job.folder), *continued, question],
         env=dict(ctx.env),
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -284,6 +308,7 @@ COMMANDS: dict[str, Command] = {
     "decide": decide_command,
     "menu": menu_command,
     "ask-filter": ask_filter_command,
+    "ask-more": ask_more_command,
     "ask": ask_command,
     "view": view_command,
     "keep-answer": keep_answer_command,

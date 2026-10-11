@@ -246,3 +246,22 @@ def test_prompt_names_the_window_so_the_model_need_not_find_it(question, heading
     logs = [record("x", 1), record("api", 2), record("wisp", 3), record("logs", 4)]
     _, user = (m["content"] for m in oracle.prompt(question, logs, NOW))
     assert f"\n\n{heading}\n" in user, f"{question!r} should head the log with {heading!r}"
+
+
+def test_prompt_with_turns_keeps_the_log_with_the_first_question():
+    logs = [record("api v1", 1), record("docs", 2)]
+    turns = [("how many api lines", "One.")]
+    messages = oracle.prompt("when", logs, NOW, turns=turns)
+    assert [m["role"] for m in messages] == ["system", "user", "assistant", "user"]
+    assert messages[1]["content"].startswith(
+        "how many api lines\n\nLog, lines matching api only:"
+    ), "the log is what the first question singled out"
+    assert "api v1" in messages[1]["content"] and "docs" not in messages[1]["content"]
+    assert messages[2]["content"] == "One." and messages[3]["content"] == "when"
+
+
+def test_prompt_with_turns_leaves_room_for_them():
+    logs = [record(f"line {n}", n) for n in range(1, 50)]
+    turns = [("q", "x" * 80)]
+    messages = oracle.prompt("more", logs, NOW, budget=120, turns=turns)
+    assert messages[1]["content"].count("\n2026-") == 1, "the turns come out of the budget"

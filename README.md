@@ -105,8 +105,11 @@ ask                          the whole log, newest first
 Under the **Ask** row the list is exactly what `l` would show for the same words, same dots and
 same keys, so you can see what the model has to go on before you ask.
 
-↩ on **Ask** opens a text view inside Alfred and the answer streams into it as the model writes. In the view, ↩ copies the answer and ⌥↩ keeps it as a file
-and opens it; Esc closes the view and the answer is gone unless you kept it. Kept answers are
+↩ on **Ask** opens a text view inside Alfred and the answer streams into it as the model writes. In the view, ↩ copies the answer, ⌥↩ keeps it as a file
+and opens it, and ⌘↩ asks a follow-up: type the next question, ↩, and the model gets the first
+question with its log, every answer so far and the new question, so "which of those are done?"
+works. Esc closes the view and the answer is gone unless you kept it; a thread lasts as long as
+Alfred's cache for the workflow does. Kept answers are
 markdown files (question on the first line, answer below) in Alfred's data folder for the
 workflow, opened as they are kept; they are not listed in Alfred.
 
@@ -128,7 +131,8 @@ which Qwen3-style models honour, and hides a `<think>` block if one comes back a
 names the alias when the server serves several; **Model server API key** is sent as a bearer token.
 
 `wisp ask --dry-run "today summary"` prints exactly what the model would be sent;
-`wisp ask --keep "today summary"` saves the answer the way ⌥↩ does.
+`wisp ask --keep "today summary"` saves the answer the way ⌥↩ does; `wisp ask --thread <job folder>
+"and then?"` follows up on a job from the view (the folder is in `wisp check`'s jobs folder).
 
 ## How files are named
 
@@ -158,7 +162,7 @@ oracle_url=http://127.0.0.1:8080 uv run wisp ask "today summary"
 `wisp check` prints the resolved settings: the log folder and how many records it holds, the data
 and jobs folders, and whether the model server answers (or what the Apple helper still needs).
 
-`filter`, `ask-filter`, `rename-filter`, `menu` and `view` print Alfred's JSON, `mark` and `decide` print the new line, `ask` prints the answer (`ask --keep` and
+`filter`, `ask-filter`, `ask-more`, `rename-filter`, `menu` and `view` print Alfred's JSON, `mark` and `decide` print the new line, `ask` prints the answer (`ask --keep` and
 `keep-answer "<question>" "<answer>"` save it and print the file's path), the rest print the text
 they acted on. `wisp act <action> <arg>` is what Alfred's ↩ runs: `keep`, `mark`, `open`, `copy` or `trash`,
 each also a subcommand of its own. `wisp ask --job <folder> "…"` is what the text view runs in the

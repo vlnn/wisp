@@ -63,12 +63,14 @@ def test_finished_view_stops_polling_and_offers_keys(job):
     shown = view.showing("today summary", job, NOW)
     assert "rerun" not in shown, "no more polling"
     assert shown["response"] == "You read docs.", "the answer, nothing else, so ↩ copies just it"
-    assert shown["variables"] == {"job": "", "question": "today summary"}, (
-        "⌥↩ can save the answer under its question"
-    )
-    assert shown["footer"] == '"today summary" · ↩ copy · ⌥↩ keep as a file and open it', (
-        "the question moves to the footer"
-    )
+    assert shown["variables"] == {
+        "job": "",
+        "question": "today summary",
+        "thread": str(job.folder),
+    }, "⌥↩ can save the answer under its question, ⌘↩ follow up on the job"
+    assert shown["footer"] == (
+        '"today summary" · ↩ copy · ⌥↩ keep as a file and open it · ⌘↩ follow up'
+    ), "the question moves to the footer"
 
 
 def test_failed_view_shows_the_error(job):
@@ -98,3 +100,21 @@ def test_view_gives_up_when_the_job_folder_is_gone(tmp_path):
     assert "rerun" not in shown and shown["response"] == f"**{view.NO_ANSWER}**", (
         "a job with no start stamp was cleared from under the view"
     )
+
+
+def test_job_remembers_turns_after_an_earlier_job(tmp_path):
+    first = view.Job(tmp_path / "j1")
+    first.remember("how many", "Two.")
+    second = view.Job(tmp_path / "j2")
+    second.remember("when", "Today.", after=first)
+    assert second.turns() == [("how many", "Two."), ("when", "Today.")], (
+        "a job's turns are the earlier job's and its own"
+    )
+    assert view.Job(tmp_path / "none").turns() == [], "a job with no thread has no turns"
+
+
+def test_finished_view_offers_a_follow_up(job):
+    job.finish("You read docs.")
+    shown = view.showing("today summary", job, NOW)
+    assert shown["variables"]["thread"] == str(job.folder), "⌘↩ can follow up on this job"
+    assert "⌘↩ follow up" in shown["footer"], "and the footer says so"

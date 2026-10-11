@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from datetime import datetime
 from pathlib import Path
@@ -9,7 +10,8 @@ from wisp.oracle import visible
 
 RERUN = 0.2
 GIVE_UP = max(oracle.TIMEOUT, apple.TIMEOUT) + 30
-PARTIAL, DONE, ERROR, STARTED = "partial.md", "done", "error", "started"
+PARTIAL, DONE, ERROR, STARTED, THREAD = "partial.md", "done", "error", "started", "thread.json"
+Turn = tuple[str, str]
 NO_ANSWER = f"The model gave no answer in {GIVE_UP} seconds"
 
 
@@ -50,6 +52,14 @@ class Job:
     def fail(self, message: str) -> None:
         self.write(ERROR, message)
 
+    def turns(self) -> list[Turn]:
+        kept = self.read(THREAD)
+        return [(q, a) for q, a in json.loads(kept)] if kept else []
+
+    def remember(self, question: str, answer: str, after: Job | None = None) -> None:
+        turns = (after.turns() if after else []) + [(question, answer)]
+        self.write(THREAD, json.dumps(turns, ensure_ascii=False))
+
     def read(self, name: str) -> str:
         try:
             return (self.folder / name).read_text(encoding="utf-8")
@@ -84,8 +94,8 @@ def showing(question: str, job: Job, now: datetime) -> dict:
     if job.done():
         return {
             "response": text,
-            "footer": f'"{question}" · ↩ copy · ⌥↩ keep as a file and open it',
-            "variables": {"job": "", "question": question},
+            "footer": f'"{question}" · ↩ copy · ⌥↩ keep as a file and open it · ⌘↩ follow up',
+            "variables": {"job": "", "question": question, "thread": str(job.folder)},
             "behaviour": {"response": "replace", "scroll": "end"},
         }
     if job.stale(now):

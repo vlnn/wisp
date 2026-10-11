@@ -425,6 +425,7 @@ def test_ask_with_a_bare_job_flag_fails_cleanly(env, clock, capsys):
         (["today", "--keep"], cli.AskArgs(question="today", keep=True)),
         (["--job", "/j", "x"], cli.AskArgs(question="x", job="/j")),
         (["--", "--keep", "it"], cli.AskArgs(question="--keep it")),
+        (["--thread", "/t", "more"], cli.AskArgs(question="more", thread="/t")),
     ],
 )
 def test_ask_args(argv, expected):
@@ -606,4 +607,84 @@ def test_ask_row_counts_within_the_window(run, served, logged):
     _, out = run("ask-filter", "api yesterday")
     assert rows(out)[0]["subtitle"] == "↩ asks the model about 1 line matching api", (
         "the window bounds the lines, the words pick within it"
+    )
+
+
+@pytest.fixture
+def answered(tmp_path):
+    first = view.Job(tmp_path / "jobs" / "j1")
+    first.start(NOW)
+    first.finish("Two.")
+    first.remember("how many api lines", "Two.")
+    return first
+
+
+def test_ask_with_a_thread_continues_the_conversation(run, served, sample, mocker, answered):
+    model_says(mocker, "Both today.")
+    second = answered.folder.parent / "j2"
+    code, out = run("ask", "--job", str(second), "--thread", str(answered.folder), "when")
+    assert code == 0 and out == "Both today.\n", "the follow-up is answered"
+    assert view.Job(second).turns() == [
+        ("how many api lines", "Two."),
+        ("when", "Both today."),
+    ], "the new job carries every turn so far"
+    assert answered.turns() == [("how many api lines", "Two.")], "the earlier job is untouched"
+
+
+def test_ask_with_a_thread_sends_the_earlier_turns(run, served, sample, mocker, answered):
+    seen = {}
+
+    def respond(self, messages, on_text):
+        seen["messages"] = messages
+        return "ok"
+
+    mocker.patch("wisp.oracle.Llama.respond", respond)
+    run("ask", "--thread", str(answered.folder), "when")
+    roles = [m["role"] for m in seen["messages"]]
+    assert roles == ["system", "user", "assistant", "user"], "the thread precedes the question"
+    assert seen["messages"][1]["content"].startswith("how many api lines"), (
+        "the log goes with the first question"
+    )
+    assert seen["messages"][2]["content"] == "Two." and seen["messages"][3]["content"] == "when", (
+        "then the earlier answer and the new question"
+    )
+
+
+def test_view_with_a_thread_starts_a_follow_up_job(run, served, sample, mocker, answered):
+    popen = mocker.patch("wisp.cli.subprocess.Popen")
+    served["thread"] = str(answered.folder)
+    _, out = run("view", "when")
+    argv = popen.call_args.args[0]
+    job = json.loads(out)["variables"]["job"]
+    assert argv[1:] == [
+        "-m",
+        "wisp",
+        "ask",
+        "--job",
+        job,
+        "--thread",
+        str(answered.folder),
+        "when",
+    ], "the background ask gets the thread"
+
+
+def test_ask_more_offers_a_follow_up_on_the_thread(run, served, sample, answered):
+    served["thread"] = str(answered.folder)
+    _, out = run("ask-more", "when")
+    (row,) = rows(out)
+    assert row["title"] == 'Ask "when"' and row["variables"] == {
+        "action": "ask",
+        "thread": str(answered.folder),
+    }, "the row asks with the thread carried along"
+    assert row["subtitle"] == 'follows up on "how many api lines" · 2 lines', (
+        "the row says what it follows up on and what the model has"
+    )
+
+
+def test_ask_more_with_nothing_typed_waits(run, served, answered):
+    served["thread"] = str(answered.folder)
+    _, out = run("ask-more", "")
+    (row,) = rows(out)
+    assert row["valid"] is False and row["title"] == 'Type a follow-up to "how many api lines"', (
+        "nothing to ask yet"
     )

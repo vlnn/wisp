@@ -191,13 +191,34 @@ def size(logs: list[Record]) -> int:
     return sum(len(line(record)) + 1 for record in logs)
 
 
+Turn = tuple[str, str]
+
+
 def prompt(
-    question: str, logs: Iterable[Record], now: datetime, budget: int = BUDGET
+    question: str,
+    logs: Iterable[Record],
+    now: datetime,
+    budget: int = BUDGET,
+    turns: Iterable[Turn] = (),
 ) -> list[dict]:
+    earlier = list(turns)
+    first = earlier[0][0] if earlier else question
+    room = budget - sum(len(q) + len(a) for q, a in earlier)
     return [
         {"role": "system", "content": SYSTEM.format(today=f"{now:%A %Y-%m-%d}")},
-        {"role": "user", "content": asking(question, logs, now, budget)},
+        {"role": "user", "content": asking(first, logs, now, max(room, 0))},
+        *replayed(earlier),
+        *([{"role": "user", "content": question}] if earlier else []),
     ]
+
+
+def replayed(turns: list[Turn]) -> list[dict]:
+    messages = []
+    for n, (question, answer) in enumerate(turns):
+        if n:
+            messages.append({"role": "user", "content": question})
+        messages.append({"role": "assistant", "content": answer})
+    return messages
 
 
 def asking(question: str, logs: Iterable[Record], now: datetime, budget: int) -> str:

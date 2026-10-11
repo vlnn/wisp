@@ -10,7 +10,7 @@ from wisp import cli, present, records
 
 ROOT = Path(__file__).resolve().parent.parent
 WORKFLOW = ROOT / "workflow"
-ALFRED_VARIABLES = {"alfred_workflow_data", "alfred_workflow_cache", "job"}
+ALFRED_VARIABLES = {"alfred_workflow_data", "alfred_workflow_cache", "job", "thread"}
 EQUALS = 0
 
 
@@ -144,3 +144,14 @@ def test_icons_in_the_bundle_match_present():
     assert {f"icons/{p.name}" for p in (WORKFLOW / "icons").glob("*.png")} == set(
         {kind.icon for kind in records.Kind}
     ), "every icon present names ships, and nothing else"
+
+
+def test_the_text_view_leads_to_a_follow_up(plist, objects):
+    (text,) = [uid for uid, o in objects.items() if o["type"].endswith("userinterface.text")]
+    by_cmd = [c for c in plist["connections"][text] if c["modifiers"] == 1048576]
+    (follow,) = by_cmd
+    script = objects[follow["destinationuid"]]["config"]["script"]
+    assert "wisp ask-more" in script, "⌘↩ in the view opens the follow-up filter"
+    assert any(
+        c["destinationuid"] for c in plist["connections"][follow["destinationuid"]]
+    ), "and the filter leads back to the ask routing"

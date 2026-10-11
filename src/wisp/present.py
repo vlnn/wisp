@@ -189,6 +189,18 @@ def question_rows(
     return offered + [record_row(record, now) for record in search(question, records, now.date())]
 
 
+def followup_row(question: str, first: str, thread: str, lines: int) -> Row:
+    if not question:
+        return {"title": f'Type a follow-up to "{first}"', "valid": False}
+    return {
+        "title": f'Ask "{question}"',
+        "subtitle": f'follows up on "{first}" · {lines} lines',
+        "arg": question,
+        "icon": icon(Kind.QUESTION),
+        "variables": {"action": "ask", "thread": thread},
+    }
+
+
 def ask_row(question: str, lines: int, terms: Iterable[str] = ()) -> Row:
     counted = f"{lines} line" if lines == 1 else f"{lines} lines"
     matched = f" matching {', '.join(terms)}" if terms else ""

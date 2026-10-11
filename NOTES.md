@@ -39,7 +39,12 @@ The Text View runs `wisp view <question>` with no `job` variable, which starts `
 a job with no stamp, or with neither `done` nor `error` after `view.GIVE_UP` seconds, is shown as a
 failure rather than polled forever. The job folder is under Alfred's cache folder, so Alfred may clear
 it; nothing is saved until ⌥↩ in the finished view runs `wisp keep-answer "$question" "$1"` (the
-question travels back as a variable, the answer is the view's output) and opens the file it printed. If the view ever comes up empty on ↩, check the
+question travels back as a variable, the answer is the view's output) and opens the file it printed.
+A finished view also carries `thread`, its own job folder; ⌘↩ opens the keywordless `ask-more`
+filter, whose row is the `ask` action with `thread` set, so the view starts `wisp ask --job <new>
+--thread <old>`. Each job writes `thread.json`, its predecessor's turns plus its own
+(`view.Job.remember`), and `oracle.prompt` replays them: the log goes with the first question,
+then assistant and user turns alternate, and the turns' length comes off the evidence budget. If the view ever comes up empty on ↩, check the
 conditional in the editor reads *action is equal to ask*: that match mode is the one number in the
 plist written from memory.
 
