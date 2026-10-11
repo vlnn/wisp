@@ -13,7 +13,10 @@ def trash(path: Path) -> None:
 
 def notify(text: str) -> None:
     script = f'display notification "{applescript_string(text)}" with title "{TITLE}"'
-    subprocess.run(["osascript", "-e", script], check=False, capture_output=True)
+    try:
+        subprocess.run(["osascript", "-e", script], check=False, capture_output=True)
+    except FileNotFoundError:
+        pass
 
 
 def applescript_string(text: str) -> str:

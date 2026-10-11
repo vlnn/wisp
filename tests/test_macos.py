@@ -27,6 +27,11 @@ def test_notify_posts_a_notification(mocker):
     assert kwargs["check"] is False, "a failed notification should not break the command"
 
 
+def test_notify_is_silent_without_osascript(mocker):
+    mocker.patch("wisp.macos.subprocess.run", side_effect=FileNotFoundError("osascript"))
+    macos.notify("hello")
+
+
 @pytest.mark.parametrize(
     "text, quoted",
     [
