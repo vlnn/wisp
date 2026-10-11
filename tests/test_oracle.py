@@ -133,8 +133,12 @@ def test_evidence_matches_the_way_the_list_does():
     assert [r.text for r in found.matching] == [". fix api"], (
         "a sigil narrows the kind and words prefix-match, as `l` does"
     )
-    assert [r.text for r in found.records()] == [". fix api", "api v1", "docs"], (
-        "with room to spare the whole log goes, newest first"
+    assert [r.text for r in found.records()] == [". fix api"], (
+        "a sigil bounds what goes to the model, as it bounds the list"
+    )
+    whole = oracle.evidence("ap", logs)
+    assert [r.text for r in whole.records()] == [". fix api", "api v1", "docs"], (
+        "without one, the words single out and the rest follows, newest first"
     )
 
 
@@ -195,3 +199,10 @@ def test_answers_folder(env, expected, monkeypatch):
 @pytest.mark.parametrize("backend", [SERVER, oracle.Apple(DATA)])
 def test_each_backend_is_a_backend(backend):
     assert isinstance(backend, oracle.Backend), f"{backend} should answer the Backend protocol"
+
+
+def test_evidence_within_a_window_fills_from_that_window_only():
+    logs = [record("today api", 1), record("today docs", 2), record("old api", 60 * 24 * 3)]
+    found = oracle.evidence("api today", logs, now=NOW)
+    assert [r.text for r in found.matching] == ["today api"], "words match within the window"
+    assert [r.text for r in found.filling] == ["today docs"], "the fill stays in the window"

@@ -148,18 +148,17 @@ class Evidence:
         return "\n".join(self.lines())
 
 
-def evidence(question: str, logs: Iterable[Record], budget: int = BUDGET) -> Evidence:
-    newest = sorted(logs, key=records.newest_first)
-    matching = fit(singled_out(question, newest), budget)
+def evidence(
+    question: str, logs: Iterable[Record], budget: int = BUDGET, now: datetime | None = None
+) -> Evidence:
+    asked = search.query(question, now.date() if now else None)
+    pool = [r for r in sorted(logs, key=records.newest_first) if search.in_scope(asked, r)]
+    matching = fit([r for r in pool if search.wanted(asked, r)] if asked.words else [], budget)
     left = {record.path for record in matching}
-    filling = fit((r for r in newest if r.path not in left), budget - size(matching))
+    filling = fit((r for r in pool if r.path not in left), budget - size(matching))
     if not matching and not filling:
-        filling = newest[:1]
+        filling = pool[:1]
     return Evidence(matching, filling)
-
-
-def singled_out(question: str, logs: list[Record]) -> list[Record]:
-    return search.search(question, logs) if search.query(question).words else []
 
 
 def fit(logs: Iterable[Record], budget: int) -> list[Record]:
@@ -184,7 +183,7 @@ def prompt(
         {"role": "system", "content": SYSTEM.format(today=f"{now:%A %Y-%m-%d}")},
         {
             "role": "user",
-            "content": f"{question}\n\nLog:\n{evidence(question, logs, budget).text()}",
+            "content": f"{question}\n\nLog:\n{evidence(question, logs, budget, now).text()}",
         },
     ]
 

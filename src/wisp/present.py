@@ -55,7 +55,7 @@ def when(created: datetime, now: datetime) -> str:
 
 def rows(text: str, records: Iterable[Record], now: datetime) -> list[Row]:
     offered = [keep_row(text)] if query(text).words else []
-    return offered + [record_row(record, now) for record in search(text, records)]
+    return offered + [record_row(record, now) for record in search(text, records, now.date())]
 
 
 def keep_row(text: str) -> Row:
@@ -186,7 +186,7 @@ def question_rows(
     question: str, records: Iterable[Record], now: datetime, found: Evidence
 ) -> list[Row]:
     offered = [ask_row(question, len(found.lines()), len(found.matching))] if question else []
-    return offered + [record_row(record, now) for record in search(question, records)]
+    return offered + [record_row(record, now) for record in search(question, records, now.date())]
 
 
 def ask_row(question: str, lines: int, matching: int = 0) -> Row:

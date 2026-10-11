@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -114,3 +114,91 @@ def test_search_with_a_sigil_keeps_that_kind_only(mixed, query, expected):
 
 def test_a_sigil_word_does_not_match_the_sigil_itself(mixed):
     assert search.search("* document", mixed) == [], "the sigil is not part of the searched line"
+
+
+TODAY = NOW.date()
+
+
+@pytest.mark.parametrize(
+    "token, first, last",
+    [
+        ("today", TODAY, TODAY),
+        ("Today", TODAY, TODAY),
+        ("yesterday", TODAY - timedelta(days=1), TODAY - timedelta(days=1)),
+        ("saturday", TODAY, TODAY),
+        ("sat", TODAY, TODAY),
+        ("friday", TODAY - timedelta(days=1), TODAY - timedelta(days=1)),
+        ("sunday", TODAY - timedelta(days=6), TODAY - timedelta(days=6)),
+        ("2026-10-03", date(2026, 10, 3), date(2026, 10, 3)),
+        ("2026-09", date(2026, 9, 1), date(2026, 9, 30)),
+        ("2024-02", date(2024, 2, 1), date(2024, 2, 29)),
+    ],
+)
+def test_days_reads_a_date_word(token, first, last):
+    assert search.days(token, TODAY) == (first, last), f"{token!r} should span {first}..{last}"
+
+
+@pytest.mark.parametrize("token", ["api", "2026-13", "2026-10-99", "mondays", "20261003", "to"])
+def test_days_leaves_other_words_alone(token):
+    assert search.days(token, TODAY) is None, f"{token!r} is not a date"
+
+
+@pytest.mark.parametrize(
+    "text, words, span",
+    [
+        ("api", "api", None),
+        ("today", "", (TODAY, TODAY)),
+        ("api today", "api", (TODAY, TODAY)),
+        ("yesterday api v1", "api v1", (TODAY - timedelta(days=1), TODAY - timedelta(days=1))),
+        ("today yesterday", "yesterday", (TODAY, TODAY)),
+        (". today", "", (TODAY, TODAY)),
+    ],
+)
+def test_query_takes_the_first_date_word_as_a_window(text, words, span):
+    asked = search.query(text, TODAY)
+    assert (asked.words, asked.span) == (words, span), f"{text!r} should narrow to {span}"
+
+
+def test_query_without_a_day_keeps_date_words_as_words():
+    assert search.query("today api") == search.Query(None, "today api"), (
+        "with no day to count from, nothing is a date"
+    )
+
+
+@pytest.fixture
+def week():
+    return [
+        Record.parsed(Path(f"/log/{n}.md"), f"day {n}", NOW - timedelta(days=n), NOW)
+        for n in range(4)
+    ]
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("today", ["day 0"]),
+        ("yesterday", ["day 1"]),
+        ("thursday", ["day 2"]),
+        ("day today", ["day 0"]),
+        ("day", ["day 0", "day 1", "day 2", "day 3"]),
+        ("2026-10", ["day 0", "day 1", "day 2", "day 3"]),
+        ("2026-09", []),
+    ],
+)
+def test_search_within_a_window(week, text, expected):
+    assert [r.text for r in search.search(text, week, TODAY)] == expected, (
+        f"{text!r} should list {expected}"
+    )
+
+
+def test_scope_is_kind_and_window_without_the_words(week):
+    asked = search.query(". today api", TODAY)
+    task = Record.parsed(Path("/log/t.md"), ". fix", NOW, NOW)
+    assert search.in_scope(asked, task) is True, "a task from today is in scope"
+    assert search.in_scope(asked, week[0]) is False, "a log is not, whatever its words"
+    assert (
+        search.in_scope(
+            asked, Record.parsed(Path("/log/o.md"), ". old", NOW - timedelta(days=1), NOW)
+        )
+        is False
+    ), "yesterday's task is not"

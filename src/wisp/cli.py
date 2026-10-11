@@ -81,7 +81,7 @@ class Context:
     def evidence(
         self, question: str, backend: oracle.Backend, logs: list[records.Record]
     ) -> oracle.Evidence:
-        return oracle.evidence(question, logs, backend.budget)
+        return oracle.evidence(question, logs, backend.budget, self.now)
 
 
 def log_folder(env: Mapping[str, str]) -> Path:

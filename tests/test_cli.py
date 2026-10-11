@@ -579,3 +579,31 @@ def test_job_finish_keeps_the_final_text(tmp_path):
     job.progress("You rea")
     job.finish("You read docs.")
     assert job.partial() == "You read docs." and job.done(), "finish writes the answer and done"
+
+
+def test_filter_by_a_day_lists_that_day_and_still_offers_the_text(run, logged):
+    logged("standup", 60 * 24 + 10)
+    logged("review", 10)
+    _, out = run("filter", "yesterday")
+    assert titles(out) == ['Log "yesterday"', "standup"], (
+        "the list narrows to yesterday while the offer keeps what was typed"
+    )
+
+
+def test_ask_about_a_day_sends_that_day_only(run, served, logged):
+    logged("standup", 60 * 24 + 10)
+    logged("review", 10)
+    _, out = run("ask", "--dry-run", "what did I do yesterday")
+    assert "standup" in out and "review" not in out, (
+        "a day in the question limits the log to that day, whatever the other words"
+    )
+
+
+def test_ask_row_counts_within_the_window(run, served, logged):
+    logged("standup", 60 * 24 + 10)
+    logged("api review", 60 * 24 + 5)
+    logged("review", 10)
+    _, out = run("ask-filter", "api yesterday")
+    assert rows(out)[0]["subtitle"] == "↩ asks the model about 2 lines, 1 matching", (
+        "the window bounds the lines sent, the words count matches within it"
+    )
