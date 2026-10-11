@@ -146,6 +146,9 @@ oracle_url=http://127.0.0.1:8080 uv run wisp ask "today summary"
 `oracle_url`, `oracle_model` and `oracle_key` configure the model the way the panel does;
 `alfred_workflow_data` is where kept answers go (default `~/Library/Application Support/wisp`).
 
+`wisp check` prints the resolved settings: the log folder and how many records it holds, the data
+and jobs folders, and whether the model server answers (or what the Apple helper still needs).
+
 `filter`, `ask-filter`, `rename-filter`, `decide-filter`, `menu` and `view` print Alfred's JSON, `mark` and `decide` print the new line, `ask` prints the answer (`ask --keep` and
 `keep-answer "<question>" "<answer>"` save it and print the file's path), the rest print the text
 they acted on. `wisp ask --job <folder> "…"` is what the text view runs in the background: progress

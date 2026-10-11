@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import urllib.error
 import urllib.request
 from collections.abc import Callable, Iterable, Iterator, Mapping
@@ -17,6 +18,7 @@ from wisp.records import Kind, Record
 BUDGET = 12_000
 APPLE_BUDGET = 6_000
 TIMEOUT = 120
+PROBE_TIMEOUT = 3
 MAX_TOKENS = 600
 DEFAULT_DATA = "~/Library/Application Support/wisp"
 THINKING = re.compile(r"<think>.*?</think>", re.DOTALL)
@@ -62,6 +64,18 @@ class Llama:
         except (urllib.error.URLError, TimeoutError, OSError):
             raise ModelError(f"Model not reachable at {self.url}") from None
 
+    def check(self) -> str:
+        named = f" (model {self.model})" if self.model else ""
+        return f"server {self.url}{named}: {'reachable' if self.reachable() else 'not reachable'}"
+
+    def reachable(self) -> bool:
+        request = urllib.request.Request(f"{self.url}/v1/models", headers=headers(self))
+        try:
+            with urllib.request.urlopen(request, timeout=PROBE_TIMEOUT):
+                return True
+        except (urllib.error.URLError, TimeoutError, OSError):
+            return False
+
 
 @dataclass(frozen=True)
 class Apple:
@@ -73,6 +87,13 @@ class Apple:
             return apple.respond(messages, self.data)
         except apple.AppleError as error:
             raise ModelError(str(error)) from None
+
+    def check(self) -> str:
+        if apple.binary(self.data).exists():
+            return "Apple Intelligence: helper compiled"
+        if shutil.which("swiftc"):
+            return "Apple Intelligence: helper compiles on first ask"
+        return f"Apple Intelligence: {apple.TOOLS_MISSING}"
 
 
 Backend = Union[Llama, Apple]
@@ -160,13 +181,20 @@ def deltas(lines: Iterable[bytes]) -> Iterator[str]:
             yield delta
 
 
-def stream(server: Llama, body: dict, on_text: OnText | None) -> str:
-    headers = {"Content-Type": "application/json"}
+def headers(server: Llama) -> dict[str, str]:
+    sent = {"Content-Type": "application/json"}
     if server.key:
-        headers["Authorization"] = f"Bearer {server.key}"
+        sent["Authorization"] = f"Bearer {server.key}"
+    return sent
+
+
+def stream(server: Llama, body: dict, on_text: OnText | None) -> str:
     streaming = dict(body, stream=True)
     request = urllib.request.Request(
-        f"{server.url}/v1/chat/completions", json.dumps(streaming).encode(), headers, method="POST"
+        f"{server.url}/v1/chat/completions",
+        json.dumps(streaming).encode(),
+        headers(server),
+        method="POST",
     )
     text = ""
     with urllib.request.urlopen(request, timeout=TIMEOUT) as response:

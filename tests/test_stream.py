@@ -97,3 +97,40 @@ def test_apple_failures_are_model_errors(mocker):
     mocker.patch("wisp.oracle.apple.respond", side_effect=apple.AppleError("not enabled"))
     with pytest.raises(oracle.ModelError, match="not enabled"):
         oracle.Apple(Path("/data")).respond(MESSAGES, None)
+
+
+@pytest.mark.parametrize(
+    "outcome, expected",
+    [
+        (None, "server http://127.0.0.1:8080 (model oracle): reachable"),
+        (
+            urllib.error.URLError("refused"),
+            "server http://127.0.0.1:8080 (model oracle): not reachable",
+        ),
+    ],
+    ids=["up", "down"],
+)
+def test_llama_check(mocker, outcome, expected):
+    urlopen = mocker.patch("wisp.oracle.urllib.request.urlopen", side_effect=outcome)
+    assert SERVER.check() == expected, "check says whether the server answers"
+    assert urlopen.call_args.args[0].full_url == "http://127.0.0.1:8080/v1/models", (
+        "the models endpoint is the probe"
+    )
+
+
+@pytest.mark.parametrize(
+    "compiled, swiftc, expected",
+    [
+        (True, None, "Apple Intelligence: helper compiled"),
+        (False, "/usr/bin/swiftc", "Apple Intelligence: helper compiles on first ask"),
+        (False, None, f"Apple Intelligence: {apple.TOOLS_MISSING}"),
+    ],
+    ids=["compiled", "tools", "no-tools"],
+)
+def test_apple_check(tmp_path, mocker, compiled, swiftc, expected):
+    if compiled:
+        binary = apple.binary(tmp_path)
+        binary.parent.mkdir(parents=True)
+        binary.write_text("fake")
+    mocker.patch("wisp.oracle.shutil.which", return_value=swiftc)
+    assert oracle.Apple(tmp_path).check() == expected, "check says what the helper needs"

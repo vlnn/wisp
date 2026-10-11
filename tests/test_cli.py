@@ -478,3 +478,21 @@ def test_menu_on_a_question_decides_with_what_is_typed(run, logged):
         "Copy",
         "Trash",
     ], "the typed text is the answer, the other actions stay"
+
+
+def test_check_reports_the_configuration(run, served, sample, mocker, env):
+    mocker.patch("wisp.oracle.Llama.check", return_value="server up")
+    code, out = run("check")
+    assert code == 0, "check always succeeds; it reports"
+    assert out.splitlines() == [
+        f"log folder   {env['log_folder']} (5 records)",
+        f"data folder  {env['alfred_workflow_data']}",
+        f"jobs folder  {env['alfred_workflow_data']}/jobs",
+        "model        server up",
+    ], "one line per setting, the model line from the backend"
+
+
+def test_check_without_a_folder_or_a_model(run, env):
+    _, out = run("check")
+    assert out.splitlines()[0] == f"log folder   {env['log_folder']} (missing, made on first log)"
+    assert out.splitlines()[-1] == f"model        {present.NO_SERVER}", "no backend, the same hint"

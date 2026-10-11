@@ -221,6 +221,23 @@ def view_command(args: list[str], ctx: Context) -> int:
     return emit_view(view.starting(question, job, ctx.lines_sent(backend, ctx.logs())))
 
 
+def check_command(args: list[str], ctx: Context) -> int:
+    backend = ctx.backend()
+    report = [
+        ("log folder", f"{ctx.folder} {folder_state(ctx)}"),
+        ("data folder", str(oracle.data_folder(ctx.env))),
+        ("jobs folder", str(ctx.jobs())),
+        ("model", backend.check() if backend else present.NO_SERVER),
+    ]
+    return say("\n".join(f"{name:<12} {value}" for name, value in report))
+
+
+def folder_state(ctx: Context) -> str:
+    if not ctx.folder.is_dir():
+        return "(missing, made on first log)"
+    return f"({len(ctx.logs())} records)"
+
+
 def emit_view(shown: dict) -> int:
     print(json.dumps(shown, ensure_ascii=False))
     return 0
@@ -240,6 +257,7 @@ COMMANDS: dict[str, Callable[[list[str], Context], int]] = {
     "ask": ask_command,
     "view": view_command,
     "keep-answer": keep_answer_command,
+    "check": check_command,
 }
 
 USAGE = "usage: wisp " + "|".join(COMMANDS) + " ..."
