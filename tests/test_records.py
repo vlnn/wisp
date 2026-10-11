@@ -174,8 +174,7 @@ def test_read_folder_reads_when_a_record_changed(folder, created, changed, stamp
     [
         (". fix the build", "* fix the build"),
         ("* fix the build", ". fix the build"),
-        ("? deploy on friday", "= deploy on friday"),
-        ("= deploy on friday", "? deploy on friday"),
+        ("= why is the sky green | it is blue", "? why is the sky green | it is blue"),
     ],
 )
 def test_mark_flips_a_task_between_open_and_done(folder, before, after):
@@ -185,11 +184,37 @@ def test_mark_flips_a_task_between_open_and_done(folder, before, after):
     assert path.read_text() == f"{after}\n", f"{before!r} marked should read {after!r}"
 
 
-@pytest.mark.parametrize("text", ["plain log", "! remember this"])
+@pytest.mark.parametrize("text", ["plain log", "! remember this", "? why is the sky green"])
 def test_mark_leaves_other_kinds_alone(folder, text):
     path = records.keep(folder, text)
     records.mark(path)
-    assert path.read_text() == f"{text}\n", "only tasks and questions have a state to flip"
+    assert path.read_text() == f"{text}\n", "a question is settled by decide, not by a flip"
+
+
+@pytest.mark.parametrize(
+    "before, answer, after",
+    [
+        ("? why is the sky green", "it is blue", "= why is the sky green | it is blue"),
+        ("? why is the sky green", "  it is blue  ", "= why is the sky green | it is blue"),
+        (
+            "= postgres or sqlite | postgres",
+            "sqlite after all",
+            "= postgres or sqlite | postgres | sqlite after all",
+        ),
+    ],
+)
+def test_decide_appends_the_resolution_and_settles_the_question(folder, before, answer, after):
+    path = records.keep(folder, before)
+    decided = records.decide(path, answer)
+    assert decided == path, "deciding keeps the same file"
+    assert path.read_text() == f"{after}\n", f"{before!r} decided {answer!r} should read {after!r}"
+
+
+@pytest.mark.parametrize("text", ["plain log", ". fix the build", "! remember this"])
+def test_decide_leaves_other_kinds_alone(folder, text):
+    path = records.keep(folder, text)
+    records.decide(path, "whatever")
+    assert path.read_text() == f"{text}\n", "only questions take a resolution"
 
 
 def test_mark_keeps_the_body(folder):

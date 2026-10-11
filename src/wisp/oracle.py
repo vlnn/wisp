@@ -25,8 +25,9 @@ SYSTEM = (
     "each line as `YYYY-MM-DD HH:MM  text`. Some lines carry a word before the text: "
     "TODO is a task still open, DONE is a finished task (the time after DONE is when it "
     "was finished), QUESTION is a question still open, DECIDED is a question settled or a "
-    "decision made (the time after DECIDED is when), NOTE is something the person flagged as "
-    "important. Lines without a word are plain log entries. Answer from the log only, briefly, "
+    "decision made (the time after DECIDED is when; ` | ` separates a question from its "
+    "resolution), NOTE is something the person flagged as important. Lines without a word are "
+    "plain log entries. Answer from the log only, briefly, "
     "in the language of the question, as plain text without headings."
 )
 

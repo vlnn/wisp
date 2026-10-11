@@ -28,12 +28,8 @@ class Kind(Enum):
 
 SIGILS = {kind.value: kind for kind in Kind if kind.value}
 TIGHT = {Kind.QUESTION, Kind.NOTE, Kind.DECISION}
-FLIPPED = {
-    Kind.TASK: Kind.DONE,
-    Kind.DONE: Kind.TASK,
-    Kind.QUESTION: Kind.DECISION,
-    Kind.DECISION: Kind.QUESTION,
-}
+FLIPPED = {Kind.TASK: Kind.DONE, Kind.DONE: Kind.TASK, Kind.DECISION: Kind.QUESTION}
+RESOLVED = " | "
 
 
 @dataclass(frozen=True)
@@ -128,9 +124,21 @@ def mark(path: Path) -> Path:
     content = path.read_text(encoding="utf-8")
     kind, line = parse(first_line(content))
     if kind in FLIPPED:
-        flipped = compose(FLIPPED[kind], line)
-        path.write_text(replace_first_line(content, flipped), encoding="utf-8")
+        rewrite_first_line(path, content, compose(FLIPPED[kind], line))
     return path
+
+
+def decide(path: Path, resolution: str) -> Path:
+    content = path.read_text(encoding="utf-8")
+    kind, line = parse(first_line(content))
+    if kind in (Kind.QUESTION, Kind.DECISION):
+        settled = compose(Kind.DECISION, line + RESOLVED + resolution.strip())
+        rewrite_first_line(path, content, settled)
+    return path
+
+
+def rewrite_first_line(path: Path, content: str, text: str) -> None:
+    path.write_text(replace_first_line(content, text), encoding="utf-8")
 
 
 def replace_first_line(content: str, text: str) -> str:

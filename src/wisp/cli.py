@@ -113,6 +113,19 @@ def menu_command(args: list[str], ctx: Context) -> int:
     return emit(present.menu_rows(record, args[1] if len(args) > 1 else ""))
 
 
+def decide_filter_command(args: list[str], ctx: Context) -> int:
+    record = records.read_record(Path(args[0]), ctx.created, ctx.changed)
+    return emit([present.decide_row(record, args[1] if len(args) > 1 else "")])
+
+
+def decide_command(args: list[str], ctx: Context) -> int:
+    path, resolution = Path(args[0]), " ".join(args[1:]).strip()
+    if not resolution:
+        return 1
+    records.decide(path, resolution)
+    return say(records.first_line(path.read_text(encoding="utf-8")))
+
+
 def mark_command(args: list[str], ctx: Context) -> int:
     path = records.mark(Path(args[0]))
     return say(records.first_line(path.read_text(encoding="utf-8")))
@@ -218,6 +231,8 @@ COMMANDS: dict[str, Callable[[list[str], Context], int]] = {
     "rename": rename_command,
     "trash": trash_command,
     "mark": mark_command,
+    "decide-filter": decide_filter_command,
+    "decide": decide_command,
     "menu": menu_command,
     "ask-filter": ask_filter_command,
     "ask": ask_command,

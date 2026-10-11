@@ -21,9 +21,10 @@ connections as `l`. Both ↩ into one conditional on the
 `action` variable: `ask` goes to the Text View (script file `view` at the bundle root), `menu` to a
 second, keywordless script filter (`menu`) that lists what the record can do, anything else (`keep`,
 and `open` from an answer row) to the ↩ script. The menu's rows carry the same `action` values the
-modifier keys use, and its ↩ passes a second conditional that sends `rename`, `copy` and `trash` to
+modifier keys use, and its ↩ passes a second conditional that sends `rename`, `copy`, `trash` and `decide` to
 the objects those keys reach and everything else (`mark`, `open`) to the ↩ script. From the list,
-⇧↩ passes a conditional too (`mark` to the ↩ script, else a clipboard object), ⌥↩ goes to `trash`,
+⇧↩ passes a conditional too (`mark` to the ↩ script, `decide` to a keywordless script filter that
+takes the resolution and runs `decide` with the `path` variable, else a clipboard object), ⌥↩ goes to `trash`,
 ⌘↩ to a third, keywordless script filter that prefills the text and runs `rename` with the `path`
 variable. A new action is a line in `present.menu`, a `variables.action` value, and a case in the
 ↩ script or a branch in the menu's conditional; a new shortcut is a connection from the first
@@ -58,8 +59,10 @@ A kind is the first character of the line: `.` task, `*` done, `?` question, `=`
 note, anything else a plain log. `.` and `*` count only when a space follows them, since they
 start file names and globs; `?`, `!` and `=` count on their own (`records.TIGHT`). `records.parse` is the one place that knows this; `Record.kind` and
 `Record.line` read through it, `compose` writes it back, and `keep` and `rename` normalise the
-spacing. `mark` flips `.` and `*`, and `?` and `=`, by rewriting the first line and nothing else, so the
-body and the birth time survive and `st_mtime` becomes the time it was settled. The sigils are not word characters, so the
+spacing. `mark` flips `.` and `*`, and `=` back to `?`, by rewriting the first line and nothing else, so the
+body and the birth time survive and `st_mtime` becomes the time it was settled. `decide` is the
+only way forward from `?`: it appends ` | <resolution>` (`records.RESOLVED`) and sets `=`, so a
+reopened and re-decided question carries every resolution it ever had. The sigils are not word characters, so the
 slug ignores them and marking never moves a file.
 
 The query carries the same sigil as a filter on kind (`search.query`), with the words matched

@@ -84,8 +84,11 @@ def test_done_row_shows_both_times_and_reopens_on_shift():
 def test_question_row_decides_on_shift_and_a_decision_reopens():
     asked = datetime(2026, 10, 9, 9, 12)
     question = present.record_row(a_record("? ship friday", asked), NOW)
-    assert question["mods"]["shift"]["subtitle"] == "Decide", "⇧↩ on a question settles it"
-    assert question["mods"]["shift"]["variables"] == {"action": "mark"}, "it is the mark action"
+    assert question["mods"]["shift"] == {
+        "arg": "",
+        "subtitle": "Decide",
+        "variables": {"action": "decide", "path": "/log/x.md"},
+    }, "⇧↩ on a question opens the decide field for the file, empty"
     decision = present.record_row(a_record("= ship friday", asked, NOW), NOW)
     assert decision["subtitle"] == "decided 15:00 today · yesterday 09:12", (
         "a decision shows when it was made and when the question was raised"
@@ -115,6 +118,30 @@ def test_other_rows_still_copy_on_shift(text):
 def test_menu_lists_what_the_kind_can_do(text, titles):
     menu = present.menu_rows(a_record(text, NOW), "")
     assert [row["title"] for row in menu] == titles, f"{text!r} should offer {titles}"
+
+
+def test_decide_menu_row_opens_the_field():
+    (decide, *_) = present.menu_rows(a_record("? ship friday", NOW), "")
+    assert decide["arg"] == "" and decide["variables"] == {
+        "action": "decide",
+        "path": "/log/x.md",
+    }, "Decide opens the field rather than flipping the sigil"
+
+
+@pytest.mark.parametrize(
+    "answer, title, valid",
+    [
+        ("", "Type the resolution", False),
+        ("  ", "Type the resolution", False),
+        ("it is blue", 'Decide "why is the sky green | it is blue"', True),
+    ],
+)
+def test_decide_row_shows_what_will_be_written(answer, title, valid):
+    row = present.decide_row(a_record("? why is the sky green", NOW), answer)
+    assert row["title"] == title, f"{answer!r} should show {title!r}"
+    assert row.get("valid", True) is valid, "only a non-empty resolution can be accepted"
+    if valid:
+        assert row["arg"] == "it is blue", "↩ passes the resolution on"
 
 
 def test_menu_rows_carry_the_same_actions_as_the_keys():

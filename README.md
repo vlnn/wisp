@@ -19,7 +19,7 @@ folder needs no index, no database and no sync of its own.
 | Key | On a record |
 | --- | --- |
 | ↩ | a menu of what this record can do, the usual thing on the first row: *Open* for a log, *Finish* for a task, *Decide* for a question, *Reopen* for a done or decided one, then Open, Rename, Copy, Trash. ↩ again runs it; type to narrow |
-| ⇧↩ | copy the text; on a task or a question, settle it (and on a settled one, reopen it) |
+| ⇧↩ | copy the text; on a task, finish it; on a question, decide it (and on a settled one, reopen it) |
 | ⌥↩ | move the file to the Trash (Finder's, with Put Back) |
 | ⌘↩ | rename: the text is prefilled, edit it, ↩ |
 | ⌘C | copy the text |
@@ -37,7 +37,7 @@ A line is a plain log unless it starts with a sigil:
 l . fix the build            Task "fix the build"      ↩ keeps `. fix the build`
 l ! keys are in 1password    Note "keys are in 1password"
 l ? postgres or sqlite       Question "postgres or sqlite"
-l = postgres, two writers    Decision "postgres, two writers"
+l = postgres | two writers   Decision "postgres | two writers"
 l .                          open tasks, newest first
 l . build                    open tasks about build
 l *                          done tasks: "done 16:40 today · 09:12 today"
@@ -48,9 +48,11 @@ l !                          notes
 
 ⇧↩ (or ↩ ↩, *Finish*) on a task turns `. fix the build` into `* fix the build` in place; the file keeps its creation
 time and its name, and the time it was marked is the file's modification time, so a done task
-knows both when it was written and when it was finished. ⇧↩ again reopens it. A question works the
-same way: *Decide* turns `? ship friday` into `= ship friday`, and a decision that needs more words
-than the question had is a ⌘↩ rename away. A decision can also be logged directly with `=`. `.` and `*` need a space after them, so
+knows both when it was written and when it was finished. ⇧↩ again reopens it. A question is settled with
+its resolution: *Decide* opens a field, you type the answer, and ↩ turns `? why is the sky green`
+into `= why is the sky green | it is blue` in place, so the question and what came of it stay on
+one line. *Reopen* makes it a question again without losing the answer, and a second *Decide*
+appends another ` | …`. A decision can also be logged directly with `=`. `.` and `*` need a space after them, so
 `.gitignore moved` and `*args again` stay plain logs; `?`, `!` and `=` never start a word, so
 `?will it work` is the same question as `? will it work`. Words without a sigil
 match every kind, so `l build` finds the task too.
@@ -136,6 +138,7 @@ uv run wisp rename ~/log/reading-docs.md "reading Apache docs"
 uv run wisp trash ~/log/reading-docs.md
 uv run wisp keep ". fix the build"
 uv run wisp mark ~/log/fix-the-build.md      → * fix the build (and back again)
+uv run wisp decide ~/log/why-the-sky.md "it is blue"   → = why the sky … | it is blue
 uv run wisp menu ~/log/fix-the-build.md      the ↩ menu, as Alfred's JSON
 oracle_url=http://127.0.0.1:8080 uv run wisp ask "today summary"
 ```
@@ -143,7 +146,7 @@ oracle_url=http://127.0.0.1:8080 uv run wisp ask "today summary"
 `oracle_url`, `oracle_model` and `oracle_key` configure the model the way the panel does;
 `alfred_workflow_data` is where kept answers go (default `~/Library/Application Support/wisp`).
 
-`filter`, `ask-filter`, `rename-filter`, `menu` and `view` print Alfred's JSON, `mark` prints the flipped line, `ask` prints the answer (`ask --keep` and
+`filter`, `ask-filter`, `rename-filter`, `decide-filter`, `menu` and `view` print Alfred's JSON, `mark` and `decide` print the new line, `ask` prints the answer (`ask --keep` and
 `keep-answer "<question>" "<answer>"` save it and print the file's path), the rest print the text
 they acted on. `wisp ask --job <folder> "…"` is what the text view runs in the background: progress
 goes to that folder instead of notifications.

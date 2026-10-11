@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from datetime import datetime
 
-from wisp.records import Kind, Record, normalise, parse
+from wisp.records import RESOLVED, Kind, Record, normalise, parse
 from wisp.search import matches, query, search
 
 OFFERS = {
@@ -101,12 +101,16 @@ def record_when(record: Record, now: datetime) -> str:
 
 def shift_mod(record: Record) -> dict:
     if record.kind in FLIPS:
-        return {
-            "arg": str(record.path),
-            "subtitle": FLIPS[record.kind],
-            "variables": {"action": "mark"},
-        }
+        arg, variables = settling(record)
+        return {"arg": arg, "subtitle": FLIPS[record.kind], "variables": variables}
     return {"arg": record.text, "subtitle": "Copy to clipboard"}
+
+
+def settling(record: Record) -> tuple[str, dict]:
+    path = str(record.path)
+    if record.kind is Kind.QUESTION:
+        return "", {"action": "decide", "path": path}
+    return path, {"action": "mark"}
 
 
 def menu_rows(record: Record, typed: str) -> list[dict]:
@@ -115,9 +119,9 @@ def menu_rows(record: Record, typed: str) -> list[dict]:
 
 def menu(record: Record) -> list[dict]:
     path, text = str(record.path), record.text
-    flip = [(FINISHES[record.kind], path, {"action": "mark"})] if record.kind in FINISHES else []
+    settle = [(FINISHES[record.kind], *settling(record))] if record.kind in FINISHES else []
     actions = [
-        *flip,
+        *settle,
         ("Open", path, {"action": "open"}),
         ("Rename", text, {"action": "rename", "path": path}),
         ("Copy", text, {"action": "copy"}),
@@ -128,6 +132,18 @@ def menu(record: Record) -> list[dict]:
 
 def menu_row(title: str, subtitle: str, arg: str, variables: dict) -> dict:
     return {"title": title, "subtitle": subtitle, "arg": arg, "variables": variables}
+
+
+def decide_row(record: Record, resolution: str) -> dict:
+    stripped = resolution.strip()
+    if not stripped:
+        return {"title": "Type the resolution", "valid": False}
+    return {
+        "title": f'Decide "{record.line}{RESOLVED}{stripped}"',
+        "subtitle": "↩ settles the question",
+        "arg": stripped,
+        "icon": icon(Kind.DECISION),
+    }
 
 
 def rename_row(text: str) -> dict:

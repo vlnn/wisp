@@ -172,6 +172,27 @@ def test_mark_flips_a_task_and_echoes_the_new_line(run, logged):
     assert out.strip() == ". fix the build", "a second mark reopens it"
 
 
+def test_decide_filter_offers_the_resolution(run, logged):
+    path = logged("? why is the sky green", 5)
+    _, out = run("decide-filter", str(path), "it is blue")
+    (row,) = rows(out)
+    assert row["title"] == 'Decide "why is the sky green | it is blue"', "the row shows the line"
+
+
+def test_decide_writes_the_resolution_and_echoes_the_line(run, logged):
+    path = logged("? why is the sky green", 5)
+    code, out = run("decide", str(path), "it", "is", "blue")
+    assert code == 0 and out.strip() == "= why is the sky green | it is blue", "decide echoes"
+    assert path.read_text() == "= why is the sky green | it is blue\n", "the file is settled"
+
+
+def test_decide_with_a_blank_resolution_changes_nothing(run, logged):
+    path = logged("? why is the sky green", 5)
+    code, _ = run("decide", str(path), "  ")
+    assert code == 1, "a blank resolution is refused"
+    assert path.read_text() == "? why is the sky green\n", "the question stays open"
+
+
 def test_done_row_reads_the_time_it_was_marked(run, logged, touched):
     path = logged("* fix the build", 120)
     touched[path.name] = NOW
