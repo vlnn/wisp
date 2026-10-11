@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Protocol, runtime_checkable
 
 from wisp import apple, records, search
-from wisp.records import Record
+from wisp.records import Kind, Record
 
 BUDGET = 12_000
 APPLE_BUDGET = 6_000
@@ -25,8 +25,9 @@ THINKING = re.compile(r"<think>.*?</think>", re.DOTALL)
 
 SYSTEM = (
     "You answer questions about a person's own one-line work log. "
-    "Today is {today}. The log is below the question, newest line first, "
-    "each line as `YYYY-MM-DD HH:MM  text`. Some lines carry a word before the text: "
+    "Today is {today}. The log is below the question, newest line first; its heading says when "
+    "the log is from, so it is the whole answer for a question about that day. Each line is "
+    "`YYYY-MM-DD HH:MM  text`. Some lines carry a word before the text: "
     "TODO is a task still open, DONE is a finished task (the time after DONE is when it "
     "was finished), QUESTION is a question still open, DECIDED is a question settled or a "
     "decision made (the time after DECIDED is when; ` | ` separates a question from its "
@@ -181,11 +182,33 @@ def prompt(
 ) -> list[dict]:
     return [
         {"role": "system", "content": SYSTEM.format(today=f"{now:%A %Y-%m-%d}")},
-        {
-            "role": "user",
-            "content": f"{question}\n\nLog:\n{evidence(question, logs, budget, now).text()}",
-        },
+        {"role": "user", "content": asking(question, logs, now, budget)},
     ]
+
+
+def asking(question: str, logs: Iterable[Record], now: datetime, budget: int) -> str:
+    found = evidence(question, logs, budget, now)
+    return f"{question}\n\n{heading(question, now)}\n{found.text()}"
+
+
+SCOPED = {
+    Kind.TASK: "open tasks",
+    Kind.DONE: "finished tasks",
+    Kind.NOTE: "notes",
+    Kind.QUESTION: "open questions",
+    Kind.DECISION: "decisions",
+}
+
+
+def heading(question: str, now: datetime) -> str:
+    asked = search.query(question, now.date())
+    bounds = []
+    if asked.kind:
+        bounds.append(f"{SCOPED[asked.kind]} only")
+    if asked.span:
+        first, last = asked.span
+        bounds.append(f"{first} only" if first == last else f"{first} to {last} only")
+    return f"Log, {', '.join(bounds)}:" if bounds else "Log:"
 
 
 def payload(server: Llama, messages: list[dict]) -> dict:

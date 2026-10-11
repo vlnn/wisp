@@ -206,3 +206,19 @@ def test_evidence_within_a_window_fills_from_that_window_only():
     found = oracle.evidence("api today", logs, now=NOW)
     assert [r.text for r in found.matching] == ["today api"], "words match within the window"
     assert [r.text for r in found.filling] == ["today docs"], "the fill stays in the window"
+
+
+@pytest.mark.parametrize(
+    "question, heading",
+    [
+        ("tasks today", "Log, 2026-10-10 only:"),
+        ("tasks yesterday", "Log, 2026-10-09 only:"),
+        ("summary of 2026-09", "Log, 2026-09-01 to 2026-09-30 only:"),
+        (". what is open", "Log, open tasks only:"),
+        ("? today", "Log, open questions only, 2026-10-10 only:"),
+        ("api", "Log:"),
+    ],
+)
+def test_prompt_names_the_window_so_the_model_need_not_find_it(question, heading):
+    _, user = (m["content"] for m in oracle.prompt(question, [record("x", 1)], NOW))
+    assert f"\n\n{heading}\n" in user, f"{question!r} should head the log with {heading!r}"
