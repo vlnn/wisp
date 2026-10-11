@@ -357,26 +357,22 @@ def test_ask_without_a_server(run, sample, notify):
     notify.assert_called_once_with(present.NO_SERVER)
 
 
-def test_ask_when_the_server_is_down(run, served, sample, mocker, notify):
-    model_fails(mocker, urllib.error.URLError("refused"))
-    code, _ = run("ask", "today summary")
-    assert code == 1, "an unreachable server fails the command"
-    notify.assert_called_with("Model not reachable at http://127.0.0.1:8080")
-
-
-def test_ask_when_the_server_refuses(run, served, sample, mocker, notify):
-    error = urllib.error.HTTPError("http://127.0.0.1:8080", 401, "nope", {}, None)
+@pytest.mark.parametrize(
+    "error, message",
+    [
+        (urllib.error.URLError("refused"), "Model not reachable at http://127.0.0.1:8080"),
+        (
+            urllib.error.HTTPError("http://127.0.0.1:8080", 401, "nope", {}, None),
+            "Model answered 401 at http://127.0.0.1:8080",
+        ),
+        (KeyError("choices"), "Model gave no answer"),
+    ],
+)
+def test_ask_failures_become_messages(run, served, sample, mocker, notify, error, message):
     model_fails(mocker, error)
     code, _ = run("ask", "today summary")
-    assert code == 1, "a refused request fails the command"
-    notify.assert_called_with("Model answered 401 at http://127.0.0.1:8080")
-
-
-def test_ask_when_the_answer_is_malformed(run, served, sample, mocker, notify):
-    model_fails(mocker, KeyError("choices"))
-    code, _ = run("ask", "today summary")
-    assert code == 1, "a bad answer fails the command"
-    notify.assert_called_with("Model gave no answer")
+    assert code == 1, f"{error!r} fails the command"
+    notify.assert_called_with(message)
 
 
 def test_ask_with_blank_question(run, served, sample, notify):
