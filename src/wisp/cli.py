@@ -275,6 +275,8 @@ def run(
         return COMMANDS[argv[0]](argv[1:], ctx)
     except records.Blank:
         return 1
+    except FileNotFoundError as error:
+        return fail(f"No such record: {error.filename}")
     except Usage as error:
         print(f"{USAGE}\n{error}", file=sys.stderr)
         return 2

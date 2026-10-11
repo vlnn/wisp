@@ -240,6 +240,17 @@ def test_trash_sends_the_file_to_the_trash(run, sample, mocker):
     trash.assert_called_once_with(path)
 
 
+@pytest.mark.parametrize(
+    "argv",
+    [["mark"], ["decide", "it is blue"], ["rename", "new text"], ["trash"], ["menu", ""]],
+)
+def test_a_missing_record_is_reported_not_raised(run, notify, argv):
+    verb, rest = argv[0], argv[1:]
+    code, _ = run(verb, "/nowhere/nope.md", *rest)
+    assert code == 1, f"{verb} of a missing file should fail cleanly"
+    notify.assert_called_once_with("No such record: /nowhere/nope.md")
+
+
 def test_unknown_command(run):
     code, _ = run("frobnicate")
     assert code == 2, "an unknown command should fail loudly"
