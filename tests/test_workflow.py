@@ -152,6 +152,6 @@ def test_the_text_view_leads_to_a_follow_up(plist, objects):
     (follow,) = by_cmd
     script = objects[follow["destinationuid"]]["config"]["script"]
     assert "wisp ask-more" in script, "⌘↩ in the view opens the follow-up filter"
-    assert any(
-        c["destinationuid"] for c in plist["connections"][follow["destinationuid"]]
-    ), "and the filter leads back to the ask routing"
+    assert any(c["destinationuid"] for c in plist["connections"][follow["destinationuid"]]), (
+        "and the filter leads back to the ask routing"
+    )

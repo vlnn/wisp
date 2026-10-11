@@ -250,11 +250,12 @@ def view_command(args: list[str], ctx: Context) -> int:
     if backend is None:
         return emit_view(view.failed(present.NO_SERVER))
     running = ctx.env.get("job")
+    thread = ctx.env.get("thread")
+    earlier = view.Job(thread) if thread else None
     if running:
-        return emit_view(view.showing(question, view.Job(running), ctx.now))
+        return emit_view(view.showing(question, view.Job(running), ctx.now, earlier))
     job = view.Job(ctx.jobs() / view.job_id())
     job.start(ctx.now)
-    thread = ctx.env.get("thread")
     continued = [THREAD, thread] if thread else []
     subprocess.Popen(
         [sys.executable, "-m", "wisp", "ask", JOB, str(job.folder), *continued, question],
@@ -264,7 +265,7 @@ def view_command(args: list[str], ctx: Context) -> int:
         start_new_session=True,
     )
     found = ctx.evidence(question, backend, ctx.logs())
-    return emit_view(view.starting(question, job, len(found.lines())))
+    return emit_view(view.starting(question, job, len(found.lines()), earlier))
 
 
 def check_command(args: list[str], ctx: Context) -> int:

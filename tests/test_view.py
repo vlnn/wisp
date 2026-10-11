@@ -118,3 +118,48 @@ def test_finished_view_offers_a_follow_up(job):
     shown = view.showing("today summary", job, NOW)
     assert shown["variables"]["thread"] == str(job.folder), "⌘↩ can follow up on this job"
     assert "⌘↩ follow up" in shown["footer"], "and the footer says so"
+
+
+@pytest.fixture
+def earlier(tmp_path):
+    first = view.Job(tmp_path / "j1")
+    first.remember("how many", "Two.")
+    return first
+
+
+def test_transcript_keeps_the_earlier_turns_above_the_new_answer(earlier):
+    shown = view.transcript(earlier.turns(), "when", "Both tod")
+    assert shown == "**how many**\n\nTwo.\n\n---\n\n**when**\n\nBoth tod", (
+        "earlier questions and answers stay, the new one streams at the end"
+    )
+
+
+def test_transcript_of_a_first_answer_is_just_the_answer():
+    assert view.transcript([], "how many", "Two.") == "Two.", "a lone answer needs no heading"
+
+
+def test_starting_a_follow_up_shows_the_thread_so_far(job, earlier):
+    shown = view.starting("when", job, 5, earlier)
+    assert shown["response"].startswith("**how many**\n\nTwo.\n\n---\n\n**when**"), (
+        "the view opens with the conversation, not a blank"
+    )
+    assert shown["variables"] == {"job": str(job.folder), "thread": str(earlier.folder)}, (
+        "the thread travels with the job while it runs"
+    )
+
+
+def test_running_follow_up_streams_under_the_thread(job, earlier):
+    job.progress("Both tod")
+    shown = view.showing("when", job, NOW, earlier)
+    assert shown["response"] == "**how many**\n\nTwo.\n\n---\n\n**when**\n\nBoth tod"
+    assert shown["variables"] == {"job": str(job.folder), "thread": str(earlier.folder)}
+
+
+def test_finished_follow_up_shows_the_whole_thread_and_keeps_it(job, earlier):
+    job.remember("when", "Both today.", after=earlier)
+    job.finish("Both today.")
+    shown = view.showing("when", job, NOW, earlier)
+    assert shown["response"] == "**how many**\n\nTwo.\n\n---\n\n**when**\n\nBoth today."
+    assert shown["variables"] == {"job": "", "question": "how many", "thread": str(job.folder)}, (
+        "⌥↩ keeps the transcript under the first question; ⌘↩ continues from this job"
+    )

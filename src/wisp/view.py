@@ -77,32 +77,47 @@ def job_id() -> str:
     return f"{datetime.now():%Y%m%d-%H%M%S-%f}-{os.getpid()}"
 
 
-def starting(question: str, job: Job, lines: int) -> dict:
+def transcript(turns: list[Turn], question: str, text: str) -> str:
+    if not turns:
+        return text
+    earlier = [f"**{q}**\n\n{a}" for q, a in turns]
+    return "\n\n---\n\n".join([*earlier, f"**{question}**\n\n{text}"])
+
+
+def polling(job: Job, earlier: Job | None) -> dict[str, str]:
+    return {"job": str(job.folder), **({"thread": str(earlier.folder)} if earlier else {})}
+
+
+def starting(question: str, job: Job, lines: int, earlier: Job | None = None) -> dict:
+    turns = earlier.turns() if earlier else []
+    opening = f'_Asking about {lines} lines: "{question}"…_'
     return {
         "rerun": RERUN,
-        "variables": {"job": str(job.folder)},
-        "response": f'_Asking about {lines} lines: "{question}"…_',
+        "variables": polling(job, earlier),
+        "response": transcript(turns, question, opening),
         "behaviour": {"scroll": "end"},
     }
 
 
-def showing(question: str, job: Job, now: datetime) -> dict:
+def showing(question: str, job: Job, now: datetime, earlier: Job | None = None) -> dict:
     error = job.error()
     if error:
         return failed(error)
-    text = visible(job.partial())
+    turns = earlier.turns() if earlier else []
+    text = transcript(turns, question, visible(job.partial()))
     if job.done():
+        first = turns[0][0] if turns else question
         return {
             "response": text,
-            "footer": f'"{question}" · ↩ copy · ⌥↩ keep as a file and open it · ⌘↩ follow up',
-            "variables": {"job": "", "question": question, "thread": str(job.folder)},
+            "footer": f'"{first}" · ↩ copy · ⌥↩ keep as a file and open it · ⌘↩ follow up',
+            "variables": {"job": "", "question": first, "thread": str(job.folder)},
             "behaviour": {"response": "replace", "scroll": "end"},
         }
     if job.stale(now):
         return failed(NO_ANSWER)
     return {
         "rerun": RERUN,
-        "variables": {"job": str(job.folder)},
+        "variables": polling(job, earlier),
         "response": text,
         "behaviour": {"response": "replace", "scroll": "end"},
     }

@@ -106,9 +106,10 @@ Under the **Ask** row the list is exactly what `l` would show for the same words
 same keys, so you can see what the model has to go on before you ask.
 
 ↩ on **Ask** opens a text view inside Alfred and the answer streams into it as the model writes. In the view, ↩ copies the answer, ⌥↩ keeps it as a file
-and opens it, and ⌘↩ asks a follow-up: type the next question, ↩, and the model gets the first
+and opens it, and ⌘↩ asks a follow-up: type the next question, ↩, and the earlier questions and
+answers stay on screen with the new answer streaming in under them; the model gets the first
 question with its log, every answer so far and the new question, so "which of those are done?"
-works. Esc closes the view and the answer is gone unless you kept it; a thread lasts as long as
+works, and ↩ or ⌥↩ then copy or keep the whole conversation. Esc closes the view and the answer is gone unless you kept it; a thread lasts as long as
 Alfred's cache for the workflow does. Kept answers are
 markdown files (question on the first line, answer below) in Alfred's data folder for the
 workflow, opened as they are kept; they are not listed in Alfred.
