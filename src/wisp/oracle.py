@@ -107,7 +107,7 @@ def tagged(record: Record) -> str:
     return record.text
 
 
-def evidence(logs: Iterable[Record], budget: int = BUDGET) -> str:
+def evidence_lines(logs: Iterable[Record], budget: int = BUDGET) -> list[str]:
     kept: list[str] = []
     size = 0
     for text in map(line, sorted(logs, key=records.newest_first)):
@@ -115,7 +115,11 @@ def evidence(logs: Iterable[Record], budget: int = BUDGET) -> str:
         if size > budget and kept:
             break
         kept.append(text)
-    return "\n".join(kept)
+    return kept
+
+
+def evidence(logs: Iterable[Record], budget: int = BUDGET) -> str:
+    return "\n".join(evidence_lines(logs, budget))
 
 
 def prompt(

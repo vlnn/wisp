@@ -103,6 +103,12 @@ def test_evidence_stops_at_the_budget_on_a_line_boundary():
     assert text.splitlines()[0].endswith("line 1"), "the newest line is always sent"
 
 
+def test_evidence_lines_are_what_evidence_joins():
+    logs = [record(f"line {n}", n) for n in range(1, 50)]
+    lines = oracle.evidence_lines(logs, budget=100)
+    assert "\n".join(lines) == oracle.evidence(logs, budget=100), "same cut, counted not split"
+
+
 def test_evidence_of_nothing_is_empty():
     assert oracle.evidence([]) == "", "an empty log sends nothing"
 
