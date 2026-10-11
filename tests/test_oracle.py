@@ -190,3 +190,8 @@ def test_remember_writes_question_then_answer(tmp_path):
 def test_answers_folder(env, expected, monkeypatch):
     monkeypatch.setenv("HOME", "/Users/me")
     assert str(oracle.answers_folder(env)) == expected, f"{env} should keep answers in {expected}"
+
+
+@pytest.mark.parametrize("backend", [SERVER, oracle.Apple(DATA)])
+def test_each_backend_is_a_backend(backend):
+    assert isinstance(backend, oracle.Backend), f"{backend} should answer the Backend protocol"

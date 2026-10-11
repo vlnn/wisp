@@ -269,3 +269,26 @@ def test_decide_refuses_a_blank_resolution(folder):
     with pytest.raises(records.Blank):
         records.decide(path, "  ")
     assert path.read_text() == "? why\n", "the question stays open"
+
+
+@pytest.mark.parametrize(
+    "kind, sigil, offer, tag, icon",
+    [
+        (records.Kind.LOG, "", "Log", "", "icons/log.png"),
+        (records.Kind.TASK, ".", "Task", "TODO", "icons/task.png"),
+        (records.Kind.DONE, "*", "Done", "DONE", "icons/done.png"),
+        (records.Kind.NOTE, "!", "Note", "NOTE", "icons/note.png"),
+        (records.Kind.QUESTION, "?", "Question", "QUESTION", "icons/question.png"),
+        (records.Kind.DECISION, "=", "Decision", "DECIDED", "icons/decision.png"),
+    ],
+)
+def test_a_kind_knows_its_words(kind, sigil, offer, tag, icon):
+    assert (kind.sigil, kind.offer, kind.tag, kind.icon) == (sigil, offer, tag, icon), (
+        f"{kind} should carry its sigil, offer word, model tag and icon"
+    )
+
+
+def test_settled_kinds_are_the_closed_ends_of_the_state_machine():
+    assert records.SETTLED == {records.Kind.DONE, records.Kind.DECISION}, (
+        "done tasks and decisions are what mark reopens"
+    )

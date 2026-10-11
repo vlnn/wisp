@@ -10,10 +10,10 @@ from collections.abc import Callable, Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Union
+from typing import Protocol, runtime_checkable
 
 from wisp import apple, records, search
-from wisp.records import Kind, Record
+from wisp.records import Record
 
 BUDGET = 12_000
 APPLE_BUDGET = 6_000
@@ -35,8 +35,6 @@ SYSTEM = (
     "in the language of the question, as plain text without headings."
 )
 
-TAGS = {Kind.TASK: "TODO", Kind.NOTE: "NOTE", Kind.QUESTION: "QUESTION"}
-SETTLED = {Kind.DONE: "DONE", Kind.DECISION: "DECIDED"}
 STAMP = "%Y-%m-%d %H:%M"
 
 
@@ -96,7 +94,14 @@ class Apple:
         return f"Apple Intelligence: {apple.TOOLS_MISSING}"
 
 
-Backend = Union[Llama, Apple]
+@runtime_checkable
+class Backend(Protocol):
+    @property
+    def budget(self) -> int: ...
+
+    def respond(self, messages: list[dict], on_text: OnText | None) -> str: ...
+
+    def check(self) -> str: ...
 
 
 def backend(env: Mapping[str, str]) -> Backend | None:
@@ -121,10 +126,10 @@ def line(record: Record) -> str:
 
 
 def tagged(record: Record) -> str:
-    if record.kind in SETTLED:
-        return f"{SETTLED[record.kind]} {record.changed:{STAMP}}  {record.line}"
-    if record.kind in TAGS:
-        return f"{TAGS[record.kind]}  {record.line}"
+    if record.kind in records.SETTLED:
+        return f"{record.kind.tag} {record.changed:{STAMP}}  {record.line}"
+    if record.kind.tag:
+        return f"{record.kind.tag}  {record.line}"
     return record.text
 
 

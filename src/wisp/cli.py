@@ -88,7 +88,7 @@ def log_folder(env: Mapping[str, str]) -> Path:
     return Path(os.path.expanduser(env.get("log_folder") or DEFAULT_FOLDER))
 
 
-def emit(items: list) -> int:
+def emit(items: list[present.Row]) -> int:
     print(json.dumps({"items": items}, ensure_ascii=False))
     return 0
 

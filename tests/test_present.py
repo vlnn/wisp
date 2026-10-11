@@ -242,5 +242,5 @@ def test_unserved_row_cannot_be_actioned():
 
 def test_every_kind_has_an_icon_file():
     for kind in Kind:
-        path = Path(__file__).parent.parent / "workflow" / present.ICONS[kind]
+        path = Path(__file__).parent.parent / "workflow" / kind.icon
         assert path.is_file(), f"{kind} needs {path.name} in the bundle"

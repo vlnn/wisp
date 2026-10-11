@@ -16,16 +16,33 @@ Stamps = Callable[[Path], tuple[datetime, datetime]]
 
 
 class Kind(Enum):
-    LOG = ""
-    TASK = "."
-    DONE = "*"
-    NOTE = "!"
-    QUESTION = "?"
-    DECISION = "="
+    LOG = ("", "Log", "")
+    TASK = (".", "Task", "TODO")
+    DONE = ("*", "Done", "DONE")
+    NOTE = ("!", "Note", "NOTE")
+    QUESTION = ("?", "Question", "QUESTION")
+    DECISION = ("=", "Decision", "DECIDED")
+
+    @property
+    def sigil(self) -> str:
+        return self.value[0]
+
+    @property
+    def offer(self) -> str:
+        return self.value[1]
+
+    @property
+    def tag(self) -> str:
+        return self.value[2]
+
+    @property
+    def icon(self) -> str:
+        return f"icons/{self.name.lower()}.png"
 
 
-SIGILS = {kind.value: kind for kind in Kind if kind.value}
+SIGILS = {kind.sigil: kind for kind in Kind if kind.sigil}
 TIGHT = {Kind.QUESTION, Kind.NOTE, Kind.DECISION}
+SETTLED = {Kind.DONE, Kind.DECISION}
 FLIPPED = {Kind.TASK: Kind.DONE, Kind.DONE: Kind.TASK, Kind.DECISION: Kind.QUESTION}
 RESOLVED = " | "
 
@@ -60,7 +77,7 @@ def parse(text: str) -> tuple[Kind, str]:
 
 
 def compose(kind: Kind, line: str) -> str:
-    return f"{kind.value} {line}" if kind.value else line
+    return f"{kind.sigil} {line}" if kind.sigil else line
 
 
 def normalise(text: str) -> str:

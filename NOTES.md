@@ -77,8 +77,14 @@ against `Record.line`; no sigil means every kind. The oracle spells kinds out as
 <time>` and `NOTE` because a small model follows a word over 1 200 lines better than a dot.
 
 Alfred colours nothing in a row but the icon, so a kind's colour is a PNG in `workflow/icons/`,
-drawn by `workflow/icons.py` with the standard library (a ring while open, a disc once settled). Paths in
-`present.ICONS` are relative to the bundle, which is where `build.sh` copies the folder.
+drawn by `workflow/icons.py` with the standard library (a ring while open, a disc once settled).
+`Kind.icon` is `icons/<name>.png` relative to the bundle, which is where `build.sh` copies the folder.
+
+A kind is one line of `records.Kind`: its sigil, the word `l` offers it with (`Kind.offer`) and the
+word the model sees (`Kind.tag`). What stays outside the enum is the state machine (`FLIPPED`,
+`SETTLED`, `present.SETTLE`), since that relates kinds to each other. `present.Row` is Alfred's row
+as a `TypedDict`, so mypy catches a misspelt key; `oracle.Backend` is a `Protocol`, so a third model
+only needs `budget`, `respond` and `check`, and a branch in `oracle.backend`.
 
 `!` is a kind here, not a flag, so an important task has no spelling yet. If one is ever wanted,
 the choice is between a second sigil position (`!. `) and making `!` orthogonal to the others;

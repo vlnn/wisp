@@ -142,5 +142,5 @@ def test_configured_variables_are_the_ones_the_package_reads(plist):
 
 def test_icons_in_the_bundle_match_present():
     assert {f"icons/{p.name}" for p in (WORKFLOW / "icons").glob("*.png")} == set(
-        present.ICONS.values()
+        {kind.icon for kind in records.Kind}
     ), "every icon present names ships, and nothing else"

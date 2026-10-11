@@ -2,19 +2,36 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from datetime import datetime
+from typing import TypedDict
 
 from wisp.oracle import Evidence
 from wisp.records import RESOLVED, Kind, Record, normalise, parse
 from wisp.search import matches, query, search
 
-OFFERS = {
-    Kind.LOG: "Log",
-    Kind.TASK: "Task",
-    Kind.DONE: "Done",
-    Kind.NOTE: "Note",
-    Kind.QUESTION: "Question",
-    Kind.DECISION: "Decision",
-}
+
+class Icon(TypedDict):
+    path: str
+
+
+class Mod(TypedDict, total=False):
+    arg: str
+    subtitle: str
+    valid: bool
+    variables: dict[str, str]
+
+
+class Row(TypedDict, total=False):
+    title: str
+    subtitle: str
+    arg: str
+    valid: bool
+    icon: Icon
+    variables: dict[str, str]
+    mods: dict[str, Mod]
+    text: dict[str, str]
+    quicklookurl: str
+
+
 SETTLE = {
     Kind.TASK: "Finish",
     Kind.DONE: "Reopen",
@@ -22,14 +39,6 @@ SETTLE = {
     Kind.DECISION: "Reopen",
 }
 SETTLED = {Kind.DONE: "done", Kind.DECISION: "decided"}
-ICONS = {
-    Kind.LOG: "icons/log.png",
-    Kind.TASK: "icons/task.png",
-    Kind.DONE: "icons/done.png",
-    Kind.NOTE: "icons/note.png",
-    Kind.QUESTION: "icons/question.png",
-    Kind.DECISION: "icons/decision.png",
-}
 
 
 def when(created: datetime, now: datetime) -> str:
@@ -44,15 +53,15 @@ def when(created: datetime, now: datetime) -> str:
     return f"{created.day} {created:%b} {created.year} {clock}"
 
 
-def rows(text: str, records: Iterable[Record], now: datetime) -> list[dict]:
+def rows(text: str, records: Iterable[Record], now: datetime) -> list[Row]:
     offered = [keep_row(text)] if query(text).words else []
     return offered + [record_row(record, now) for record in search(text, records)]
 
 
-def keep_row(text: str) -> dict:
+def keep_row(text: str) -> Row:
     kind, line = parse(text.strip())
     return {
-        "title": f'{OFFERS[kind]} "{line}"',
+        "title": f'{kind.offer} "{line}"',
         "subtitle": "↩ keeps it",
         "arg": normalise(text),
         "icon": icon(kind),
@@ -61,7 +70,7 @@ def keep_row(text: str) -> dict:
     }
 
 
-def record_row(record: Record, now: datetime) -> dict:
+def record_row(record: Record, now: datetime) -> Row:
     path = str(record.path)
     return {
         "title": record.text,
@@ -83,8 +92,8 @@ def record_row(record: Record, now: datetime) -> dict:
     }
 
 
-def icon(kind: Kind) -> dict:
-    return {"path": ICONS[kind]}
+def icon(kind: Kind) -> Icon:
+    return {"path": kind.icon}
 
 
 def record_when(record: Record, now: datetime) -> str:
@@ -94,38 +103,38 @@ def record_when(record: Record, now: datetime) -> str:
     return written
 
 
-def shift_mod(record: Record) -> dict:
+def shift_mod(record: Record) -> Mod:
     if record.kind in SETTLE:
         arg, variables = settling(record)
         return {"arg": arg, "subtitle": SETTLE[record.kind], "variables": variables}
     return {"arg": record.text, "subtitle": "Copy to clipboard", "variables": {"action": "copy"}}
 
 
-def settling(record: Record) -> tuple[str, dict]:
+def settling(record: Record) -> tuple[str, dict[str, str]]:
     path = str(record.path)
     if record.kind is Kind.QUESTION:
         return "", {"action": "menu", "path": path}
     return path, {"action": "mark"}
 
 
-def menu_rows(record: Record, typed: str) -> list[dict]:
+def menu_rows(record: Record, typed: str) -> list[Row]:
     if record.kind is Kind.QUESTION:
         return [decide_row(record, typed), *always_rows(record)]
     return [row for row in menu(record) if matches(typed, row["title"])]
 
 
-def menu(record: Record) -> list[dict]:
+def menu(record: Record) -> list[Row]:
     return [*settle_rows(record), *always_rows(record)]
 
 
-def settle_rows(record: Record) -> list[dict]:
+def settle_rows(record: Record) -> list[Row]:
     if record.kind not in SETTLE:
         return []
     arg, variables = settling(record)
     return [menu_row(SETTLE[record.kind], record.text, arg, variables)]
 
 
-def always_rows(record: Record) -> list[dict]:
+def always_rows(record: Record) -> list[Row]:
     path, text = str(record.path), record.text
     actions = [
         ("Open", path, {"action": "open"}),
@@ -136,11 +145,11 @@ def always_rows(record: Record) -> list[dict]:
     return [menu_row(title, text, arg, variables) for title, arg, variables in actions]
 
 
-def menu_row(title: str, subtitle: str, arg: str, variables: dict) -> dict:
+def menu_row(title: str, subtitle: str, arg: str, variables: dict[str, str]) -> Row:
     return {"title": title, "subtitle": subtitle, "arg": arg, "variables": variables}
 
 
-def decide_row(record: Record, resolution: str) -> dict:
+def decide_row(record: Record, resolution: str) -> Row:
     stripped = resolution.strip()
     variables = {"action": "decide", "path": str(record.path)}
     if not stripped:
@@ -159,7 +168,7 @@ def decide_row(record: Record, resolution: str) -> dict:
     }
 
 
-def rename_row(text: str) -> dict:
+def rename_row(text: str) -> Row:
     stripped = text.strip()
     if not stripped:
         return {"title": "Type the new text", "valid": False}
@@ -169,18 +178,18 @@ def rename_row(text: str) -> dict:
 NO_SERVER = "Set Model server or turn on Apple Intelligence in the workflow configuration"
 
 
-def unserved_row() -> dict:
+def unserved_row() -> Row:
     return {"title": NO_SERVER, "subtitle": "to ask questions about the log", "valid": False}
 
 
 def question_rows(
     question: str, records: Iterable[Record], now: datetime, found: Evidence
-) -> list[dict]:
+) -> list[Row]:
     offered = [ask_row(question, len(found.lines()), len(found.matching))] if question else []
     return offered + [record_row(record, now) for record in search(question, records)]
 
 
-def ask_row(question: str, lines: int, matching: int = 0) -> dict:
+def ask_row(question: str, lines: int, matching: int = 0) -> Row:
     singled = f", {matching} matching" if 0 < matching < lines else ""
     return {
         "title": f'Ask "{question}"',
