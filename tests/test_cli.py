@@ -441,3 +441,15 @@ def test_menu_lists_the_actions_for_one_record(run, logged):
     )
     _, out = run("menu", str(path), "fi")
     assert titles(out) == ["Finish"], "the typed query narrows the menu"
+
+
+def test_menu_on_a_question_decides_with_what_is_typed(run, logged):
+    path = logged("? why is the sky green", 5)
+    _, out = run("menu", str(path), "it is blue")
+    assert titles(out) == [
+        'Decide "why is the sky green | it is blue"',
+        "Open",
+        "Rename",
+        "Copy",
+        "Trash",
+    ], "the typed text is the answer, the other actions stay"

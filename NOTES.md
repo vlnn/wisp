@@ -21,8 +21,10 @@ connections as `l`. Both ↩ into one conditional on the
 `action` variable: `ask` goes to the Text View (script file `view` at the bundle root), `menu` to a
 second, keywordless script filter (`menu`) that lists what the record can do, anything else (`keep`,
 and `open` from an answer row) to the ↩ script. The menu's rows carry the same `action` values the
-modifier keys use, and its ↩ passes a second conditional that sends `rename`, `copy`, `trash` and `decide` to
-the objects those keys reach and everything else (`mark`, `open`) to the ↩ script. From the list,
+modifier keys use, and its ↩ passes a second conditional that sends `rename`, `copy` and `trash` to
+the objects those keys reach, `decide` straight to the `decide` script, and everything else (`mark`, `open`) to the ↩ script.
+On a question the menu is the answer field: what is typed is not a filter but the resolution, the
+first row is `present.decide_row` with it, and Open, Rename, Copy and Trash stay listed underneath. From the list,
 ⇧↩ passes a conditional too (`mark` to the ↩ script, `decide` to a keywordless script filter that
 takes the resolution and runs `decide` with the `path` variable, else a clipboard object), ⌥↩ goes to `trash`,
 ⌘↩ to a third, keywordless script filter that prefills the text and runs `rename` with the `path`

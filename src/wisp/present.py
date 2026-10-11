@@ -23,7 +23,6 @@ FLIPS = {
 FINISHES = {
     Kind.TASK: "Finish",
     Kind.DONE: "Reopen",
-    Kind.QUESTION: "Decide",
     Kind.DECISION: "Reopen",
 }
 SETTLED = {Kind.DONE: "done", Kind.DECISION: "decided"}
@@ -114,6 +113,8 @@ def settling(record: Record) -> tuple[str, dict]:
 
 
 def menu_rows(record: Record, typed: str) -> list[dict]:
+    if record.kind is Kind.QUESTION:
+        return [decide_row(record, typed), *menu(record)]
     return [row for row in menu(record) if matches(typed, row["title"])]
 
 
@@ -136,13 +137,15 @@ def menu_row(title: str, subtitle: str, arg: str, variables: dict) -> dict:
 
 def decide_row(record: Record, resolution: str) -> dict:
     stripped = resolution.strip()
+    variables = {"action": "decide", "path": str(record.path)}
     if not stripped:
-        return {"title": "Type the resolution", "valid": False}
+        return {"title": "Type the resolution", "valid": False, "variables": variables}
     return {
         "title": f'Decide "{record.line}{RESOLVED}{stripped}"',
         "subtitle": "↩ settles the question",
         "arg": stripped,
         "icon": icon(Kind.DECISION),
+        "variables": variables,
     }
 
 

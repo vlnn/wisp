@@ -111,7 +111,7 @@ def test_other_rows_still_copy_on_shift(text):
         ("! keys in 1password", ["Open", "Rename", "Copy", "Trash"]),
         (". fix the build", ["Finish", "Open", "Rename", "Copy", "Trash"]),
         ("* fix the build", ["Reopen", "Open", "Rename", "Copy", "Trash"]),
-        ("? ship friday", ["Decide", "Open", "Rename", "Copy", "Trash"]),
+        ("? ship friday", ["Type the resolution", "Open", "Rename", "Copy", "Trash"]),
         ("= ship friday", ["Reopen", "Open", "Rename", "Copy", "Trash"]),
     ],
 )
@@ -120,12 +120,23 @@ def test_menu_lists_what_the_kind_can_do(text, titles):
     assert [row["title"] for row in menu] == titles, f"{text!r} should offer {titles}"
 
 
-def test_decide_menu_row_opens_the_field():
+def test_question_menu_takes_the_answer_as_you_type():
+    (decide, *rest) = present.menu_rows(a_record("? ship friday", NOW), "yes, at noon")
+    assert decide["title"] == 'Decide "ship friday | yes, at noon"', "the first row shows the line"
+    assert decide["arg"] == "yes, at noon", "↩ passes the answer on"
+    assert decide["variables"] == {"action": "decide", "path": "/log/x.md"}, (
+        "the row is the decide action on the file"
+    )
+    assert [row["title"] for row in rest] == ["Open", "Rename", "Copy", "Trash"], (
+        "typing the answer never hides the other actions"
+    )
+
+
+def test_question_menu_waits_for_an_answer():
     (decide, *_) = present.menu_rows(a_record("? ship friday", NOW), "")
-    assert decide["arg"] == "" and decide["variables"] == {
-        "action": "decide",
-        "path": "/log/x.md",
-    }, "Decide opens the field rather than flipping the sigil"
+    assert decide["title"] == "Type the resolution" and decide["valid"] is False, (
+        "an empty answer cannot settle the question"
+    )
 
 
 @pytest.mark.parametrize(
@@ -142,6 +153,9 @@ def test_decide_row_shows_what_will_be_written(answer, title, valid):
     assert row.get("valid", True) is valid, "only a non-empty resolution can be accepted"
     if valid:
         assert row["arg"] == "it is blue", "↩ passes the resolution on"
+    assert row["variables"] == {"action": "decide", "path": "/log/x.md"}, (
+        "the row names the file it settles, whichever way it was reached"
+    )
 
 
 def test_menu_rows_carry_the_same_actions_as_the_keys():

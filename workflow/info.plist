@@ -204,7 +204,7 @@
 			</dict>
 			<dict>
 				<key>destinationuid</key>
-				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C16</string>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C17</string>
 				<key>modifiers</key>
 				<integer>0</integer>
 				<key>modifiersubtext</key>
@@ -828,7 +828,7 @@ esac
 				<key>scriptfile</key>
 				<string></string>
 				<key>subtext</key>
-				<string>↩ runs the first row; type to narrow</string>
+				<string>↩ runs the first row; type to narrow, or the answer on a question</string>
 				<key>title</key>
 				<string>Actions</string>
 				<key>type</key>
