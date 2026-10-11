@@ -139,7 +139,12 @@ def decide_row(record: Record, resolution: str) -> dict:
     stripped = resolution.strip()
     variables = {"action": "decide", "path": str(record.path)}
     if not stripped:
-        return {"title": "Type the resolution", "valid": False, "variables": variables}
+        return {
+            "title": f'Type the resolution for "{record.line}"',
+            "valid": False,
+            "icon": icon(Kind.QUESTION),
+            "variables": variables,
+        }
     return {
         "title": f'Decide "{record.line}{RESOLVED}{stripped}"',
         "subtitle": "↩ settles the question",

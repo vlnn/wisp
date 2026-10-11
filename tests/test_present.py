@@ -111,7 +111,10 @@ def test_other_rows_still_copy_on_shift(text):
         ("! keys in 1password", ["Open", "Rename", "Copy", "Trash"]),
         (". fix the build", ["Finish", "Open", "Rename", "Copy", "Trash"]),
         ("* fix the build", ["Reopen", "Open", "Rename", "Copy", "Trash"]),
-        ("? ship friday", ["Type the resolution", "Open", "Rename", "Copy", "Trash"]),
+        (
+            "? ship friday",
+            ['Type the resolution for "ship friday"', "Open", "Rename", "Copy", "Trash"],
+        ),
         ("= ship friday", ["Reopen", "Open", "Rename", "Copy", "Trash"]),
     ],
 )
@@ -134,16 +137,15 @@ def test_question_menu_takes_the_answer_as_you_type():
 
 def test_question_menu_waits_for_an_answer():
     (decide, *_) = present.menu_rows(a_record("? ship friday", NOW), "")
-    assert decide["title"] == "Type the resolution" and decide["valid"] is False, (
-        "an empty answer cannot settle the question"
-    )
+    assert decide["title"] == 'Type the resolution for "ship friday"', "the row names the question"
+    assert decide["valid"] is False, "an empty answer cannot settle the question"
 
 
 @pytest.mark.parametrize(
     "answer, title, valid",
     [
-        ("", "Type the resolution", False),
-        ("  ", "Type the resolution", False),
+        ("", 'Type the resolution for "why is the sky green"', False),
+        ("  ", 'Type the resolution for "why is the sky green"', False),
         ("it is blue", 'Decide "why is the sky green | it is blue"', True),
     ],
 )
