@@ -222,3 +222,18 @@ def test_mark_keeps_the_body(folder):
     path.write_text(". fix the build\n\nsee the CI log\n")
     records.mark(path)
     assert path.read_text() == "* fix the build\n\nsee the CI log\n", "mark touches line one only"
+
+
+@pytest.mark.parametrize("verb", [records.keep, records.rename])
+@pytest.mark.parametrize("text", ["", "   ", ".", "! ", "="])
+def test_keep_and_rename_refuse_a_blank_line(folder, verb, text):
+    target = records.keep(folder, "x") if verb is records.rename else folder
+    with pytest.raises(records.Blank):
+        verb(target, text)
+
+
+def test_decide_refuses_a_blank_resolution(folder):
+    path = records.keep(folder, "? why")
+    with pytest.raises(records.Blank):
+        records.decide(path, "  ")
+    assert path.read_text() == "? why\n", "the question stays open"

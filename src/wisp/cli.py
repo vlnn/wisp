@@ -83,8 +83,6 @@ def ask_filter_command(args: list[str], ctx: Context) -> int:
 
 def keep_command(args: list[str], ctx: Context) -> int:
     text = records.normalise(" ".join(args))
-    if not records.parse(text)[1]:
-        return 1
     records.keep(ctx.folder, text)
     return say(text)
 
@@ -95,8 +93,6 @@ def rename_filter_command(args: list[str], ctx: Context) -> int:
 
 def rename_command(args: list[str], ctx: Context) -> int:
     path, text = Path(args[0]), " ".join(args[1:]).strip()
-    if not text:
-        return 1
     records.rename(path, text)
     return say(text)
 
@@ -120,8 +116,6 @@ def decide_filter_command(args: list[str], ctx: Context) -> int:
 
 def decide_command(args: list[str], ctx: Context) -> int:
     path, resolution = Path(args[0]), " ".join(args[1:]).strip()
-    if not resolution:
-        return 1
     records.decide(path, resolution)
     return say(records.first_line(path.read_text(encoding="utf-8")))
 
@@ -256,7 +250,10 @@ def run(
     ctx = Context(
         env, now or datetime.now(), created or records.birth_time, changed or records.modified_time
     )
-    return COMMANDS[argv[0]](argv[1:], ctx)
+    try:
+        return COMMANDS[argv[0]](argv[1:], ctx)
+    except records.Blank:
+        return 1
 
 
 def main() -> None:

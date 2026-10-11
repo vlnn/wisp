@@ -32,6 +32,10 @@ FLIPPED = {Kind.TASK: Kind.DONE, Kind.DONE: Kind.TASK, Kind.DECISION: Kind.QUEST
 RESOLVED = " | "
 
 
+class Blank(ValueError):
+    pass
+
+
 @dataclass(frozen=True)
 class Record:
     path: Path
@@ -60,7 +64,10 @@ def compose(kind: Kind, line: str) -> str:
 
 
 def normalise(text: str) -> str:
-    return compose(*parse(text.strip()))
+    kind, line = parse(text.strip())
+    if not line:
+        raise Blank(text)
+    return compose(kind, line)
 
 
 def birth_time(path: Path) -> datetime:
@@ -104,15 +111,17 @@ def newest_first(record: Record):
 
 
 def keep(folder: Path, text: str) -> Path:
+    line = normalise(text)
     folder.mkdir(parents=True, exist_ok=True)
     path = free_path(folder, slug(text))
-    write_text(path, normalise(text))
+    write_text(path, line)
     return path
 
 
 def rename(path: Path, text: str) -> Path:
+    line = normalise(text)
     old = first_line(path.read_text(encoding="utf-8"))
-    write_text(path, normalise(text))
+    write_text(path, line)
     if slug(text) == slug(old):
         return path
     target = free_path(path.parent, slug(text))
@@ -129,6 +138,8 @@ def mark(path: Path) -> Path:
 
 
 def decide(path: Path, resolution: str) -> Path:
+    if not resolution.strip():
+        raise Blank(resolution)
     content = path.read_text(encoding="utf-8")
     kind, line = parse(first_line(content))
     if kind in (Kind.QUESTION, Kind.DECISION):

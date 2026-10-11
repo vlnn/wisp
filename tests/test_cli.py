@@ -224,6 +224,14 @@ def test_rename_changes_the_record(run, folder, sample):
     )
 
 
+@pytest.mark.parametrize("text", ["   ", ".", ". ", "!  "])
+def test_rename_refuses_a_bare_sigil(run, sample, text):
+    path = sample[3]
+    code, _ = run("rename", str(path), text)
+    assert code == 1, f"{text!r} is not a log line"
+    assert path.read_text() == "reading docs\n", "the record is untouched"
+
+
 def test_trash_sends_the_file_to_the_trash(run, sample, mocker):
     trash = mocker.patch("wisp.cli.macos.trash")
     path = sample[0]
