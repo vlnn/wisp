@@ -511,3 +511,30 @@ def test_check_without_a_folder_or_a_model(run, env):
     _, out = run("check")
     assert out.splitlines()[0] == f"log folder   {env['log_folder']} (missing, made on first log)"
     assert out.splitlines()[-1] == f"model        {present.NO_SERVER}", "no backend, the same hint"
+
+
+@pytest.mark.parametrize("method", ["begin", "progress", "finish", "fail"])
+def test_notify_and_job_answer_the_same_calls(method, tmp_path):
+    assert callable(getattr(cli.Notify(), method)) and callable(
+        getattr(view.Job(tmp_path), method)
+    ), "ask talks to one sink, whichever it was given"
+
+
+def test_notify_tells_the_person_at_each_step(notify):
+    sink = cli.Notify()
+    sink.begin(5)
+    sink.progress("You")
+    sink.finish("You read docs.")
+    sink.fail("Model not reachable")
+    assert [c.args[0] for c in notify.call_args_list] == [
+        "Asking about 5 lines…",
+        "You read docs.",
+        "Model not reachable",
+    ], "begin, finish and fail notify; progress is silent"
+
+
+def test_job_finish_keeps_the_final_text(tmp_path):
+    job = view.Job(tmp_path)
+    job.progress("You rea")
+    job.finish("You read docs.")
+    assert job.partial() == "You read docs." and job.done(), "finish writes the answer and done"

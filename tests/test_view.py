@@ -26,8 +26,7 @@ def test_job_records_progress(job):
 
 
 def test_job_finishes(job):
-    job.progress("You read docs.")
-    job.finish()
+    job.finish("You read docs.")
     assert job.done() is True, "done says the answer is complete"
     assert job.partial() == "You read docs.", "the text stays readable after finishing"
 
@@ -60,8 +59,7 @@ def test_running_view_shows_the_text_so_far(job):
 
 
 def test_finished_view_stops_polling_and_offers_keys(job):
-    job.progress("You read docs.")
-    job.finish()
+    job.finish("You read docs.")
     shown = view.showing("today summary", job, NOW)
     assert "rerun" not in shown, "no more polling"
     assert shown["response"] == "You read docs.", "the answer, nothing else, so ↩ copies just it"

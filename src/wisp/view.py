@@ -37,10 +37,14 @@ class Job:
         started = self.started()
         return started is None or (now - started).total_seconds() > GIVE_UP
 
+    def begin(self, lines: int) -> None:
+        pass
+
     def progress(self, text: str) -> None:
         self.write(PARTIAL, text)
 
-    def finish(self) -> None:
+    def finish(self, answer: str) -> None:
+        self.write(PARTIAL, answer)
         self.write(DONE, "")
 
     def fail(self, message: str) -> None:

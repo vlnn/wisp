@@ -8,6 +8,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Union
 
 from wisp import macos, oracle, present, records, view
 
@@ -97,8 +98,25 @@ def say(text: str) -> int:
     return 0
 
 
-def fail(text: str) -> int:
-    macos.notify(text)
+class Notify:
+    def begin(self, lines: int) -> None:
+        macos.notify(f"Asking about {lines} lines…")
+
+    def progress(self, text: str) -> None:
+        pass
+
+    def finish(self, answer: str) -> None:
+        macos.notify(answer)
+
+    def fail(self, message: str) -> None:
+        macos.notify(message)
+
+
+Sink = Union[Notify, view.Job]
+
+
+def fail(text: str, sink: Sink | None = None) -> int:
+    (sink or Notify()).fail(text)
     print(text, file=sys.stderr)
     return 1
 
@@ -161,30 +179,24 @@ def mark_command(args: list[str], ctx: Context) -> int:
 
 def ask_command(args: list[str], ctx: Context) -> int:
     asked = AskArgs.parse(args)
-    dry_run, keep, question = asked.dry_run, asked.keep, asked.question
-    job = view.Job(asked.job) if asked.job else None
-    if not question:
+    sink: Sink = view.Job(asked.job) if asked.job else Notify()
+    if not asked.question:
         return 1
     backend = ctx.backend()
     if backend is None:
-        return report(present.NO_SERVER, job)
+        return fail(present.NO_SERVER, sink)
     logs = ctx.logs()
-    messages = oracle.prompt(question, logs, ctx.now, backend.budget)
-    if dry_run:
+    messages = oracle.prompt(asked.question, logs, ctx.now, backend.budget)
+    if asked.dry_run:
         return say("\n\n".join(m["content"] for m in reversed(messages)))
-    if job is None:
-        macos.notify(f"Asking about {len(logs)} lines…")
+    sink.begin(len(logs))
     try:
-        answer = backend.respond(messages, job.progress if job else None)
+        answer = backend.respond(messages, sink.progress)
     except oracle.ModelError as error:
-        return report(str(error), job)
-    if job:
-        job.progress(answer)
-        job.finish()
-    else:
-        macos.notify(answer)
-    if keep:
-        return say(str(keep_answer(ctx, question, answer)))
+        return fail(str(error), sink)
+    sink.finish(answer)
+    if asked.keep:
+        return say(str(keep_answer(ctx, asked.question, answer)))
     return say(answer)
 
 
@@ -196,14 +208,6 @@ def keep_answer_command(args: list[str], ctx: Context) -> int:
     if len(args) < 2 or not args[0].strip() or not args[1].strip():
         return 1
     return say(str(keep_answer(ctx, args[0], args[1])))
-
-
-def report(message: str, job: view.Job | None) -> int:
-    if job:
-        job.fail(message)
-        print(message, file=sys.stderr)
-        return 1
-    return fail(message)
 
 
 def view_command(args: list[str], ctx: Context) -> int:
