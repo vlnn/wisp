@@ -292,3 +292,14 @@ def test_settled_kinds_are_the_closed_ends_of_the_state_machine():
     assert records.SETTLED == {records.Kind.DONE, records.Kind.DECISION}, (
         "done tasks and decisions are what mark reopens"
     )
+
+
+def test_keep_never_overwrites_a_file_that_appears_in_between(folder, mocker):
+    folder.mkdir()
+    taken = folder / "reading-docs.md"
+    taken.write_text("someone else\n")
+    mocker.patch.object(Path, "exists", return_value=False)
+    path = records.keep(folder, "reading docs")
+    assert path.name == "reading-docs-2.md" and taken.read_text() == "someone else\n", (
+        "a name that is taken by the time keep writes is skipped, not overwritten"
+    )

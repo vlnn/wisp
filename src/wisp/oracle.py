@@ -212,9 +212,19 @@ def deltas(lines: Iterable[bytes]) -> Iterator[str]:
         try:
             delta = json.loads(line[5:])["choices"][0]["delta"].get("content")
         except (ValueError, KeyError, IndexError, TypeError):
+            refused(line)
             continue
         if delta:
             yield delta
+
+
+def refused(line: str) -> None:
+    try:
+        error = json.loads(line[5:])["error"]
+    except (ValueError, KeyError, TypeError):
+        return
+    message = error.get("message") if isinstance(error, dict) else error
+    raise ModelError(f"Model refused: {message}")
 
 
 def headers(server: Llama) -> dict[str, str]:
@@ -243,6 +253,4 @@ def stream(server: Llama, body: dict, on_text: OnText | None) -> str:
 
 def remember(folder: Path, question: str, answer: str) -> Path:
     folder.mkdir(parents=True, exist_ok=True)
-    path = records.free_path(folder, records.slug(question))
-    path.write_text(f"{question.strip()}\n\n{answer.strip()}\n", encoding="utf-8")
-    return path
+    return records.create(folder, records.slug(question), f"{question.strip()}\n\n{answer.strip()}")

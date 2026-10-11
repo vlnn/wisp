@@ -28,7 +28,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
       - run: /usr/bin/python3 --version
+      - run: make test
       - run: make build
       - uses: actions/upload-artifact@v4
         with:

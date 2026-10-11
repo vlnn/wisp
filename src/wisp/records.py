@@ -123,9 +123,7 @@ def newest_first(record: Record):
 def keep(folder: Path, text: str) -> Path:
     line = normalise(text)
     folder.mkdir(parents=True, exist_ok=True)
-    path = free_path(folder, slug(text))
-    write_text(path, line)
-    return path
+    return create(folder, slug(text), line)
 
 
 def rename(path: Path, text: str) -> Path:
@@ -181,9 +179,23 @@ def slug(text: str) -> str:
     return joined[:SLUG_LIMIT].strip("-") or FALLBACK_SLUG
 
 
+def create(folder: Path, name: str, text: str) -> Path:
+    for path in candidates(folder, name):
+        try:
+            with path.open("x", encoding="utf-8") as new:
+                new.write(text.strip() + "\n")
+        except FileExistsError:
+            continue
+        return path
+    raise AssertionError("candidates never run out")
+
+
 def free_path(folder: Path, name: str) -> Path:
-    candidates = (folder / f"{name}{suffix}{EXTENSION}" for suffix in suffixes())
-    return next(path for path in candidates if not path.exists())
+    return next(path for path in candidates(folder, name) if not path.exists())
+
+
+def candidates(folder: Path, name: str) -> Iterator[Path]:
+    return (folder / f"{name}{suffix}{EXTENSION}" for suffix in suffixes())
 
 
 def suffixes() -> Iterator[str]:

@@ -135,3 +135,9 @@ def test_apple_check(tmp_path, mocker, compiled, swiftc, expected):
         binary.write_text("fake")
     mocker.patch("wisp.oracle.shutil.which", return_value=swiftc)
     assert oracle.Apple(tmp_path).check() == expected, "check says what the helper needs"
+
+
+def test_deltas_raise_on_an_error_event():
+    lines = [b'data: {"error": {"message": "context too long"}}']
+    with pytest.raises(oracle.ModelError, match="context too long"):
+        list(oracle.deltas(lines))
