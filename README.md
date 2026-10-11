@@ -163,6 +163,9 @@ make build                               → dist/Wisp.alfredworkflow
 uv run --isolated --python 3.9 pytest    the interpreter the workflow runs on
 ```
 
+The bundle's version is `git describe --tags` at build time, so a tagged build shows `0.1.0` in
+Alfred and a build from main shows `0.1.0-7-gabc1234`; the `version` in `workflow/info.plist` is
+only what an untagged checkout falls back to.
 CI runs the tests and lint on Python 3.9 and 3.13, builds the bundle on macOS and publishes it: every
 push to `main` updates the `latest` pre-release, a `v*` tag makes a release with notes. To cut one:
 

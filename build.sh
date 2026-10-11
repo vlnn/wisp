@@ -12,6 +12,17 @@ chmod +x "$stage/view"
 mkdir -p "$stage/wisp"
 cp src/wisp/*.py src/wisp/*.swift "$stage/wisp"/
 
+version=$(git describe --tags --match 'v*' --always --dirty 2>/dev/null || echo 0.0.0)
+/usr/bin/env python3 - "$stage/info.plist" "${version#v}" <<'PY'
+import plistlib, sys
+path, version = sys.argv[1:]
+with open(path, "rb") as f:
+    plist = plistlib.load(f)
+plist["version"] = version
+with open(path, "wb") as f:
+    plistlib.dump(plist, f, sort_keys=False)
+PY
+
 mkdir -p dist
 rm -f dist/Wisp.alfredworkflow
 (cd "$stage" && zip -qr -X "$OLDPWD/dist/Wisp.alfredworkflow" .)
@@ -27,4 +38,4 @@ titles = [row["title"] for row in json.loads(out)["items"]]
 assert titles == ['Log "smoke"', "smoke test"], titles
 EOF
 
-echo "dist/Wisp.alfredworkflow"
+echo "dist/Wisp.alfredworkflow ($version)"
