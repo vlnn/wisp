@@ -171,11 +171,52 @@ def test_mark_flips_a_task_and_echoes_the_new_line(run, logged):
     assert out.strip() == ". fix the build", "a second mark reopens it"
 
 
-def test_decide_filter_offers_the_resolution(run, logged):
+def test_menu_on_a_question_offers_the_resolution(run, logged):
     path = logged("? why is the sky green", 5)
-    _, out = run("decide-filter", str(path), "it is blue")
-    (row,) = rows(out)
-    assert row["title"] == 'Decide "why is the sky green | it is blue"', "the row shows the line"
+    _, out = run("menu", str(path), "it is blue")
+    assert titles(out)[0] == 'Decide "why is the sky green | it is blue"', "the first row decides"
+
+
+@pytest.mark.parametrize(
+    "action, before, after, printed",
+    [
+        ("keep", None, "reading docs\n", "reading docs"),
+        ("mark", ". fix the build", "* fix the build\n", "* fix the build"),
+    ],
+)
+def test_act_runs_the_action_on_the_argument(run, folder, logged, action, before, after, printed):
+    arg = str(logged(before, 5)) if before else "reading docs"
+    code, out = run("act", action, arg)
+    assert code == 0 and out.strip() == printed, f"act {action} behaves as `wisp {action}`"
+    (file,) = folder.iterdir()
+    assert file.read_text() == after, "the file reflects the action"
+
+
+def test_act_copy_puts_the_text_on_the_clipboard(run, mocker):
+    copy = mocker.patch("wisp.cli.macos.copy")
+    code, out = run("act", "copy", "meeting with L")
+    assert code == 0 and out.strip() == "meeting with L", "copy echoes what it copied"
+    copy.assert_called_once_with("meeting with L")
+
+
+def test_act_open_opens_the_file(run, mocker):
+    opened = mocker.patch("wisp.cli.macos.open")
+    code, out = run("act", "open", "/log/x.md")
+    assert code == 0 and out.strip() == "/log/x.md", "open echoes the path"
+    opened.assert_called_once_with(Path("/log/x.md"))
+
+
+def test_act_trash_moves_the_file(run, logged, mocker):
+    trash = mocker.patch("wisp.cli.macos.trash")
+    path = logged("reading docs", 5)
+    code, out = run("act", "trash", str(path))
+    assert code == 0 and out.strip() == "reading docs", "trash echoes the text"
+    trash.assert_called_once_with(path)
+
+
+def test_act_refuses_an_unknown_action(run, capsys):
+    code, _ = run("act", "explode", "x")
+    assert code == 2, "an action the plist could not have emitted is a usage error"
 
 
 def test_decide_writes_the_resolution_and_echoes_the_line(run, logged):

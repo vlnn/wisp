@@ -158,14 +158,26 @@ def trash_command(args: list[str], ctx: Context) -> int:
     return say(text)
 
 
+def copy_command(args: list[str], ctx: Context) -> int:
+    text = " ".join(args)
+    macos.copy(text)
+    return say(text)
+
+
+def open_command(args: list[str], ctx: Context) -> int:
+    macos.open(Path(args[0]))
+    return say(args[0])
+
+
+def act_command(args: list[str], ctx: Context) -> int:
+    if not args or args[0] not in ACTIONS:
+        raise Usage(f"act needs one of {', '.join(ACTIONS)}")
+    return ACTIONS[args[0]](args[1:], ctx)
+
+
 def menu_command(args: list[str], ctx: Context) -> int:
     record = ctx.record(args[0])
     return emit(present.menu_rows(record, args[1] if len(args) > 1 else ""))
-
-
-def decide_filter_command(args: list[str], ctx: Context) -> int:
-    record = ctx.record(args[0])
-    return emit([present.decide_row(record, args[1] if len(args) > 1 else "")])
 
 
 def decide_command(args: list[str], ctx: Context) -> int:
@@ -253,14 +265,22 @@ def emit_view(shown: dict) -> int:
     return 0
 
 
-COMMANDS: dict[str, Callable[[list[str], Context], int]] = {
-    "filter": filter_command,
+Command = Callable[[list[str], Context], int]
+
+ACTIONS: dict[str, Command] = {
     "keep": keep_command,
+    "mark": mark_command,
+    "open": open_command,
+    "copy": copy_command,
+    "trash": trash_command,
+}
+
+COMMANDS: dict[str, Command] = {
+    "filter": filter_command,
+    **ACTIONS,
+    "act": act_command,
     "rename-filter": rename_filter_command,
     "rename": rename_command,
-    "trash": trash_command,
-    "mark": mark_command,
-    "decide-filter": decide_filter_command,
     "decide": decide_command,
     "menu": menu_command,
     "ask-filter": ask_filter_command,

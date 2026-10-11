@@ -19,7 +19,7 @@ folder needs no index, no database and no sync of its own.
 | Key | On a record |
 | --- | --- |
 | ↩ | a menu of what this record can do, the usual thing on the first row: *Open* for a log, *Finish* for a task, *Decide* for a question, *Reopen* for a done or decided one, then Open, Rename, Copy, Trash. ↩ again runs it; type to narrow. On a question what you type is the answer: the first row reads *Decide "question \| answer"* and ↩ settles it, while the other rows stay put |
-| ⇧↩ | copy the text; on a task, finish it; on a question, decide it (and on a settled one, reopen it) |
+| ⇧↩ | copy the text; on a task, finish it; on a question, open the answer field (and on a settled one, reopen it) |
 | ⌥↩ | move the file to the Trash (Finder's, with Put Back) |
 | ⌘↩ | rename: the text is prefilled, edit it, ↩ |
 | ⌘C | copy the text |
@@ -51,7 +51,7 @@ time and its name, and the time it was marked is the file's modification time, s
 knows both when it was written and when it was finished. ⇧↩ again reopens it. A question is settled with
 its resolution: ↩ on it, type the answer, ↩ again, and `? why is the sky green` turns into
 `= why is the sky green | it is blue` in place, so the question and what came of it stay on
-one line (⇧↩ opens the same answer field on its own). *Reopen* makes it a question again without losing the answer, and a second *Decide*
+one line (⇧↩ opens the same answer field). *Reopen* makes it a question again without losing the answer, and a second *Decide*
 appends another ` | …`. A decision can also be logged directly with `=`. `.` and `*` need a space after them, so
 `.gitignore moved` and `*args again` stay plain logs; `?`, `!` and `=` never start a word, so
 `?will it work` is the same question as `? will it work`. Words without a sigil
@@ -151,10 +151,11 @@ oracle_url=http://127.0.0.1:8080 uv run wisp ask "today summary"
 `wisp check` prints the resolved settings: the log folder and how many records it holds, the data
 and jobs folders, and whether the model server answers (or what the Apple helper still needs).
 
-`filter`, `ask-filter`, `rename-filter`, `decide-filter`, `menu` and `view` print Alfred's JSON, `mark` and `decide` print the new line, `ask` prints the answer (`ask --keep` and
+`filter`, `ask-filter`, `rename-filter`, `menu` and `view` print Alfred's JSON, `mark` and `decide` print the new line, `ask` prints the answer (`ask --keep` and
 `keep-answer "<question>" "<answer>"` save it and print the file's path), the rest print the text
-they acted on. `wisp ask --job <folder> "…"` is what the text view runs in the background: progress
-goes to that folder instead of notifications.
+they acted on. `wisp act <action> <arg>` is what Alfred's ↩ runs: `keep`, `mark`, `open`, `copy` or `trash`,
+each also a subcommand of its own. `wisp ask --job <folder> "…"` is what the text view runs in the
+background: progress goes to that folder instead of notifications.
 
 ## Development
 

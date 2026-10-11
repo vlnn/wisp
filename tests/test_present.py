@@ -87,8 +87,8 @@ def test_question_row_decides_on_shift_and_a_decision_reopens():
     assert question["mods"]["shift"] == {
         "arg": "",
         "subtitle": "Decide",
-        "variables": {"action": "decide", "path": "/log/x.md"},
-    }, "⇧↩ on a question opens the decide field for the file, empty"
+        "variables": {"action": "menu", "path": "/log/x.md"},
+    }, "⇧↩ on a question opens the menu, which is the answer field, empty"
     decision = present.record_row(a_record("= ship friday", asked, NOW), NOW)
     assert decision["subtitle"] == "decided 15:00 today · yesterday 09:12", (
         "a decision shows when it was made and when the question was raised"
@@ -99,9 +99,11 @@ def test_question_row_decides_on_shift_and_a_decision_reopens():
 @pytest.mark.parametrize("text", ["plain log", "! keys in 1password"])
 def test_other_rows_still_copy_on_shift(text):
     row = present.record_row(a_record(text, NOW), NOW)
-    assert row["mods"]["shift"] == {"arg": text, "subtitle": "Copy to clipboard"}, (
-        "⇧↩ keeps copying on anything that is not a task"
-    )
+    assert row["mods"]["shift"] == {
+        "arg": text,
+        "subtitle": "Copy to clipboard",
+        "variables": {"action": "copy"},
+    }, "⇧↩ keeps copying on anything that is not a task"
 
 
 @pytest.mark.parametrize(

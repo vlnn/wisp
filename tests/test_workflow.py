@@ -69,9 +69,21 @@ def test_every_script_runs_a_known_command(plist):
 
 
 def test_every_emitted_action_has_a_branch(plist):
-    branches = match_strings(plist).union(*(case_labels(s) for s in scripts(plist)))
+    branches = match_strings(plist) | set(cli.ACTIONS)
     for action in emitted_actions():
-        assert action in branches, f"present emits action {action!r} but the plist never routes it"
+        assert action in branches, f"present emits action {action!r} but nothing routes it"
+
+
+def test_every_act_action_is_emitted():
+    for action in cli.ACTIONS:
+        assert action in emitted_actions(), f"act handles {action!r} but nothing emits it"
+
+
+def test_the_plist_routes_only_to_alfred_objects(plist, objects):
+    for action in match_strings(plist):
+        assert action not in cli.ACTIONS, f"{action!r} is act's, the plist should not branch on it"
+    for script in scripts(plist):
+        assert not case_labels(script), "dispatch lives in wisp act, not in a bash case"
 
 
 def test_every_branch_is_an_emitted_action(plist):

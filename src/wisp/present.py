@@ -98,13 +98,13 @@ def shift_mod(record: Record) -> dict:
     if record.kind in SETTLE:
         arg, variables = settling(record)
         return {"arg": arg, "subtitle": SETTLE[record.kind], "variables": variables}
-    return {"arg": record.text, "subtitle": "Copy to clipboard"}
+    return {"arg": record.text, "subtitle": "Copy to clipboard", "variables": {"action": "copy"}}
 
 
 def settling(record: Record) -> tuple[str, dict]:
     path = str(record.path)
     if record.kind is Kind.QUESTION:
-        return "", {"action": "decide", "path": path}
+        return "", {"action": "menu", "path": path}
     return path, {"action": "mark"}
 
 

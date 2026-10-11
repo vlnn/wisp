@@ -17,20 +17,20 @@ Eight small modules, each with one job, so a feature lands in one of them:
 
 Alfred wiring is `workflow/info.plist`: two script filters, `l` for the log and `ask` for the model,
 each with a hotkey object; `ask` lists the same log rows under its own, so it has the same four
-connections as `l`. Both ↩ into one conditional on the
-`action` variable: `ask` goes to the Text View (script file `view` at the bundle root), `menu` to a
-second, keywordless script filter (`menu`) that lists what the record can do, anything else (`keep`,
-and `open` from an answer row) to the ↩ script. The menu's rows carry the same `action` values the
-modifier keys use, and its ↩ passes a second conditional that sends `rename`, `copy` and `trash` to
-the objects those keys reach, `decide` straight to the `decide` script, and everything else (`mark`, `open`) to the ↩ script.
-On a question the menu is the answer field: what is typed is not a filter but the resolution, the
-first row is `present.decide_row` with it, and Open, Rename, Copy and Trash stay listed underneath. From the list,
-⇧↩ passes a conditional too (`mark` to the ↩ script, `decide` to a keywordless script filter that
-takes the resolution and runs `decide` with the `path` variable, else a clipboard object), ⌥↩ goes to `trash`,
-⌘↩ to a third, keywordless script filter that prefills the text and runs `rename` with the `path`
-variable. A new action is a line in `present.menu`, a `variables.action` value, and a case in the
-↩ script or a branch in the menu's conditional; a new shortcut is a connection from the first
-filter. Esc in the menu closes Alfred rather than going back to the list; ⌃↩ is not used because
+connections as `l`. The plist only routes to Alfred's own objects; every side effect is `wisp act "$action" "$1"`,
+which dispatches through `cli.ACTIONS` (`keep`, `mark`, `open`, `copy`, `trash`). Both ↩ into one
+conditional on the `action` variable: `ask` goes to the Text View (script file `view` at the bundle
+root), `menu` to a keywordless script filter (`menu`) that lists what the record can do, else `act`.
+The menu's rows carry the same `action` values the modifier keys use, and its ↩ passes a second
+conditional that sends `rename` to the rename filter, `decide` straight to the `decide` script, else
+`act`. On a question the menu is the answer field: what is typed is not a filter but the resolution,
+the first row is `present.decide_row` with it, and Open, Rename, Copy and Trash stay listed
+underneath. From the list, ⇧↩ passes a conditional too (`menu` for a question, since the menu is its
+answer field, else `act` for `mark` or `copy`), ⌥↩ goes straight to `act` (`trash`), ⌘↩ to a
+keywordless script filter that prefills the text and runs `rename` with the `path` variable. A new
+action is a line in `present.menu`, a `variables.action` value and an entry in `cli.ACTIONS`; the
+plist changes only when the action needs an Alfred object. A new shortcut is a connection from the
+first filter. Esc in the menu closes Alfred rather than going back to the list; ⌃↩ is not used because
 Alfred reserves it for the default fallback search.
 
 The Text View runs `wisp view <question>` with no `job` variable, which starts `wisp ask --job

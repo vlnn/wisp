@@ -32,7 +32,7 @@
 			</dict>
 			<dict>
 				<key>destinationuid</key>
-				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C04</string>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C02</string>
 				<key>modifiers</key>
 				<integer>524288</integer>
 				<key>modifiersubtext</key>
@@ -118,31 +118,19 @@
 		<array>
 			<dict>
 				<key>destinationuid</key>
-				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C02</string>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C0E</string>
 				<key>modifiers</key>
 				<integer>0</integer>
 				<key>modifiersubtext</key>
 				<string></string>
+				<key>vitoclose</key>
+				<false/>
 				<key>sourceoutputuid</key>
 				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C0D</string>
-				<key>vitoclose</key>
-				<false/>
 			</dict>
 			<dict>
 				<key>destinationuid</key>
-				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C16</string>
-				<key>modifiers</key>
-				<integer>0</integer>
-				<key>modifiersubtext</key>
-				<string></string>
-				<key>sourceoutputuid</key>
-				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C18</string>
-				<key>vitoclose</key>
-				<false/>
-			</dict>
-			<dict>
-				<key>destinationuid</key>
-				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C03</string>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C02</string>
 				<key>modifiers</key>
 				<integer>0</integer>
 				<key>modifiersubtext</key>
@@ -175,30 +163,6 @@
 				<string></string>
 				<key>sourceoutputuid</key>
 				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C10</string>
-				<key>vitoclose</key>
-				<false/>
-			</dict>
-			<dict>
-				<key>destinationuid</key>
-				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C03</string>
-				<key>modifiers</key>
-				<integer>0</integer>
-				<key>modifiersubtext</key>
-				<string></string>
-				<key>sourceoutputuid</key>
-				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C11</string>
-				<key>vitoclose</key>
-				<false/>
-			</dict>
-			<dict>
-				<key>destinationuid</key>
-				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C04</string>
-				<key>modifiers</key>
-				<integer>0</integer>
-				<key>modifiersubtext</key>
-				<string></string>
-				<key>sourceoutputuid</key>
-				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C12</string>
 				<key>vitoclose</key>
 				<false/>
 			</dict>
@@ -262,7 +226,7 @@
 			</dict>
 			<dict>
 				<key>destinationuid</key>
-				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C04</string>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C02</string>
 				<key>modifiers</key>
 				<integer>524288</integer>
 				<key>modifiersubtext</key>
@@ -277,19 +241,6 @@
 				<integer>1048576</integer>
 				<key>modifiersubtext</key>
 				<string>Rename</string>
-				<key>vitoclose</key>
-				<false/>
-			</dict>
-		</array>
-		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C16</key>
-		<array>
-			<dict>
-				<key>destinationuid</key>
-				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C17</string>
-				<key>modifiers</key>
-				<integer>0</integer>
-				<key>modifiersubtext</key>
-				<string></string>
 				<key>vitoclose</key>
 				<false/>
 			</dict>
@@ -442,55 +393,6 @@
 		<dict>
 			<key>config</key>
 			<dict>
-				<key>alfredfiltersresults</key>
-				<false/>
-				<key>alfredfiltersresultsmatchmode</key>
-				<integer>0</integer>
-				<key>argumenttreatemptyqueryasnil</key>
-				<false/>
-				<key>argumenttrimmode</key>
-				<integer>0</integer>
-				<key>argumenttype</key>
-				<integer>1</integer>
-				<key>escaping</key>
-				<integer>102</integer>
-				<key>keyword</key>
-				<string></string>
-				<key>queuedelaycustom</key>
-				<integer>1</integer>
-				<key>queuedelayimmediatelyinitially</key>
-				<true/>
-				<key>queuedelaymode</key>
-				<integer>0</integer>
-				<key>queuemode</key>
-				<integer>1</integer>
-				<key>runningsubtext</key>
-				<string></string>
-				<key>script</key>
-				<string>/usr/bin/python3 -m wisp decide-filter "$path" "$1"</string>
-				<key>scriptargtype</key>
-				<integer>1</integer>
-				<key>scriptfile</key>
-				<string></string>
-				<key>subtext</key>
-				<string>Type the resolution and press ↩</string>
-				<key>title</key>
-				<string>Decide</string>
-				<key>type</key>
-				<integer>0</integer>
-				<key>withspace</key>
-				<true/>
-			</dict>
-			<key>type</key>
-			<string>alfred.workflow.input.scriptfilter</string>
-			<key>uid</key>
-			<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C16</string>
-			<key>version</key>
-			<integer>3</integer>
-		</dict>
-		<dict>
-			<key>config</key>
-			<dict>
 				<key>concurrently</key>
 				<false/>
 				<key>escaping</key>
@@ -568,11 +470,7 @@
 				<key>escaping</key>
 				<integer>102</integer>
 				<key>script</key>
-				<string>case "$action" in
-  keep) /usr/bin/python3 -m wisp keep "$1" ;;
-  mark) /usr/bin/python3 -m wisp mark "$1" ;;
-  open) open "$1" ;;
-esac
+				<string>/usr/bin/python3 -m wisp act "$action" "$1"
 </string>
 				<key>scriptargtype</key>
 				<integer>1</integer>
@@ -606,29 +504,6 @@ esac
 			<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C03</string>
 			<key>version</key>
 			<integer>3</integer>
-		</dict>
-		<dict>
-			<key>config</key>
-			<dict>
-				<key>concurrently</key>
-				<false/>
-				<key>escaping</key>
-				<integer>102</integer>
-				<key>script</key>
-				<string>/usr/bin/python3 -m wisp trash "$1"</string>
-				<key>scriptargtype</key>
-				<integer>1</integer>
-				<key>scriptfile</key>
-				<string></string>
-				<key>type</key>
-				<integer>0</integer>
-			</dict>
-			<key>type</key>
-			<string>alfred.workflow.action.script</string>
-			<key>uid</key>
-			<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C04</string>
-			<key>version</key>
-			<integer>2</integer>
 		</dict>
 		<dict>
 			<key>config</key>
@@ -737,7 +612,7 @@ esac
 					</dict>
 				</array>
 				<key>elselabel</key>
-				<string>else</string>
+				<string>act</string>
 				<key>hideelse</key>
 				<false/>
 			</dict>
@@ -761,29 +636,15 @@ esac
 						<key>matchmode</key>
 						<integer>0</integer>
 						<key>matchstring</key>
-						<string>mark</string>
+						<string>menu</string>
 						<key>outputlabel</key>
-						<string>mark</string>
+						<string>menu</string>
 						<key>uid</key>
 						<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C0D</string>
 					</dict>
-					<dict>
-						<key>inputstring</key>
-						<string>{var:action}</string>
-						<key>matchcasesensitive</key>
-						<false/>
-						<key>matchmode</key>
-						<integer>0</integer>
-						<key>matchstring</key>
-						<string>decide</string>
-						<key>outputlabel</key>
-						<string>decide</string>
-						<key>uid</key>
-						<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C18</string>
-					</dict>
 				</array>
 				<key>elselabel</key>
-				<string>copy</string>
+				<string>act</string>
 				<key>hideelse</key>
 				<false/>
 			</dict>
@@ -870,34 +731,6 @@ esac
 						<key>matchmode</key>
 						<integer>0</integer>
 						<key>matchstring</key>
-						<string>copy</string>
-						<key>outputlabel</key>
-						<string>copy</string>
-						<key>uid</key>
-						<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C11</string>
-					</dict>
-					<dict>
-						<key>inputstring</key>
-						<string>{var:action}</string>
-						<key>matchcasesensitive</key>
-						<false/>
-						<key>matchmode</key>
-						<integer>0</integer>
-						<key>matchstring</key>
-						<string>trash</string>
-						<key>outputlabel</key>
-						<string>trash</string>
-						<key>uid</key>
-						<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C12</string>
-					</dict>
-					<dict>
-						<key>inputstring</key>
-						<string>{var:action}</string>
-						<key>matchcasesensitive</key>
-						<false/>
-						<key>matchmode</key>
-						<integer>0</integer>
-						<key>matchstring</key>
 						<string>decide</string>
 						<key>outputlabel</key>
 						<string>decide</string>
@@ -906,7 +739,7 @@ esac
 					</dict>
 				</array>
 				<key>elselabel</key>
-				<string>script</string>
+				<string>act</string>
 				<key>hideelse</key>
 				<false/>
 			</dict>
@@ -975,7 +808,7 @@ esac
 		</dict>
 	</array>
 	<key>readme</key>
-	<string>Type `l` followed by anything. The first row logs it; the rows below are the records that match, newest first. ↩ opens a record's file, ⇧↩ copies its text, ⌥↩ moves it to the Trash, ⌘↩ renames it. The hotkey object opens the same list; set its combination (HYPER+L is a good one) by double-clicking it. `l ? &lt;question&gt;` asks a local model about the log once Model server is set or Apple Intelligence is ticked; the answer streams into a Text View, ↩ there copies it, ⌥↩ keeps it as a file and opens it.
+	<string>Type `l` followed by anything. The first row logs it; the rows below are the records that match, newest first. ↩ on a record opens a menu of what it can do, ⇧↩ copies its text (finishes a task, decides a question), ⌥↩ moves it to the Trash, ⌘↩ renames it. A line starting with `. ` is a task, `! ` a note, `? ` a question, `= ` a decision. `ask &lt;question&gt;` asks a local model about the log once Model server is set or Apple Intelligence is ticked; the answer streams into a Text View, ↩ there copies it, ⌥↩ keeps it as a file and opens it. The hotkey objects open `l` and `ask`; set their combinations by double-clicking them.
 
 Records are markdown files in the Log folder, one per line; their creation time is the file's creation time.</string>
 	<key>uidata</key>
@@ -1000,13 +833,6 @@ Records are markdown files in the Log folder, one per line; their creation time 
 			<integer>330</integer>
 			<key>ypos</key>
 			<integer>170</integer>
-		</dict>
-		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C04</key>
-		<dict>
-			<key>xpos</key>
-			<integer>330</integer>
-			<key>ypos</key>
-			<integer>290</integer>
 		</dict>
 		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C05</key>
 		<dict>
@@ -1084,13 +910,6 @@ Records are markdown files in the Log folder, one per line; their creation time 
 			<integer>40</integer>
 			<key>ypos</key>
 			<integer>10</integer>
-		</dict>
-		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C16</key>
-		<dict>
-			<key>xpos</key>
-			<integer>330</integer>
-			<key>ypos</key>
-			<integer>650</integer>
 		</dict>
 		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C17</key>
 		<dict>
