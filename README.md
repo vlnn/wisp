@@ -102,8 +102,7 @@ ask                          the whole log, newest first
 Under the **Ask** row the list is exactly what `l` would show for the same words, same dots and
 same keys, so you can see what the model has to go on before you ask.
 
-↩ on **Ask** opens a text view inside Alfred and the answer streams into it as the model writes
-(the Apple model answers in one go). In the view, ↩ copies the answer and ⌥↩ keeps it as a file
+↩ on **Ask** opens a text view inside Alfred and the answer streams into it as the model writes. In the view, ↩ copies the answer and ⌥↩ keeps it as a file
 and opens it; Esc closes the view and the answer is gone unless you kept it. Kept answers are
 markdown files (question on the first line, answer below) in Alfred's data folder for the
 workflow, opened as they are kept; they are not listed in Alfred.

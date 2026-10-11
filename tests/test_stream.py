@@ -85,12 +85,13 @@ def test_llama_failures_are_model_errors(mocker, error, message):
         SERVER.respond(MESSAGES, None)
 
 
-def test_apple_asks_the_helper(mocker):
+def test_apple_asks_the_helper_and_streams(mocker):
     respond = mocker.patch("wisp.oracle.apple.respond", return_value="done")
-    assert oracle.Apple(Path("/data")).respond(MESSAGES, None) == "done", (
+    seen = []
+    assert oracle.Apple(Path("/data")).respond(MESSAGES, seen.append) == "done", (
         "the Apple answer is what the helper returned"
     )
-    respond.assert_called_once_with(MESSAGES, Path("/data"))
+    respond.assert_called_once_with(MESSAGES, Path("/data"), seen.append)
 
 
 def test_apple_failures_are_model_errors(mocker):

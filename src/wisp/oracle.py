@@ -82,7 +82,7 @@ class Apple:
 
     def respond(self, messages: list[dict], on_text: OnText | None) -> str:
         try:
-            return apple.respond(messages, self.data)
+            return visible(apple.respond(messages, self.data, on_text))
         except apple.AppleError as error:
             raise ModelError(str(error)) from None
 

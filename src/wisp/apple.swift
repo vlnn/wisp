@@ -18,14 +18,20 @@ struct Main {
         }
         let session = LanguageModelSession(model: model, instructions: instructions)
         do {
-            let response = try await session.respond(to: prompt)
-            print(response.content)
+            for try await snapshot in session.streamResponse(to: prompt) {
+                emit(snapshot.content)
+            }
         } catch {
             fail("\(error)", 1)
         }
         #else
         fail("This Mac's SDK has no FoundationModels framework; macOS 26 is needed", 2)
         #endif
+    }
+
+    static func emit(_ text: String) {
+        guard let line = try? JSONEncoder().encode(text) else { return }
+        FileHandle.standardOutput.write(line + Data("\n".utf8))
     }
 
     static func fail(_ message: String, _ code: Int32) -> Never {

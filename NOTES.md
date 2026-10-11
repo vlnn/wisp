@@ -50,7 +50,8 @@ Both carry a `budget` and answer `respond(messages, on_text)`, and every failure
 
 `apple.swift` compiles with `swiftc -O -parse-as-library` into `<data>/bin/wisp-apple` the first time
 it is needed, and again whenever the shipped source is newer than the binary. It takes the system
-instructions as its argument and the prompt on stdin, prints the answer, and exits 2 with a message
+instructions as its argument and the prompt on stdin, prints each snapshot of the answer as one JSON
+string per line (`apple.snapshots` reads them, the last is the answer), and exits 2 with a message
 when Apple Intelligence is not available. Nothing in the suite runs it; the shell contract is what
 the tests pin down.
 
