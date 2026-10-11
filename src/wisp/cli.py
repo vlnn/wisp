@@ -6,6 +6,7 @@ import subprocess
 import sys
 import urllib.error
 from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Callable
@@ -16,6 +17,41 @@ DEFAULT_FOLDER = "~/log"
 DRY_RUN = "--dry-run"
 JOB = "--job"
 KEEP = "--keep"
+END_OF_FLAGS = "--"
+
+
+class Usage(Exception):
+    pass
+
+
+@dataclass(frozen=True)
+class AskArgs:
+    question: str
+    dry_run: bool = False
+    keep: bool = False
+    job: str | None = None
+
+    @classmethod
+    def parse(cls, argv: list[str]) -> AskArgs:
+        flags: dict = {}
+        words: list[str] = []
+        rest = list(argv)
+        while rest:
+            arg = rest.pop(0)
+            if arg == END_OF_FLAGS:
+                words.extend(rest)
+                break
+            if arg == DRY_RUN:
+                flags["dry_run"] = True
+            elif arg == KEEP:
+                flags["keep"] = True
+            elif arg == JOB:
+                if not rest:
+                    raise Usage(f"{JOB} needs a folder")
+                flags["job"] = rest.pop(0)
+            else:
+                words.append(arg)
+        return cls(" ".join(words).strip(), **flags)
 
 
 class Context:
@@ -126,10 +162,9 @@ def mark_command(args: list[str], ctx: Context) -> int:
 
 
 def ask_command(args: list[str], ctx: Context) -> int:
-    dry_run = DRY_RUN in args
-    keep = KEEP in args
-    job = view.Job(args[args.index(JOB) + 1]) if JOB in args else None
-    question = " ".join(words_after_flags(args)).strip()
+    asked = AskArgs.parse(args)
+    dry_run, keep, question = asked.dry_run, asked.keep, asked.question
+    job = view.Job(asked.job) if asked.job else None
     if not question:
         return 1
     server = ctx.server()
@@ -169,20 +204,6 @@ def keep_answer_command(args: list[str], ctx: Context) -> int:
     if len(args) < 2 or not args[0].strip() or not args[1].strip():
         return 1
     return say(str(keep_answer(ctx, args[0], args[1])))
-
-
-def words_after_flags(args: list[str]) -> list[str]:
-    words = []
-    skip = False
-    for arg in args:
-        if skip or arg in (DRY_RUN, KEEP):
-            skip = False
-            continue
-        if arg == JOB:
-            skip = True
-            continue
-        words.append(arg)
-    return words
 
 
 def report(message: str, job: view.Job | None) -> int:
@@ -254,6 +275,9 @@ def run(
         return COMMANDS[argv[0]](argv[1:], ctx)
     except records.Blank:
         return 1
+    except Usage as error:
+        print(f"{USAGE}\n{error}", file=sys.stderr)
+        return 2
 
 
 def main() -> None:

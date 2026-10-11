@@ -373,6 +373,26 @@ def test_ask_with_blank_question(run, served, sample, notify):
     assert code == 1, "nothing to ask"
 
 
+def test_ask_with_a_bare_job_flag_fails_cleanly(env, created, changed, capsys):
+    code = cli.run(["ask", "today summary", "--job"], env, NOW, created, changed)
+    assert code == 2, "a flag without its value is a usage error, not a traceback"
+    assert "--job" in capsys.readouterr().err, "and the message names the flag"
+
+
+@pytest.mark.parametrize(
+    "argv, expected",
+    [
+        (["today"], cli.AskArgs(question="today")),
+        (["--dry-run", "today", "summary"], cli.AskArgs(question="today summary", dry_run=True)),
+        (["today", "--keep"], cli.AskArgs(question="today", keep=True)),
+        (["--job", "/j", "x"], cli.AskArgs(question="x", job="/j")),
+        (["--", "--keep", "it"], cli.AskArgs(question="--keep it")),
+    ],
+)
+def test_ask_args(argv, expected):
+    assert cli.AskArgs.parse(argv) == expected, f"{argv} should parse as {expected}"
+
+
 def test_question_row_counts_only_the_lines_that_fit(run, env, sample):
     env["oracle_apple"] = "1"
     _, out = run("ask-filter", "today summary")
