@@ -59,7 +59,8 @@ The sigils are deliberately the bullet journal's: `.` a task, `*` crossed out, `
 remembering, with `?` and `=` for the thing a work log is worst at answering months later, why.
 Each kind has its own dot in the list: green for a log, terracotta for a note, and for the kinds
 that get settled a ring while they are open and a filled dot once they are: ochre for a task,
-blue for a question. The model's answers under `ask` are plum. The colours are the top of `workflow/icons.py`;
+blue for a question. Under `ask`, the *Ask* row wears the open question's ring and kept
+answers the decision's dot. The colours are the top of `workflow/icons.py`;
 `uv run python workflow/icons.py` redraws them.
 
 ## Install
