@@ -67,13 +67,18 @@ def test_budget_for(server, expected):
 def test_answer_streams_from_a_server(mocker):
     stream = mocker.patch("wisp.oracle.stream", return_value="done")
     seen = []
-    assert oracle.answer(SERVER, [{"role": "user", "content": "q"}], seen.append, "/data") == "done"
+    answer = oracle.answer(SERVER, [{"role": "user", "content": "q"}], seen.append, "/data")
+    assert answer == "done", "a server answer is what stream returned"
     body = stream.call_args.args[1]
-    assert body["model"] == "oracle" and body["messages"] == [{"role": "user", "content": "q"}]
+    assert body["model"] == "oracle" and body["messages"] == [{"role": "user", "content": "q"}], (
+        "the payload names the model and carries the messages"
+    )
 
 
 def test_answer_asks_apple(mocker):
     respond = mocker.patch("wisp.oracle.apple.respond", return_value="done")
     messages = [{"role": "system", "content": "s"}, {"role": "user", "content": "q"}]
-    assert oracle.answer(oracle.APPLE, messages, None, "/data") == "done"
+    assert oracle.answer(oracle.APPLE, messages, None, "/data") == "done", (
+        "the Apple answer is what respond returned"
+    )
     respond.assert_called_once_with(messages, "/data")

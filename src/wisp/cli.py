@@ -5,11 +5,10 @@ import os
 import subprocess
 import sys
 import urllib.error
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Callable
 
 from wisp import apple, macos, oracle, present, records, view
 
@@ -59,8 +58,8 @@ class Context:
         self,
         env: Mapping[str, str],
         now: datetime,
-        created: records.Created,
-        changed: records.Changed,
+        created: records.Clock,
+        changed: records.Clock,
     ):
         self.env = env
         self.now = now
@@ -262,8 +261,8 @@ def run(
     argv: list[str],
     env: Mapping[str, str],
     now: datetime | None = None,
-    created: records.Created | None = None,
-    changed: records.Changed | None = None,
+    created: records.Clock | None = None,
+    changed: records.Clock | None = None,
 ) -> int:
     if not argv or argv[0] not in COMMANDS:
         print(USAGE, file=sys.stderr)

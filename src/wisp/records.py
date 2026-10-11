@@ -1,20 +1,18 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from itertools import count
 from pathlib import Path
-from typing import Callable
 
 EXTENSION = ".md"
 SLUG_LIMIT = 60
 FALLBACK_SLUG = "note"
 
-Created = Callable[[Path], datetime]
-Changed = Callable[[Path], datetime]
+Clock = Callable[[Path], datetime]
 
 
 class Kind(Enum):
@@ -80,7 +78,7 @@ def modified_time(path: Path) -> datetime:
 
 
 def read_folder(
-    folder: Path, created: Created = birth_time, changed: Changed = modified_time
+    folder: Path, created: Clock = birth_time, changed: Clock = modified_time
 ) -> list[Record]:
     if not folder.is_dir():
         return []
@@ -97,7 +95,7 @@ def record_files(folder: Path) -> Iterable[Path]:
     )
 
 
-def read_record(path: Path, created: Created, changed: Changed) -> Record:
+def read_record(path: Path, created: Clock, changed: Clock) -> Record:
     text = first_line(path.read_text(encoding="utf-8"))
     return Record(path, text, created(path), changed(path))
 

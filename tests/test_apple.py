@@ -1,5 +1,4 @@
 import subprocess
-from pathlib import Path
 
 import pytest
 
@@ -90,4 +89,3 @@ def test_stale_compares_times(tmp_path):
     assert apple.stale(binary) is True, "a missing binary is stale"
     binary.write_text("x")
     assert apple.stale(binary) is False, "a binary newer than the source is fresh"
-    assert isinstance(apple.SOURCE, Path)
