@@ -35,7 +35,9 @@ Alfred reserves it for the default fallback search.
 
 The Text View runs `wisp view <question>` with no `job` variable, which starts `wisp ask --job
 <folder>` detached and returns a rerun of 0.2 s; each rerun reads the job folder (`partial.md`,
-`done`, `error`) and renders it. The job folder is under Alfred's cache folder, so Alfred may clear
+`done`, `error`) and renders it. The folder is stamped (`started`) before the process is launched;
+a job with no stamp, or with neither `done` nor `error` after `view.GIVE_UP` seconds, is shown as a
+failure rather than polled forever. The job folder is under Alfred's cache folder, so Alfred may clear
 it; nothing is saved until ⌥↩ in the finished view runs `wisp keep-answer "$question" "$1"` (the
 question travels back as a variable, the answer is the view's output) and opens the file it printed. If the view ever comes up empty on ↩, check the
 conditional in the editor reads *action is equal to ask*: that match mode is the one number in the

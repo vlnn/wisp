@@ -208,9 +208,9 @@ def view_command(args: list[str], ctx: Context) -> int:
         return emit_view(view.failed(present.NO_SERVER))
     running = ctx.env.get("job")
     if running:
-        return emit_view(view.showing(question, view.Job(running)))
+        return emit_view(view.showing(question, view.Job(running), ctx.now))
     job = view.Job(ctx.jobs() / view.job_id())
-    job.folder.mkdir(parents=True, exist_ok=True)
+    job.start(ctx.now)
     subprocess.Popen(
         [sys.executable, "-m", "wisp", "ask", JOB, str(job.folder), question],
         env=dict(ctx.env),

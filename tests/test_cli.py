@@ -438,11 +438,13 @@ def test_view_starts_a_job_in_the_background(run, served, sample, mocker):
         "the job is wisp ask with the job folder"
     )
     assert popen.call_args.kwargs["start_new_session"] is True, "and it outlives the view script"
+    assert view.Job(job).started() == NOW, "the job is stamped before the process starts"
 
 
 def test_view_polls_a_running_job(run, served, sample, mocker, tmp_path):
     popen = mocker.patch("wisp.cli.subprocess.Popen")
     job = view.Job(tmp_path / "jobs" / "j1")
+    job.start(NOW)
     job.progress("You rea")
     served["job"] = str(job.folder)
     _, out = run("view", "today summary")

@@ -4,10 +4,13 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+from wisp import apple, oracle
 from wisp.oracle import visible
 
 RERUN = 0.2
-PARTIAL, DONE, ERROR = "partial.md", "done", "error"
+GIVE_UP = max(oracle.TIMEOUT, apple.TIMEOUT) + 30
+PARTIAL, DONE, ERROR, STARTED = "partial.md", "done", "error", "started"
+NO_ANSWER = f"The model gave no answer in {GIVE_UP} seconds"
 
 
 class Job:
@@ -22,6 +25,17 @@ class Job:
 
     def error(self) -> str | None:
         return self.read(ERROR) or None
+
+    def start(self, now: datetime) -> None:
+        self.write(STARTED, now.isoformat())
+
+    def started(self) -> datetime | None:
+        stamp = self.read(STARTED)
+        return datetime.fromisoformat(stamp) if stamp else None
+
+    def stale(self, now: datetime) -> bool:
+        started = self.started()
+        return started is None or (now - started).total_seconds() > GIVE_UP
 
     def progress(self, text: str) -> None:
         self.write(PARTIAL, text)
@@ -58,10 +72,10 @@ def starting(question: str, job: Job, lines: int) -> dict:
     }
 
 
-def showing(question: str, job: Job) -> dict:
+def showing(question: str, job: Job, now: datetime) -> dict:
     error = job.error()
     if error:
-        return {"response": f"**{error}**", "variables": {"job": ""}}
+        return failed(error)
     text = visible(job.partial())
     if job.done():
         return {
@@ -70,6 +84,8 @@ def showing(question: str, job: Job) -> dict:
             "variables": {"job": "", "question": question},
             "behaviour": {"response": "replace", "scroll": "end"},
         }
+    if job.stale(now):
+        return failed(NO_ANSWER)
     return {
         "rerun": RERUN,
         "variables": {"job": str(job.folder)},
