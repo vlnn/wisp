@@ -1,6 +1,5 @@
 import json
 import urllib.error
-from datetime import timedelta
 from pathlib import Path
 
 import pytest
@@ -18,16 +17,6 @@ def env(folder, tmp_path):
 def served(env):
     env["oracle_url"] = "http://127.0.0.1:8080"
     return env
-
-
-@pytest.fixture
-def answered(env, stamps):
-    def remember(question, answer, minutes_ago):
-        path = oracle.remember(Path(env["alfred_workflow_data"]) / "answers", question, answer)
-        stamps[path.name] = NOW - timedelta(minutes=minutes_ago)
-        return path
-
-    return remember
 
 
 @pytest.fixture
@@ -251,53 +240,30 @@ def test_question_without_a_server_says_what_to_set(run, sample):
     assert row["valid"] is False, "and it cannot be actioned"
 
 
-def test_question_offers_to_ask_then_lists_past_answers(run, served, sample, answered):
-    answered("today summary", "Docs, mostly.", 60)
-    answered("what about api", "Made v1.", 30)
-    _, out = run("ask-filter", "today summary")
-    assert titles(out) == ['Ask "today summary"', "today summary"], (
-        "the Ask row first, then earlier answers whose question matches, then matching log lines"
+def test_question_offers_to_ask_then_lists_the_log(run, served, sample):
+    _, out = run("ask-filter", "api")
+    assert titles(out) == ['Ask "api"', "testing api manually", "making API v1"], (
+        "the Ask row first, then the log lines the words match, as `l api` lists them"
     )
     ask = rows(out)[0]
     assert ask["subtitle"] == "↩ asks the model about 5 lines"
-    assert ask["arg"] == "today summary" and ask["variables"] == {"action": "ask"}, (
+    assert ask["arg"] == "api" and ask["variables"] == {"action": "ask"}, (
         "↩ should ask with the bare question"
     )
 
 
-def test_bare_question_mark_lists_every_answer_newest_first(run, served, answered, sample):
-    answered("today summary", "Docs, mostly.", 60)
-    answered("what about api", "Made v1.", 30)
+def test_bare_ask_lists_the_whole_log_newest_first(run, served, sample):
     _, out = run("ask-filter", "")
-    assert titles(out) == ["what about api", "today summary", *reversed(LINES)], (
-        "all answers newest first, then the whole log as `l` shows it, no Ask row"
-    )
+    assert titles(out) == list(reversed(LINES)), "the whole log as `l` shows it, no Ask row"
 
 
-def test_ask_filter_lists_the_log_lines_the_words_match(run, served, logged):
+def test_ask_rows_are_the_log_rows(run, served, logged):
     logged(". document api", 5)
     logged("api v1", 1)
     _, out = run("ask-filter", "api")
-    assert titles(out) == ['Ask "api"', "api v1", ". document api"], (
-        "the log rows under Ask are the same rows `l api` shows"
+    assert rows(out)[1:] == rows(run("filter", "api")[1])[1:], (
+        "under the Ask row, `ask api` and `l api` give the same rows"
     )
-    assert rows(out)[2]["icon"] == {"path": "icons/task.png"}, "with the same icons"
-    assert rows(out)[2]["variables"]["action"] == "menu", "and the same ↩"
-
-
-def test_answer_row_shape(run, served, answered):
-    path = str(answered("today summary", "Docs, mostly.\nAnd a meeting.", 10))
-    _, out = run("ask-filter", "")
-    (row,) = rows(out)
-    assert row["subtitle"] == "14:50 today · Docs, mostly.", (
-        "when it was answered and how it starts"
-    )
-    assert row["arg"] == path and row["type"] == "file", "↩ opens the answer file"
-    assert row["variables"] == {"action": "open"}, "↩ is the open action"
-    assert row["text"]["copy"] == "Docs, mostly.\nAnd a meeting.", "⌘C gives the whole answer"
-    assert row["mods"]["shift"]["arg"] == "Docs, mostly.\nAnd a meeting.", "⇧↩ copies the answer"
-    assert row["mods"]["alt"]["variables"] == {"action": "trash"}, "⌥↩ trashes the answer"
-    assert row["mods"]["cmd"]["valid"] is False, "answers are not renamed"
 
 
 def test_ask_prints_the_answer_and_keeps_nothing(run, served, sample, mocker, notify, env):

@@ -3,8 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from datetime import datetime
 
-from wisp.oracle import Answer
-from wisp.records import Kind, Record, first_line, normalise, parse
+from wisp.records import Kind, Record, normalise, parse
 from wisp.search import matches, query, search
 
 OFFERS = {
@@ -142,20 +141,12 @@ NO_SERVER = "Set Model server or turn on Apple Intelligence in the workflow conf
 
 
 def question_rows(
-    question: str,
-    answers: Iterable[Answer],
-    records: Iterable[Record],
-    now: datetime,
-    lines: int,
-    served: bool,
+    question: str, records: Iterable[Record], now: datetime, lines: int, served: bool
 ) -> list[dict]:
     if not served:
         return [{"title": NO_SERVER, "subtitle": "to ask questions about the log", "valid": False}]
-    asked = [a for a in answers if matches(question, a.question)]
     offered = [ask_row(question, lines)] if question else []
-    answered = [answer_row(answer, now) for answer in asked]
-    logged = [record_row(record, now) for record in search(question, records)]
-    return offered + answered + logged
+    return offered + [record_row(record, now) for record in search(question, records)]
 
 
 def ask_row(question: str, lines: int) -> dict:
@@ -166,23 +157,4 @@ def ask_row(question: str, lines: int) -> dict:
         "icon": icon(Kind.QUESTION),
         "variables": {"action": "ask"},
         "mods": {mod: {"valid": False, "subtitle": ""} for mod in ("shift", "alt", "cmd")},
-    }
-
-
-def answer_row(answer: Answer, now: datetime) -> dict:
-    path = str(answer.path)
-    return {
-        "title": answer.question,
-        "subtitle": f"{when(answer.created, now)} · {first_line(answer.answer)}",
-        "arg": path,
-        "icon": icon(Kind.DECISION),
-        "type": "file",
-        "quicklookurl": path,
-        "variables": {"action": "open"},
-        "text": {"copy": answer.answer, "largetype": answer.answer},
-        "mods": {
-            "shift": {"arg": answer.answer, "subtitle": "Copy the answer"},
-            "alt": {"arg": path, "subtitle": "Move to Trash", "variables": {"action": "trash"}},
-            "cmd": {"valid": False, "subtitle": ""},
-        },
     }

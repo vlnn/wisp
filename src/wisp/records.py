@@ -103,12 +103,6 @@ def first_line(content: str) -> str:
     return next((line.strip() for line in content.splitlines() if line.strip()), "")
 
 
-def body(content: str) -> str:
-    lines = content.splitlines()
-    first = next((n for n, line in enumerate(lines) if line.strip()), len(lines))
-    return "\n".join(lines[first + 1 :]).strip()
-
-
 def newest_first(record: Record):
     return (-record.created.timestamp(), record.path.name)
 

@@ -35,9 +35,6 @@ class Context:
     def logs(self) -> list[records.Record]:
         return records.read_folder(self.folder, self.created, self.changed)
 
-    def answers(self) -> list[oracle.Answer]:
-        return oracle.read_answers(oracle.answers_folder(self.env), self.created)
-
     def server(self) -> oracle.Server | None:
         return oracle.server(self.env)
 
@@ -81,7 +78,7 @@ def ask_filter_command(args: list[str], ctx: Context) -> int:
     server = ctx.server()
     logs = ctx.logs()
     lines = len(oracle.evidence(logs, oracle.budget_for(server)).splitlines()) if server else 0
-    return emit(present.question_rows(question, ctx.answers(), logs, ctx.now, lines, bool(server)))
+    return emit(present.question_rows(question, logs, ctx.now, lines, bool(server)))
 
 
 def keep_command(args: list[str], ctx: Context) -> int:

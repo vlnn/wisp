@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 from wisp import apple, records
-from wisp.records import Created, Kind, Record
+from wisp.records import Kind, Record
 
 BUDGET = 12_000
 APPLE_BUDGET = 6_000
@@ -45,14 +45,6 @@ class Server:
 
 APPLE = Server(apple=True)
 CHECKED = {"1", "true", "yes", "on"}
-
-
-@dataclass(frozen=True)
-class Answer:
-    path: Path
-    question: str
-    answer: str
-    created: datetime
 
 
 Post = Callable[[Server, dict], dict]
@@ -186,12 +178,3 @@ def remember(folder: Path, question: str, answer: str) -> Path:
     path = records.free_path(folder, records.slug(question))
     path.write_text(f"{question.strip()}\n\n{answer.strip()}\n", encoding="utf-8")
     return path
-
-
-def read_answers(folder: Path, created: Created) -> list[Answer]:
-    return [as_answer(record) for record in records.read_folder(folder, created)]
-
-
-def as_answer(record: Record) -> Answer:
-    content = record.path.read_text(encoding="utf-8")
-    return Answer(record.path, record.text, records.body(content), record.created)

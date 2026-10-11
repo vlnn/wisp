@@ -174,19 +174,6 @@ def test_remember_writes_question_then_answer(tmp_path):
     )
 
 
-def test_read_answers_pairs_question_with_answer(tmp_path):
-    folder = tmp_path / "answers"
-    path = oracle.remember(folder, "today summary", "You read docs.\nTwice.")
-    (answer,) = oracle.read_answers(folder, lambda p: NOW)
-    assert answer == oracle.Answer(path, "today summary", "You read docs.\nTwice.", NOW), (
-        "an answer file should read back as question, answer and time"
-    )
-
-
-def test_read_answers_of_a_missing_folder_is_empty(tmp_path):
-    assert oracle.read_answers(tmp_path / "none", lambda p: NOW) == [], "no folder, no answers"
-
-
 @pytest.mark.parametrize(
     "env, expected",
     [
