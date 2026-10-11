@@ -326,8 +326,8 @@ def test_question_offers_to_ask_then_lists_the_log(run, served, sample):
         "the Ask row first, then the log lines the words match, as `l api` lists them"
     )
     ask = rows(out)[0]
-    assert ask["subtitle"] == "↩ asks the model about 5 lines, 2 matching", (
-        "the Ask row says how many lines go and how many the words single out"
+    assert ask["subtitle"] == "↩ asks the model about 2 lines matching api", (
+        "the Ask row says how many lines go and what they match"
     )
     assert ask["arg"] == "api" and ask["variables"] == {"action": "ask"}, (
         "↩ should ask with the bare question"
@@ -604,6 +604,6 @@ def test_ask_row_counts_within_the_window(run, served, logged):
     logged("api review", 60 * 24 + 5)
     logged("review", 10)
     _, out = run("ask-filter", "api yesterday")
-    assert rows(out)[0]["subtitle"] == "↩ asks the model about 2 lines, 1 matching", (
-        "the window bounds the lines sent, the words count matches within it"
+    assert rows(out)[0]["subtitle"] == "↩ asks the model about 1 line matching api", (
+        "the window bounds the lines, the words pick within it"
     )

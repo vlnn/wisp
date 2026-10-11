@@ -215,21 +215,22 @@ def test_rows_carry_the_icon_of_their_kind(text, icon):
 
 
 def test_ask_row_is_an_open_question():
-    (ask,) = present.question_rows("today", [], NOW, oracle.Evidence([], []))
+    (ask,) = present.question_rows("today", [], NOW, oracle.Evidence([], [], []))
     assert ask["icon"] == {"path": "icons/question.png"}, "the Ask row wears the question ring"
 
 
 @pytest.mark.parametrize(
     "lines, matching, subtitle",
     [
-        (5, 0, "↩ asks the model about 5 lines"),
-        (5, 2, "↩ asks the model about 5 lines, 2 matching"),
-        (5, 5, "↩ asks the model about 5 lines"),
+        (5, [], "↩ asks the model about 5 lines"),
+        (1, [], "↩ asks the model about 1 line"),
+        (2, ["api"], "↩ asks the model about 2 lines matching api"),
+        (3, ["logs", "wisp"], "↩ asks the model about 3 lines matching logs, wisp"),
     ],
 )
-def test_ask_row_counts_what_the_words_single_out(lines, matching, subtitle):
+def test_ask_row_says_what_goes(lines, matching, subtitle):
     assert present.ask_row("q", lines, matching)["subtitle"] == subtitle, (
-        "matches are counted only when they are a part of what goes"
+        "the row counts the lines and names the words they match"
     )
 
 

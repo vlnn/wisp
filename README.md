@@ -96,7 +96,7 @@ Until one of them is set, `ask` only tells you to set it.
 
 ```
 ask today summary            Ask "today summary"   ↩ asks the model about 1 240 lines
-ask what did I do with api   Ask "what did I do with api"   ↩ asks the model about 1 240 lines, 23 matching
+ask what did I do with api   Ask "what did I do with api"   ↩ asks the model about 23 lines matching api
                              testing api manually      14:31 today
                              making API v1             14:02 today
 ask                          the whole log, newest first
@@ -116,10 +116,13 @@ is still open?", "what did I finish this week?" and "why postgres?" are question
 did I do yesterday`, `summary of 2026-09`) sends that day's lines and nothing else, and a sigil
 (`ask . what is still open`) sends that kind only. The question goes with the log, newest
 line first, cut at about 12 000 characters for a server and
-6 000 for the Apple model, whose context window is 4 096 tokens. The lines the question's words
-match (the rows listed under **Ask**) always go, however old they are; the rest of the budget is
-filled with the newest lines, so "what did I do with api" still works once the log has outgrown
-the budget. The **Ask** row says how many lines that is and how many of them the words match. The model only ever runs when you press ↩ on **Ask**, never while you type. On a server,
+6 000 for the Apple model, whose context window is 4 096 tokens. If any line matches the
+question's words (the rows listed under **Ask**), only those lines go, however old they are, so
+"what did I do with api" still works once the log has outgrown the budget; a question no line
+matches whole, like "logs about wisp", sends the lines matching any of its words (short and filler
+words aside), and the log is headed with what it was matched on. Only when nothing matches at
+all does the newest log go, so "today summary" sends today. The **Ask** row says how many lines go
+and what they match. The model only ever runs when you press ↩ on **Ask**, never while you type. On a server,
 pick an instruct model rather than a thinking one — the workflow asks the template not to think,
 which Qwen3-style models honour, and hides a `<think>` block if one comes back anyway. **Model**
 names the alias when the server serves several; **Model server API key** is sent as a bearer token.

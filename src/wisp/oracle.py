@@ -17,6 +17,11 @@ from wisp.records import Kind, Record
 
 BUDGET = 12_000
 APPLE_BUDGET = 6_000
+MIN_TERM = 3
+FILLER = frozenset(
+    "the and for with about what which when where who why how did does was were are has have "
+    "this that these those from into over last any all some there here than then".split()
+)
 TIMEOUT = 120
 PROBE_TIMEOUT = 3
 MAX_TOKENS = 600
@@ -138,6 +143,7 @@ def tagged(record: Record) -> str:
 class Evidence:
     matching: list[Record]
     filling: list[Record]
+    terms: list[str]
 
     def records(self) -> list[Record]:
         return sorted(self.matching + self.filling, key=records.newest_first)
@@ -154,12 +160,20 @@ def evidence(
 ) -> Evidence:
     asked = search.query(question, now.date() if now else None)
     pool = [r for r in sorted(logs, key=records.newest_first) if search.in_scope(asked, r)]
-    matching = fit([r for r in pool if search.wanted(asked, r)] if asked.words else [], budget)
-    left = {record.path for record in matching}
-    filling = fit((r for r in pool if r.path not in left), budget - size(matching))
-    if not matching and not filling:
-        filling = pool[:1]
-    return Evidence(matching, filling)
+    singled, terms = single_out(asked.words, pool)
+    if singled:
+        return Evidence(fit(singled, budget), [], terms)
+    return Evidence([], fit(pool, budget) or pool[:1], [])
+
+
+def single_out(words: str, pool: list[Record]) -> tuple[list[Record], list[str]]:
+    exact = [r for r in pool if search.matches(words, r.line)] if words else []
+    if exact:
+        return exact, search.words(words)
+    terms = [w for w in search.words(words) if len(w) >= MIN_TERM and w not in FILLER]
+    hits = [w for w in terms if any(search.matches(w, r.line) for r in pool)]
+    loose = [r for r in pool if any(search.matches(w, r.line) for w in hits)]
+    return loose, hits
 
 
 def fit(logs: Iterable[Record], budget: int) -> list[Record]:
@@ -188,7 +202,7 @@ def prompt(
 
 def asking(question: str, logs: Iterable[Record], now: datetime, budget: int) -> str:
     found = evidence(question, logs, budget, now)
-    return f"{question}\n\n{heading(question, now)}\n{found.text()}"
+    return f"{question}\n\n{heading(question, now, found.terms)}\n{found.text()}"
 
 
 SCOPED = {
@@ -200,7 +214,7 @@ SCOPED = {
 }
 
 
-def heading(question: str, now: datetime) -> str:
+def heading(question: str, now: datetime, terms: Iterable[str] = ()) -> str:
     asked = search.query(question, now.date())
     bounds = []
     if asked.kind:
@@ -208,6 +222,8 @@ def heading(question: str, now: datetime) -> str:
     if asked.span:
         first, last = asked.span
         bounds.append(f"{first} only" if first == last else f"{first} to {last} only")
+    if terms:
+        bounds.append(f"lines matching {', '.join(terms)} only")
     return f"Log, {', '.join(bounds)}:" if bounds else "Log:"
 
 

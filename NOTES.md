@@ -77,8 +77,10 @@ The query carries the same sigil as a filter on kind (`search.query`), with the 
 against `Record.line`; no sigil means every kind. The first word that reads as a day (`search.days`:
 `today`, `yesterday`, a weekday, `YYYY-MM-DD`, `YYYY-MM`) becomes `Query.span` and is taken out of
 the words; `search.in_scope` is kind and span, `search.wanted` adds the words. `oracle.evidence`
-uses the same query: the scope bounds what can go to the model, the words single lines out within
-it, the newest lines in scope fill the rest of the budget. The oracle spells kinds out as `TODO`, `DONE
+uses the same query: the scope bounds what can go to the model; the words single lines out within
+it (`oracle.single_out`: every word, else any word of three letters or more that is not filler) and
+then only those go, headed with the terms; only when no word matches do the newest lines in scope
+fill the budget. The oracle spells kinds out as `TODO`, `DONE
 <time>` and `NOTE` because a small model follows a word over 1 200 lines better than a dot.
 
 Alfred colours nothing in a row but the icon, so a kind's colour is a PNG in `workflow/icons/`,

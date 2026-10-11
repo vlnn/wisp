@@ -118,13 +118,30 @@ def test_evidence_of_nothing_is_empty():
     assert oracle.evidence("", []).text() == "", "an empty log sends nothing"
 
 
-def test_evidence_keeps_old_matching_lines_past_the_budget():
+def test_evidence_sends_only_the_matches_when_there_are_any():
     logs = [record(f"line {n}", n) for n in range(1, 50)] + [record("api work", 500)]
     found = oracle.evidence("api", logs, budget=100)
-    assert [r.text for r in found.matching] == ["api work"], "the one match is sent"
-    assert found.lines()[-1].endswith("api work"), "sent last, since it is the oldest"
-    assert 3 <= len(found.lines()) <= 4, "the rest of the budget goes to the newest lines"
-    assert len(found.text()) <= 100, "all within the budget"
+    assert [r.text for r in found.matching] == ["api work"], "the one match is sent, however old"
+    assert found.filling == [], "and nothing unrelated is sent with it"
+    assert found.terms == ["api"], "the evidence names what it matched"
+
+
+def test_evidence_falls_back_to_any_word_of_a_question():
+    logs = [record("wisp icons", 1), record("logs rotated", 2), record("docs", 3)]
+    found = oracle.evidence("logs about wisp", logs)
+    assert [r.text for r in found.matching] == ["wisp icons", "logs rotated"], (
+        "no line has every word, so lines with any word go"
+    )
+    assert found.terms == ["logs", "wisp"], "about matched nothing and is not a term"
+    assert found.filling == [], "docs is not sent"
+
+
+def test_evidence_ignores_short_words_in_the_fallback():
+    logs = [record("a b c", 1), record("in the api", 2), record("what was that", 3)]
+    found = oracle.evidence("what is in the api", logs)
+    assert [r.text for r in found.matching] == ["in the api"] and found.terms == ["api"], (
+        "short and filler words single nothing out"
+    )
 
 
 def test_evidence_matches_the_way_the_list_does():
@@ -137,14 +154,14 @@ def test_evidence_matches_the_way_the_list_does():
         "a sigil bounds what goes to the model, as it bounds the list"
     )
     whole = oracle.evidence("ap", logs)
-    assert [r.text for r in whole.records()] == [". fix api", "api v1", "docs"], (
-        "without one, the words single out and the rest follows, newest first"
+    assert [r.text for r in whole.records()] == [". fix api", "api v1"], (
+        "without one, every kind that matches goes"
     )
 
 
 def test_evidence_without_words_matches_nothing_in_particular():
     found = oracle.evidence("", [record("a", 1), record("b", 2)])
-    assert found.matching == [], "no words, nothing singled out"
+    assert found.matching == [] and found.terms == [], "no words, nothing singled out"
     assert len(found.filling) == 2, "everything is filling"
 
 
@@ -205,7 +222,11 @@ def test_evidence_within_a_window_fills_from_that_window_only():
     logs = [record("today api", 1), record("today docs", 2), record("old api", 60 * 24 * 3)]
     found = oracle.evidence("api today", logs, now=NOW)
     assert [r.text for r in found.matching] == ["today api"], "words match within the window"
-    assert [r.text for r in found.filling] == ["today docs"], "the fill stays in the window"
+    assert found.filling == [], "nothing else from the window is sent"
+    summary = oracle.evidence("summary today", logs, now=NOW)
+    assert [r.text for r in summary.filling] == ["today api", "today docs"], (
+        "words matching nothing send the window, newest first"
+    )
 
 
 @pytest.mark.parametrize(
@@ -216,9 +237,12 @@ def test_evidence_within_a_window_fills_from_that_window_only():
         ("summary of 2026-09", "Log, 2026-09-01 to 2026-09-30 only:"),
         (". what is open", "Log, open tasks only:"),
         ("? today", "Log, open questions only, 2026-10-10 only:"),
-        ("api", "Log:"),
+        ("api", "Log, lines matching api only:"),
+        ("logs about wisp", "Log, lines matching logs, wisp only:"),
+        ("summary", "Log:"),
     ],
 )
 def test_prompt_names_the_window_so_the_model_need_not_find_it(question, heading):
-    _, user = (m["content"] for m in oracle.prompt(question, [record("x", 1)], NOW))
+    logs = [record("x", 1), record("api", 2), record("wisp", 3), record("logs", 4)]
+    _, user = (m["content"] for m in oracle.prompt(question, logs, NOW))
     assert f"\n\n{heading}\n" in user, f"{question!r} should head the log with {heading!r}"

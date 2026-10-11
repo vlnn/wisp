@@ -185,15 +185,16 @@ def unserved_row() -> Row:
 def question_rows(
     question: str, records: Iterable[Record], now: datetime, found: Evidence
 ) -> list[Row]:
-    offered = [ask_row(question, len(found.lines()), len(found.matching))] if question else []
+    offered = [ask_row(question, len(found.lines()), found.terms)] if question else []
     return offered + [record_row(record, now) for record in search(question, records, now.date())]
 
 
-def ask_row(question: str, lines: int, matching: int = 0) -> Row:
-    singled = f", {matching} matching" if 0 < matching < lines else ""
+def ask_row(question: str, lines: int, terms: Iterable[str] = ()) -> Row:
+    counted = f"{lines} line" if lines == 1 else f"{lines} lines"
+    matched = f" matching {', '.join(terms)}" if terms else ""
     return {
         "title": f'Ask "{question}"',
-        "subtitle": f"↩ asks the model about {lines} lines{singled}",
+        "subtitle": f"↩ asks the model about {counted}{matched}",
         "arg": question,
         "icon": icon(Kind.QUESTION),
         "variables": {"action": "ask"},
