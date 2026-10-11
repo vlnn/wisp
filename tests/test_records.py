@@ -1,4 +1,5 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from pathlib import Path
 
 import pytest
 
@@ -41,8 +42,8 @@ def test_keep_numbers_colliding_names(folder):
     )
 
 
-def test_read_folder_lists_newest_first(folder, sample, created):
-    texts = [r.text for r in records.read_folder(folder, created)]
+def test_read_folder_lists_newest_first(folder, sample, clock):
+    texts = [r.text for r in records.read_folder(folder, clock)]
     assert texts == [
         "meeting with L",
         "reading docs",
@@ -52,28 +53,28 @@ def test_read_folder_lists_newest_first(folder, sample, created):
     ], "records should be sorted by creation time, newest first"
 
 
-def test_read_folder_uses_the_first_non_empty_line(folder, created, stamps):
+def test_read_folder_uses_the_first_non_empty_line(folder, clock, stamps):
     path = folder / "note.md"
     folder.mkdir()
     path.write_text("\n\n  the real line  \nmore\n")
     stamps[path.name] = NOW
-    (record,) = records.read_folder(folder, created)
+    (record,) = records.read_folder(folder, clock)
     assert record.text == "the real line", "text should be the first non-empty line, stripped"
 
 
-def test_read_folder_ignores_other_files(folder, created, stamps):
+def test_read_folder_ignores_other_files(folder, clock, stamps):
     folder.mkdir()
     (folder / "keep.md").write_text("kept\n")
     (folder / ".hidden.md").write_text("hidden\n")
     (folder / "notes.txt").write_text("text\n")
     (folder / "sub").mkdir()
     stamps["keep.md"] = NOW
-    texts = [r.text for r in records.read_folder(folder, created)]
+    texts = [r.text for r in records.read_folder(folder, clock)]
     assert texts == ["kept"], "only visible .md files should become records"
 
 
-def test_read_folder_of_a_missing_folder_is_empty(folder, created):
-    assert records.read_folder(folder, created) == [], "a missing folder has no records"
+def test_read_folder_of_a_missing_folder_is_empty(folder, clock):
+    assert records.read_folder(folder, clock) == [], "a missing folder has no records"
 
 
 def test_rename_in_place_when_the_slug_stays(folder):
@@ -152,21 +153,52 @@ def test_keep_normalises_the_sigil_spacing(folder):
     assert path.read_text() == ". fix the build\n", "file should hold sigil, one space, line"
 
 
-def test_record_knows_its_kind_and_line(folder, created, stamps):
+def test_record_knows_its_kind_and_line(folder, clock, stamps):
     path = records.keep(folder, ". fix the build")
     stamps[path.name] = NOW
-    (record,) = records.read_folder(folder, created)
+    (record,) = records.read_folder(folder, clock)
     assert record.kind is records.Kind.TASK, "a line starting with '. ' is an open task"
     assert record.line == "fix the build", "line should be the text without the sigil"
     assert record.text == ". fix the build", "text should be the whole first line"
 
 
-def test_read_folder_reads_when_a_record_changed(folder, created, changed, stamps, touched):
+def test_read_folder_reads_when_a_record_changed(folder, clock, stamps, touched):
     path = records.keep(folder, "* fix the build")
     stamps[path.name] = NOW - timedelta(hours=3)
     touched[path.name] = NOW
-    (record,) = records.read_folder(folder, created, changed)
+    (record,) = records.read_folder(folder, clock)
     assert record.changed == NOW, "changed should come from the injected callable"
+
+
+def test_record_text_is_the_line_in_its_normal_spelling():
+    record = records.Record(Path("/log/x.md"), records.Kind.QUESTION, "why", NOW, NOW)
+    assert record.text == "? why", "text is composed from kind and line"
+
+
+def test_record_parsed_reads_a_first_line():
+    record = records.Record.parsed(Path("/log/x.md"), "?why", NOW, NOW)
+    assert (record.kind, record.line, record.text) == (records.Kind.QUESTION, "why", "? why"), (
+        "a tight sigil is read and shown with its space"
+    )
+
+
+def test_file_stamps_read_birth_and_modification(mocker):
+    stat = mocker.Mock(st_birthtime=1_700_000_000.0, st_mtime=1_700_000_600.0)
+    mocker.patch.object(Path, "stat", return_value=stat)
+    created, changed = records.file_stamps(Path("/log/x.md"))
+    assert (created, changed) == (
+        datetime.fromtimestamp(1_700_000_000),
+        datetime.fromtimestamp(1_700_000_600),
+    ), "created is the birth time, changed the modification time"
+
+
+def test_file_stamps_fall_back_to_modification_time(mocker):
+    stat = mocker.Mock(spec=["st_mtime"], st_mtime=1_700_000_600.0)
+    mocker.patch.object(Path, "stat", return_value=stat)
+    created, changed = records.file_stamps(Path("/log/x.md"))
+    assert created == changed == datetime.fromtimestamp(1_700_000_600), (
+        "without a birth time, a file is as old as its last change"
+    )
 
 
 @pytest.mark.parametrize(

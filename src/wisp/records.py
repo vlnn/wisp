@@ -12,7 +12,7 @@ EXTENSION = ".md"
 SLUG_LIMIT = 60
 FALLBACK_SLUG = "note"
 
-Clock = Callable[[Path], datetime]
+Stamps = Callable[[Path], tuple[datetime, datetime]]
 
 
 class Kind(Enum):
@@ -37,17 +37,19 @@ class Blank(ValueError):
 @dataclass(frozen=True)
 class Record:
     path: Path
-    text: str
+    kind: Kind
+    line: str
     created: datetime
     changed: datetime
 
-    @property
-    def kind(self) -> Kind:
-        return parse(self.text)[0]
+    @classmethod
+    def parsed(cls, path: Path, text: str, created: datetime, changed: datetime) -> Record:
+        kind, line = parse(text)
+        return cls(path, kind, line, created, changed)
 
     @property
-    def line(self) -> str:
-        return parse(self.text)[1]
+    def text(self) -> str:
+        return compose(self.kind, self.line)
 
 
 def parse(text: str) -> tuple[Kind, str]:
@@ -68,23 +70,16 @@ def normalise(text: str) -> str:
     return compose(kind, line)
 
 
-def birth_time(path: Path) -> datetime:
+def file_stamps(path: Path) -> tuple[datetime, datetime]:
     stat = path.stat()
-    return datetime.fromtimestamp(getattr(stat, "st_birthtime", stat.st_mtime))
+    born = getattr(stat, "st_birthtime", stat.st_mtime)
+    return datetime.fromtimestamp(born), datetime.fromtimestamp(stat.st_mtime)
 
 
-def modified_time(path: Path) -> datetime:
-    return datetime.fromtimestamp(path.stat().st_mtime)
-
-
-def read_folder(
-    folder: Path, created: Clock = birth_time, changed: Clock = modified_time
-) -> list[Record]:
+def read_folder(folder: Path, stamps: Stamps = file_stamps) -> list[Record]:
     if not folder.is_dir():
         return []
-    return sorted(
-        (read_record(path, created, changed) for path in record_files(folder)), key=newest_first
-    )
+    return sorted((read_record(path, stamps) for path in record_files(folder)), key=newest_first)
 
 
 def record_files(folder: Path) -> Iterable[Path]:
@@ -95,9 +90,9 @@ def record_files(folder: Path) -> Iterable[Path]:
     )
 
 
-def read_record(path: Path, created: Clock, changed: Clock) -> Record:
+def read_record(path: Path, stamps: Stamps = file_stamps) -> Record:
     text = first_line(path.read_text(encoding="utf-8"))
-    return Record(path, text, created(path), changed(path))
+    return Record.parsed(path, text, *stamps(path))
 
 
 def first_line(content: str) -> str:

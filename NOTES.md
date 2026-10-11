@@ -56,8 +56,9 @@ the tests pin down.
 
 Creation time is `st_birthtime` on macOS, `st_mtime` elsewhere (so the suite runs on Linux CI); the
 time a record last changed is `st_mtime` everywhere, and is what a done task reports as the time it
-was finished. Tests inject `created`, `changed` and `now`; the only places that read a clock are the defaults in
-`cli.run` and the job id in `view.job_id`.
+was finished. Both come from one `stat` in `records.file_stamps`, the `stamps` callable tests inject
+along with `now`; the only places that read a clock are the defaults in `cli.run` and the job id
+in `view.job_id`. A `Record` holds its `kind` and `line` as read; `text` is composed from them.
 
 ## Kinds
 

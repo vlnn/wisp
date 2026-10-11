@@ -21,7 +21,9 @@ MIXED = (
 @pytest.fixture
 def mixed():
     return [
-        Record(Path(f"/log/{n}.md"), text, NOW - timedelta(minutes=n), NOW - timedelta(minutes=n))
+        Record.parsed(
+            Path(f"/log/{n}.md"), text, NOW - timedelta(minutes=n), NOW - timedelta(minutes=n)
+        )
         for n, text in enumerate(MIXED)
     ]
 

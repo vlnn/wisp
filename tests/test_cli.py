@@ -38,9 +38,9 @@ def model_fails(mocker, error):
 
 
 @pytest.fixture
-def run(env, created, changed, capsys):
+def run(env, clock, capsys):
     def go(*argv):
-        code = cli.run(list(argv), env, now=NOW, created=created, changed=changed)
+        code = cli.run(list(argv), env, now=NOW, stamps=clock)
         return code, capsys.readouterr().out
 
     return go
@@ -370,8 +370,8 @@ def test_ask_with_blank_question(run, served, sample, notify):
     assert code == 1, "nothing to ask"
 
 
-def test_ask_with_a_bare_job_flag_fails_cleanly(env, created, changed, capsys):
-    code = cli.run(["ask", "today summary", "--job"], env, NOW, created, changed)
+def test_ask_with_a_bare_job_flag_fails_cleanly(env, clock, capsys):
+    code = cli.run(["ask", "today summary", "--job"], env, NOW, clock)
     assert code == 2, "a flag without its value is a usage error, not a traceback"
     assert "--job" in capsys.readouterr().err, "and the message names the flag"
 

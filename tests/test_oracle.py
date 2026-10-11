@@ -12,7 +12,7 @@ DATA = Path("/Users/me/Library/Application Support/wisp")
 
 def record(text, minutes_ago):
     when = NOW - timedelta(minutes=minutes_ago)
-    return records.Record(Path(f"/log/{text}.md"), text, when, when)
+    return records.Record.parsed(Path(f"/log/{text}.md"), text, when, when)
 
 
 @pytest.mark.parametrize(
@@ -66,7 +66,7 @@ def test_line_spells_the_kind_out(text, expected):
 
 def test_done_line_carries_the_time_it_was_done():
     opened = NOW - timedelta(days=1, minutes=10)
-    done = records.Record(Path("/log/x.md"), "* fix the build", opened, NOW)
+    done = records.Record.parsed(Path("/log/x.md"), "* fix the build", opened, NOW)
     assert oracle.line(done) == "2026-10-09 14:50  DONE 2026-10-10 15:00  fix the build", (
         "a done task should show when it was written and when it was finished"
     )
@@ -74,7 +74,7 @@ def test_done_line_carries_the_time_it_was_done():
 
 def test_decision_line_carries_the_time_it_was_made():
     asked = NOW - timedelta(days=1, minutes=10)
-    decision = records.Record(Path("/log/x.md"), "= ship friday", asked, NOW)
+    decision = records.Record.parsed(Path("/log/x.md"), "= ship friday", asked, NOW)
     assert oracle.line(decision) == "2026-10-09 14:50  DECIDED 2026-10-10 15:00  ship friday", (
         "a decision should show when it was raised and when it was settled"
     )

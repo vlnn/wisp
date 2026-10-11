@@ -57,17 +57,18 @@ class Context:
         self,
         env: Mapping[str, str],
         now: datetime,
-        created: records.Clock,
-        changed: records.Clock,
+        stamps: records.Stamps,
     ):
         self.env = env
         self.now = now
-        self.created = created
-        self.changed = changed
+        self.stamps = stamps
         self.folder = log_folder(env)
 
     def logs(self) -> list[records.Record]:
-        return records.read_folder(self.folder, self.created, self.changed)
+        return records.read_folder(self.folder, self.stamps)
+
+    def record(self, path: str) -> records.Record:
+        return records.read_record(Path(path), self.stamps)
 
     def backend(self) -> oracle.Backend | None:
         return oracle.backend(self.env)
@@ -140,12 +141,12 @@ def trash_command(args: list[str], ctx: Context) -> int:
 
 
 def menu_command(args: list[str], ctx: Context) -> int:
-    record = records.read_record(Path(args[0]), ctx.created, ctx.changed)
+    record = ctx.record(args[0])
     return emit(present.menu_rows(record, args[1] if len(args) > 1 else ""))
 
 
 def decide_filter_command(args: list[str], ctx: Context) -> int:
-    record = records.read_record(Path(args[0]), ctx.created, ctx.changed)
+    record = ctx.record(args[0])
     return emit([present.decide_row(record, args[1] if len(args) > 1 else "")])
 
 
@@ -272,15 +273,12 @@ def run(
     argv: list[str],
     env: Mapping[str, str],
     now: datetime | None = None,
-    created: records.Clock | None = None,
-    changed: records.Clock | None = None,
+    stamps: records.Stamps | None = None,
 ) -> int:
     if not argv or argv[0] not in COMMANDS:
         print(USAGE, file=sys.stderr)
         return 2
-    ctx = Context(
-        env, now or datetime.now(), created or records.birth_time, changed or records.modified_time
-    )
+    ctx = Context(env, now or datetime.now(), stamps or records.file_stamps)
     try:
         return COMMANDS[argv[0]](argv[1:], ctx)
     except records.Blank:

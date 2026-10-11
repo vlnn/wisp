@@ -57,7 +57,7 @@ def test_a_bare_sigil_only_filters(query):
 
 
 def a_record(text, created, changed=None):
-    return Record(Path("/log/x.md"), text, created, changed or created)
+    return Record.parsed(Path("/log/x.md"), text, created, changed or created)
 
 
 def test_task_row_marks_done_on_shift():

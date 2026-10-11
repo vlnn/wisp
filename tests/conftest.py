@@ -27,18 +27,13 @@ def stamps():
 
 
 @pytest.fixture
-def created(stamps):
-    return lambda path: stamps[path.name]
-
-
-@pytest.fixture
 def touched():
     return {}
 
 
 @pytest.fixture
-def changed(stamps, touched):
-    return lambda path: touched.get(path.name, stamps[path.name])
+def clock(stamps, touched):
+    return lambda path: (stamps[path.name], touched.get(path.name, stamps[path.name]))
 
 
 @pytest.fixture

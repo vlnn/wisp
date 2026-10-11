@@ -55,7 +55,7 @@ def actions_in(row):
 def emitted_actions():
     rows = [present.keep_row("x"), present.ask_row("x", 1)]
     for kind in records.Kind:
-        record = records.Record(Path("/log/x.md"), records.compose(kind, "x"), NOW, NOW)
+        record = records.Record(Path("/log/x.md"), kind, "x", NOW, NOW)
         rows.append(present.record_row(record, NOW + timedelta(minutes=1)))
         rows.extend(present.menu(record))
         rows.append(present.decide_row(record, "y"))
