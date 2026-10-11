@@ -127,27 +127,28 @@ def rename(path: Path, text: str) -> Path:
     return target
 
 
-def mark(path: Path) -> Path:
+def mark(path: Path) -> str:
     content = path.read_text(encoding="utf-8")
     kind, line = parse(first_line(content))
-    if kind in FLIPPED:
-        rewrite_first_line(path, content, compose(FLIPPED[kind], line))
-    return path
+    if kind not in FLIPPED:
+        return first_line(content)
+    return rewrite_first_line(path, content, compose(FLIPPED[kind], line))
 
 
-def decide(path: Path, resolution: str) -> Path:
+def decide(path: Path, resolution: str) -> str:
     if not resolution.strip():
         raise Blank(resolution)
     content = path.read_text(encoding="utf-8")
     kind, line = parse(first_line(content))
-    if kind in (Kind.QUESTION, Kind.DECISION):
-        settled = compose(Kind.DECISION, line + RESOLVED + resolution.strip())
-        rewrite_first_line(path, content, settled)
-    return path
+    if kind not in (Kind.QUESTION, Kind.DECISION):
+        return first_line(content)
+    settled = compose(Kind.DECISION, line + RESOLVED + resolution.strip())
+    return rewrite_first_line(path, content, settled)
 
 
-def rewrite_first_line(path: Path, content: str, text: str) -> None:
+def rewrite_first_line(path: Path, content: str, text: str) -> str:
     path.write_text(replace_first_line(content, text), encoding="utf-8")
+    return text
 
 
 def replace_first_line(content: str, text: str) -> str:

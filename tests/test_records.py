@@ -180,14 +180,14 @@ def test_read_folder_reads_when_a_record_changed(folder, created, changed, stamp
 def test_mark_flips_a_task_between_open_and_done(folder, before, after):
     path = records.keep(folder, before)
     marked = records.mark(path)
-    assert marked == path, "marking should keep the same file"
+    assert marked == after, "mark hands back the line it wrote"
     assert path.read_text() == f"{after}\n", f"{before!r} marked should read {after!r}"
 
 
 @pytest.mark.parametrize("text", ["plain log", "! remember this", "? why is the sky green"])
 def test_mark_leaves_other_kinds_alone(folder, text):
     path = records.keep(folder, text)
-    records.mark(path)
+    assert records.mark(path) == text, "an untouched line comes back as it is"
     assert path.read_text() == f"{text}\n", "a question is settled by decide, not by a flip"
 
 
@@ -206,14 +206,14 @@ def test_mark_leaves_other_kinds_alone(folder, text):
 def test_decide_appends_the_resolution_and_settles_the_question(folder, before, answer, after):
     path = records.keep(folder, before)
     decided = records.decide(path, answer)
-    assert decided == path, "deciding keeps the same file"
+    assert decided == after, "decide hands back the line it wrote"
     assert path.read_text() == f"{after}\n", f"{before!r} decided {answer!r} should read {after!r}"
 
 
 @pytest.mark.parametrize("text", ["plain log", ". fix the build", "! remember this"])
 def test_decide_leaves_other_kinds_alone(folder, text):
     path = records.keep(folder, text)
-    records.decide(path, "whatever")
+    assert records.decide(path, "whatever") == text, "an untouched line comes back as it is"
     assert path.read_text() == f"{text}\n", "only questions take a resolution"
 
 

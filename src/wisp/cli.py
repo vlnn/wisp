@@ -147,13 +147,11 @@ def decide_filter_command(args: list[str], ctx: Context) -> int:
 
 def decide_command(args: list[str], ctx: Context) -> int:
     path, resolution = Path(args[0]), " ".join(args[1:]).strip()
-    records.decide(path, resolution)
-    return say(records.first_line(path.read_text(encoding="utf-8")))
+    return say(records.decide(path, resolution))
 
 
 def mark_command(args: list[str], ctx: Context) -> int:
-    path = records.mark(Path(args[0]))
-    return say(records.first_line(path.read_text(encoding="utf-8")))
+    return say(records.mark(Path(args[0])))
 
 
 def ask_command(args: list[str], ctx: Context) -> int:
