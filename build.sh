@@ -40,7 +40,7 @@ with tempfile.TemporaryDirectory() as folder:
 titles = [row["title"] for row in json.loads(out)["items"]]
 assert titles == ['Log "smoke"', "smoke test"], titles
 step_titles = [row["title"] for row in json.loads(steps)["items"]]
-assert step_titles == ["☐ one step"], step_titles
+assert step_titles == ['Start "smoke"', "☐ one step"], step_titles
 EOF
 
 echo "dist/Wisp.alfredworkflow ($version)"
