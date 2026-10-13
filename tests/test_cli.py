@@ -789,3 +789,11 @@ def test_filter_lists_checklists_with_their_steps(run, template):
             "icon": {"path": "icons/checklist.png"},
         }
     ], "l # lists templates with their step count"
+
+
+def test_items_and_tick_trim_the_path_alfred_hands_over(run, template, env):
+    _, out = run("items", f"{template}\n", "")
+    assert titles(out) == ["☐ bump", "☐ tag"], "a Run Script's output ends in a newline"
+    env["path"] = f"{template}\n"
+    code, out = run("tick", "1")
+    assert code == 0 and out.strip() == "- [x] bump", "tick reads the path trimmed"

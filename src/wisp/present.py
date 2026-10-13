@@ -302,11 +302,17 @@ def item_rows(record: Record, typed: str) -> list[Row]:
 def body_rows(record: Record) -> list[Row]:
     boxed = {item.number: item for item in items(record)}
     lines = [(n, line.strip()) for n, line in enumerate(record.body.splitlines(), 1)]
-    return [
-        item_row(boxed[n], record) if n in boxed else {"title": text, "valid": False}
-        for n, text in lines
-        if text
-    ]
+    pending = [(n, text) for n, text in lines if text and not ticked(boxed.get(n))]
+    done = [(n, text) for n, text in lines if ticked(boxed.get(n))]
+    return [body_row(boxed.get(n), text, record) for n, text in pending + done]
+
+
+def ticked(item: Item | None) -> bool:
+    return item is not None and item.ticked
+
+
+def body_row(item: Item | None, text: str, record: Record) -> Row:
+    return item_row(item, record) if item else {"title": text, "valid": False}
 
 
 def item_row(item: Item, record: Record) -> Row:

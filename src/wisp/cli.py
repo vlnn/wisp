@@ -71,10 +71,10 @@ class Context:
         return records.read_folder(self.folder, self.stamps)
 
     def record(self, path: str) -> records.Record:
-        return records.read_record(Path(path), self.stamps)
+        return records.read_record(Path(path.strip()), self.stamps)
 
     def path(self) -> Path:
-        return Path(self.env.get("path", ""))
+        return Path(self.env.get("path", "").strip())
 
     def fresh(self) -> bool:
         return bool(self.env.get("fresh"))

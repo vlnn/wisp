@@ -87,7 +87,8 @@ The template is a file whose body is box lines (`- [ ] bump version`), one per s
 checklist`) with every box cleared, so a run lives the life of any task: open under `l .`,
 finished under `l *`, *Finish* and *Reopen* in its menu, and the folder is the history. In the
 steps, ↩ ticks a box (and unticks it), typing narrows the list or offers to add what matches
-nothing, and once every box is ticked the first row is *Finish*. The first row under `l # name`
+nothing, ticked steps sink to the bottom so ↩ is on the next one, and once every box is ticked the
+first row is *Finish*. The first row under `l # name`
 is for when you have typed the whole name: *Start* when nothing is open, *Continue* (with the
 progress) when a run is, and ⌘↩ starts a fresh run anyway; a prefix match is listed below it
 as usual, and ↩ on that row opens its menu. A checklist's icon is a plum ring, since a template

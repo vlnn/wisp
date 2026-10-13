@@ -368,14 +368,14 @@ def test_template_menu_start_and_steps_carry_their_actions():
 
 def test_item_rows_show_every_step_with_its_box():
     rows = present.item_rows(a_run(), "")
-    assert [row["title"] for row in rows] == ["☐ bump version", "☑ tag", "notes", "☐ build"], (
-        "one row per body line, boxes drawn"
+    assert [row["title"] for row in rows] == ["☐ bump version", "notes", "☐ build", "☑ tag"], (
+        "one row per body line, boxes drawn, ticked ones last"
     )
-    assert [row.get("valid", True) for row in rows] == [True, True, False, True], (
+    assert [row.get("valid", True) for row in rows] == [True, False, True, True], (
         "a line without a box cannot be ticked"
     )
-    assert [row.get("arg") for row in rows] == ["1", "2", None, "4"], "↩ passes the line number"
-    assert rows[0]["subtitle"] == "↩ ticks" and rows[1]["subtitle"] == "↩ unticks", (
+    assert [row.get("arg") for row in rows] == ["1", None, "4", "2"], "↩ passes the line number"
+    assert rows[0]["subtitle"] == "↩ ticks" and rows[3]["subtitle"] == "↩ unticks", (
         "the subtitle says which way the box flips"
     )
     assert rows[0]["variables"] == {"action": "tick", "path": "/log/run.md"}, (
@@ -423,3 +423,10 @@ def test_item_rows_finish_a_run_once_every_box_is_ticked():
 def test_item_rows_do_not_finish_otherwise(record, typed):
     titles = [row["title"] for row in present.item_rows(record, typed)]
     assert "Finish" not in titles, "only an open run with every box ticked and nothing typed"
+
+
+def test_item_rows_put_the_next_step_first():
+    rows = present.item_rows(a_run(body="- [x] bump version\n- [ ] tag\nnotes\n- [x] build\n"), "")
+    assert [row["title"] for row in rows] == ["☐ tag", "notes", "☑ bump version", "☑ build"], (
+        "ticked steps sink to the bottom, so ↩ lands on the next step to do"
+    )
