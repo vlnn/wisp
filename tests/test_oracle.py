@@ -80,7 +80,7 @@ def test_decision_line_carries_the_time_it_was_made():
     )
 
 
-@pytest.mark.parametrize("word", ["TODO", "DONE", "NOTE", "QUESTION", "DECIDED"])
+@pytest.mark.parametrize("word", ["TODO", "DONE", "NOTE", "QUESTION", "DECIDED", "CHECKLIST"])
 def test_system_prompt_explains_the_kinds(word):
     system, _ = (m["content"] for m in oracle.prompt("q", [], NOW))
     assert word in system, f"the model should be told what {word} means"
@@ -236,6 +236,7 @@ def test_evidence_within_a_window_fills_from_that_window_only():
         ("tasks yesterday", "Log, 2026-10-09 only:"),
         ("summary of 2026-09", "Log, 2026-09-01 to 2026-09-30 only:"),
         (". what is open", "Log, open tasks only:"),
+        ("# what is left", "Log, checklists only:"),
         ("? today", "Log, open questions only, 2026-10-10 only:"),
         ("api", "Log, lines matching api only:"),
         ("logs about wisp", "Log, lines matching logs, wisp only:"),
@@ -265,3 +266,23 @@ def test_prompt_with_turns_leaves_room_for_them():
     turns = [("q", "x" * 80)]
     messages = oracle.prompt("more", logs, NOW, budget=120, turns=turns)
     assert messages[1]["content"].count("\n2026-") == 1, "the turns come out of the budget"
+
+
+def test_template_line_spells_the_kind_out():
+    template = records.Record.parsed(Path("/log/x.md"), "# release", NOW, NOW, "- [ ] a\n")
+    assert oracle.line(template) == "2026-10-10 15:00  CHECKLIST  release", (
+        "a template is sent as a checklist, without its steps"
+    )
+
+
+@pytest.mark.parametrize(
+    "text, body, expected",
+    [
+        (". release", "- [x] a\n- [ ] b\n", "2026-10-10 15:00  TODO  release  1/2"),
+        ("* release", "- [x] a\n", "2026-10-10 15:00  DONE 2026-10-10 15:00  release  1/1"),
+        (". release", "", "2026-10-10 15:00  TODO  release"),
+    ],
+)
+def test_run_lines_carry_their_progress(text, body, expected):
+    run = records.Record.parsed(Path("/log/x.md"), text, NOW, NOW, body)
+    assert oracle.line(run) == expected, f"{text!r} with {body!r} should be sent as {expected!r}"

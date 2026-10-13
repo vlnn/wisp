@@ -245,3 +245,181 @@ def test_every_kind_has_an_icon_file():
     for kind in Kind:
         path = Path(__file__).parent.parent / "workflow" / kind.icon
         assert path.is_file(), f"{kind} needs {path.name} in the bundle"
+
+
+STEPS = "- [ ] bump version\n- [x] tag\nnotes\n- [ ] build\n"
+ALL_TICKED = "- [x] bump version\n- [x] tag\n"
+STARTED = datetime(2026, 10, 10, 9, 12)
+FINISHED = datetime(2026, 10, 10, 14, 30)
+
+
+def template(name="release checklist", body=STEPS):
+    return Record.parsed(Path("/log/template.md"), f"# {name}", STARTED, STARTED, body)
+
+
+def a_run(body=STEPS, created=STARTED, name="release checklist"):
+    return Record.parsed(Path("/log/run.md"), f". {name}", created, created, body)
+
+
+def a_finished_run(body=ALL_TICKED, created=STARTED, finished=FINISHED):
+    return Record.parsed(Path("/log/done.md"), "* release checklist", created, finished, body)
+
+
+@pytest.mark.parametrize(
+    "record, logs, subtitle",
+    [
+        (template(), [], "3 steps · 09:12 today"),
+        (template(body=""), [], "0 steps · 09:12 today"),
+        (template(), [a_run()], "3 steps · run open since 09:12 today"),
+        (template(), [a_finished_run()], "3 steps · last done 14:30 today"),
+        (template(), [a_finished_run(), a_run()], "3 steps · run open since 09:12 today"),
+        (a_run(), [], "1/3 · started 09:12 today"),
+        (a_finished_run(), [], "done 14:30 today · 2/2 · 09:12 today"),
+        (a_run(body=""), [], "09:12 today"),
+    ],
+)
+def test_checklist_subtitles_count_steps_and_runs(record, logs, subtitle):
+    row = present.record_row(record, NOW, logs)
+    assert row["subtitle"] == subtitle, f"{record.text!r} should read {subtitle!r}"
+
+
+def test_run_rows_still_finish_on_shift():
+    row = present.record_row(a_run(), NOW)
+    assert row["mods"]["shift"]["subtitle"] == "Finish", "a run is a task and finishes like one"
+    assert row["icon"] == {"path": "icons/task.png"}, "a run wears the task ring"
+
+
+def test_template_row_cannot_be_marked():
+    row = present.record_row(template(), NOW)
+    assert row["mods"]["shift"]["subtitle"] == "Copy to clipboard", "⇧↩ never finishes a template"
+    assert row["icon"] == {"path": "icons/checklist.png"}, "a template wears its own icon"
+
+
+def test_rows_offer_the_checklist_before_the_matches():
+    offered, listed = present.rows("# rel", [template()], NOW)
+    assert offered["title"] == 'Checklist "rel"', "the first row is the offer"
+    assert listed["title"] == "# release checklist", "the prefix match is listed under it"
+
+
+def test_checklist_offer_creates_a_missing_template():
+    row = present.checklist_offer("rel", [template()], NOW)
+    assert row["title"] == 'Checklist "rel"', "no exact template, so the offer is to create one"
+    assert row["subtitle"] == "↩ creates it", "the subtitle says what ↩ does"
+    assert row["arg"] == "# rel", "↩ passes the template's text"
+    assert row["variables"] == {"action": "start"}, "start with text creates the template"
+    assert row["icon"] == {"path": "icons/checklist.png"}, "the offer wears the checklist icon"
+
+
+def test_checklist_offer_starts_an_exact_template():
+    row = present.checklist_offer("Release Checklist", [template()], NOW)
+    assert row["title"] == 'Start "release checklist"', "an exact match, case folded, starts"
+    assert row["subtitle"] == "↩ starts a run · 3 steps", "the subtitle counts the steps"
+    assert row["arg"] == "/log/template.md", "↩ passes the template's path"
+    assert row["variables"] == {"action": "start"}, "↩ is the start action"
+    assert row["mods"]["cmd"] == {
+        "arg": "/log/template.md",
+        "subtitle": "Start a fresh run",
+        "variables": {"action": "start", "fresh": "1"},
+    }, "⌘↩ starts a run whatever is open"
+
+
+def test_checklist_offer_continues_an_open_run():
+    row = present.checklist_offer("release checklist", [template(), a_run()], NOW)
+    assert row["title"] == 'Continue "release checklist"', "an open run is continued"
+    assert row["subtitle"] == "1/3 since 09:12 today", "the subtitle shows the run's progress"
+    assert row["arg"] == "", "the steps open with nothing typed"
+    assert row["variables"] == {"action": "items", "path": "/log/run.md"}, "↩ opens the run's steps"
+    assert row["mods"]["cmd"]["variables"] == {"action": "start", "fresh": "1"}, (
+        "⌘↩ starts a fresh run anyway"
+    )
+    assert row["mods"]["cmd"]["arg"] == "/log/template.md", "the fresh run is from the template"
+
+
+@pytest.mark.parametrize(
+    "record, logs, titles",
+    [
+        (template(), [], ["Start", "Steps", "Open", "Rename", "Copy", "Trash"]),
+        (template(), [a_run()], ["Continue", "Steps", "Open", "Rename", "Copy", "Trash"]),
+        (a_run(), [], ["Steps", "Finish", "Open", "Rename", "Copy", "Trash"]),
+        (a_finished_run(), [], ["Steps", "Reopen", "Open", "Rename", "Copy", "Trash"]),
+    ],
+)
+def test_checklist_menus_lead_with_the_steps(record, logs, titles):
+    menu = present.menu_rows(record, "", logs)
+    assert [row["title"] for row in menu] == titles, f"{record.text!r} should offer {titles}"
+
+
+def test_template_menu_start_and_steps_carry_their_actions():
+    by_title = {row["title"]: row for row in present.menu_rows(template(), "", [a_run()])}
+    assert by_title["Continue"]["variables"] == {"action": "items", "path": "/log/run.md"}, (
+        "Continue opens the open run's steps"
+    )
+    assert by_title["Steps"] == {
+        "title": "Steps",
+        "subtitle": "# release checklist",
+        "arg": "",
+        "variables": {"action": "items", "path": "/log/template.md"},
+    }, "Steps opens the template's own steps, to edit them"
+    (start,) = [row for row in present.menu_rows(template(), "", []) if row["title"] == "Start"]
+    assert (start["arg"], start["variables"]) == ("/log/template.md", {"action": "start"}), (
+        "Start is the start action on the template"
+    )
+
+
+def test_item_rows_show_every_step_with_its_box():
+    rows = present.item_rows(a_run(), "")
+    assert [row["title"] for row in rows] == ["☐ bump version", "☑ tag", "notes", "☐ build"], (
+        "one row per body line, boxes drawn"
+    )
+    assert [row.get("valid", True) for row in rows] == [True, True, False, True], (
+        "a line without a box cannot be ticked"
+    )
+    assert [row.get("arg") for row in rows] == ["1", "2", None, "4"], "↩ passes the line number"
+    assert rows[0]["subtitle"] == "↩ ticks" and rows[1]["subtitle"] == "↩ unticks", (
+        "the subtitle says which way the box flips"
+    )
+    assert rows[0]["variables"] == {"action": "tick", "path": "/log/run.md"}, (
+        "a step row is the tick action on the file"
+    )
+
+
+def test_item_rows_narrow_as_you_type():
+    rows = present.item_rows(a_run(), "bu")
+    assert [row["title"] for row in rows] == ["☐ bump version", "☐ build"], "typed words narrow"
+
+
+def test_item_rows_offer_to_add_what_matches_nothing():
+    (add,) = present.item_rows(a_run(), "publish notes")
+    assert add["title"] == 'Add "publish notes"', "an unmatched text is a new step"
+    assert add["subtitle"] == "↩ adds a step", "the subtitle says so"
+    assert add["arg"] == "publish notes", "↩ passes the text"
+    assert add["variables"] == {"action": "add", "path": "/log/run.md"}, "the row adds to the file"
+
+
+def test_item_rows_of_an_empty_checklist_ask_for_a_step():
+    (hint,) = present.item_rows(template(body=""), "")
+    assert hint["title"] == 'Type a step to add to "release checklist"', "nothing to tick yet"
+    assert hint["valid"] is False, "the hint cannot be actioned"
+
+
+def test_item_rows_finish_a_run_once_every_box_is_ticked():
+    (finish, *steps) = present.item_rows(a_run(body=ALL_TICKED), "")
+    assert finish["title"] == "Finish", "the last tick leaves Finish one ↩ away"
+    assert finish["arg"] == "/log/run.md" and finish["variables"] == {"action": "mark"}, (
+        "Finish is the mark action on the run"
+    )
+    assert len(steps) == 2, "the steps stay listed under it"
+
+
+@pytest.mark.parametrize(
+    "record, typed",
+    [
+        (template(body=ALL_TICKED), ""),
+        (a_run(body=ALL_TICKED), "bump"),
+        (a_run(body=STEPS), ""),
+        (a_finished_run(), ""),
+    ],
+)
+def test_item_rows_do_not_finish_otherwise(record, typed):
+    titles = [row["title"] for row in present.item_rows(record, typed)]
+    assert "Finish" not in titles, "only an open run with every box ticked and nothing typed"

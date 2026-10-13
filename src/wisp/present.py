@@ -1,12 +1,23 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from datetime import datetime
 from typing import TypedDict
 
 from wisp.oracle import Evidence
-from wisp.records import RESOLVED, Kind, Record, normalise, parse
-from wisp.search import matches, query, search
+from wisp.records import (
+    RESOLVED,
+    Item,
+    Kind,
+    Record,
+    items,
+    normalise,
+    open_run,
+    parse,
+    progress,
+    runs,
+)
+from wisp.search import fold, matches, query, search
 
 
 class Icon(TypedDict):
@@ -39,6 +50,7 @@ SETTLE = {
     Kind.DECISION: "Reopen",
 }
 SETTLED = {Kind.DONE: "done", Kind.DECISION: "decided"}
+NO_MODS: dict[str, Mod] = {mod: {"valid": False, "subtitle": ""} for mod in ("shift", "alt", "cmd")}
 
 
 def when(created: datetime, now: datetime) -> str:
@@ -54,8 +66,16 @@ def when(created: datetime, now: datetime) -> str:
 
 
 def rows(text: str, records: Iterable[Record], now: datetime) -> list[Row]:
-    offered = [keep_row(text)] if query(text).words else []
-    return offered + [record_row(record, now) for record in search(text, records, now.date())]
+    logs = list(records)
+    offered = [offer_row(text, logs, now)] if query(text).words else []
+    return offered + [record_row(record, now, logs) for record in search(text, logs, now.date())]
+
+
+def offer_row(text: str, logs: Sequence[Record], now: datetime) -> Row:
+    kind, line = parse(text.strip())
+    if kind is Kind.CHECKLIST:
+        return checklist_offer(line, logs, now)
+    return keep_row(text)
 
 
 def keep_row(text: str) -> Row:
@@ -66,15 +86,71 @@ def keep_row(text: str) -> Row:
         "arg": normalise(text),
         "icon": icon(kind),
         "variables": {"action": "keep"},
-        "mods": {mod: {"valid": False, "subtitle": ""} for mod in ("shift", "alt", "cmd")},
+        "mods": NO_MODS,
     }
 
 
-def record_row(record: Record, now: datetime) -> Row:
+def checklist_offer(line: str, logs: Sequence[Record], now: datetime) -> Row:
+    found = exact_template(line, logs)
+    if found is None:
+        return create_offer(line)
+    run = open_run(found, logs)
+    if run is None:
+        return start_offer(found)
+    return continue_offer(found, run, now)
+
+
+def offer(title: str, subtitle: str, arg: str, variables: dict[str, str]) -> Row:
+    return {
+        "title": title,
+        "subtitle": subtitle,
+        "arg": arg,
+        "icon": icon(Kind.CHECKLIST),
+        "variables": variables,
+        "mods": NO_MODS,
+    }
+
+
+def create_offer(line: str) -> Row:
+    return offer(f'Checklist "{line}"', "↩ creates it", normalise(f"# {line}"), {"action": "start"})
+
+
+def start_offer(template: Record) -> Row:
+    path = str(template.path)
+    row = offer(
+        f'Start "{template.line}"', f"↩ starts a run · {steps(template)}", path, {"action": "start"}
+    )
+    return {**row, "mods": {**NO_MODS, "cmd": fresh_mod(template)}}
+
+
+def continue_offer(template: Record, run: Record, now: datetime) -> Row:
+    subtitle = f"{ratio(run)} since {when(run.created, now)}"
+    row = offer(f'Continue "{template.line}"', subtitle, "", items_action(run))
+    return {**row, "mods": {**NO_MODS, "cmd": fresh_mod(template)}}
+
+
+def fresh_mod(template: Record) -> Mod:
+    return {
+        "arg": str(template.path),
+        "subtitle": "Start a fresh run",
+        "variables": {"action": "start", "fresh": "1"},
+    }
+
+
+def exact_template(line: str, logs: Iterable[Record]) -> Record | None:
+    wanted = fold(line)
+    return next((r for r in logs if r.kind is Kind.CHECKLIST and fold(r.line) == wanted), None)
+
+
+def items_action(record: Record) -> dict[str, str]:
+    return {"action": "items", "path": str(record.path)}
+
+
+def record_row(record: Record, now: datetime, logs: Sequence[Record] = ()) -> Row:
     path = str(record.path)
     return {
         "title": record.text,
-        "subtitle": record_when(record, now),
+        "subtitle": subtitle(record, now, logs),
         "arg": "",
         "icon": icon(record.kind),
         "quicklookurl": path,
@@ -96,11 +172,40 @@ def icon(kind: Kind) -> Icon:
     return {"path": kind.icon}
 
 
+def subtitle(record: Record, now: datetime, logs: Sequence[Record]) -> str:
+    if record.kind is Kind.CHECKLIST:
+        return f"{steps(record)} · {template_state(record, logs, now)}"
+    if not items(record):
+        return record_when(record, now)
+    if record.kind is Kind.DONE:
+        return f"done {when(record.changed, now)} · {ratio(record)} · {when(record.created, now)}"
+    return f"{ratio(record)} · started {when(record.created, now)}"
+
+
 def record_when(record: Record, now: datetime) -> str:
     written = when(record.created, now)
     if record.kind in SETTLED:
         return f"{SETTLED[record.kind]} {when(record.changed, now)} · {written}"
     return written
+
+
+def steps(record: Record) -> str:
+    return f"{progress(record)[1]} steps"
+
+
+def ratio(record: Record) -> str:
+    ticked, total = progress(record)
+    return f"{ticked}/{total}"
+
+
+def template_state(template: Record, logs: Sequence[Record], now: datetime) -> str:
+    run = open_run(template, logs)
+    if run is not None:
+        return f"run open since {when(run.created, now)}"
+    done = runs(template, logs)
+    if done:
+        return f"last done {when(done[0].changed, now)}"
+    return when(template.created, now)
 
 
 def shift_mod(record: Record) -> Mod:
@@ -117,14 +222,29 @@ def settling(record: Record) -> tuple[str, dict[str, str]]:
     return path, {"action": "mark"}
 
 
-def menu_rows(record: Record, typed: str) -> list[Row]:
+def menu_rows(record: Record, typed: str, logs: Sequence[Record] = ()) -> list[Row]:
     if record.kind is Kind.QUESTION:
         return [decide_row(record, typed), *always_rows(record)]
-    return [row for row in menu(record) if matches(typed, row["title"])]
+    return [row for row in menu(record, logs) if matches(typed, row["title"])]
 
 
-def menu(record: Record) -> list[Row]:
+def menu(record: Record, logs: Sequence[Record] = ()) -> list[Row]:
+    if record.kind is Kind.CHECKLIST:
+        return [start_row(record, logs), steps_row(record), *always_rows(record)]
+    if items(record):
+        return [steps_row(record), *settle_rows(record), *always_rows(record)]
     return [*settle_rows(record), *always_rows(record)]
+
+
+def start_row(template: Record, logs: Sequence[Record]) -> Row:
+    run = open_run(template, logs)
+    if run is None:
+        return menu_row("Start", template.text, str(template.path), {"action": "start"})
+    return menu_row("Continue", run.text, "", items_action(run))
+
+
+def steps_row(record: Record) -> Row:
+    return menu_row("Steps", record.text, "", items_action(record))
 
 
 def settle_rows(record: Record) -> list[Row]:
@@ -168,6 +288,50 @@ def decide_row(record: Record, resolution: str) -> Row:
     }
 
 
+def item_rows(record: Record, typed: str) -> list[Row]:
+    shown = [row for row in body_rows(record) if matches(typed, row["title"])]
+    if typed.strip() and not any(row.get("valid", True) for row in shown):
+        return [add_row(record, typed.strip())]
+    if not shown:
+        return [{"title": f'Type a step to add to "{record.line}"', "valid": False}]
+    if not typed.strip() and complete(record):
+        return [menu_row("Finish", record.text, str(record.path), {"action": "mark"}), *shown]
+    return shown
+
+
+def body_rows(record: Record) -> list[Row]:
+    boxed = {item.number: item for item in items(record)}
+    lines = [(n, line.strip()) for n, line in enumerate(record.body.splitlines(), 1)]
+    return [
+        item_row(boxed[n], record) if n in boxed else {"title": text, "valid": False}
+        for n, text in lines
+        if text
+    ]
+
+
+def item_row(item: Item, record: Record) -> Row:
+    return {
+        "title": f"{'☑' if item.ticked else '☐'} {item.text}",
+        "subtitle": "↩ unticks" if item.ticked else "↩ ticks",
+        "arg": str(item.number),
+        "variables": {"action": "tick", "path": str(record.path)},
+    }
+
+
+def add_row(record: Record, text: str) -> Row:
+    return {
+        "title": f'Add "{text}"',
+        "subtitle": "↩ adds a step",
+        "arg": text,
+        "variables": {"action": "add", "path": str(record.path)},
+    }
+
+
+def complete(record: Record) -> bool:
+    ticked, total = progress(record)
+    return record.kind is Kind.TASK and total > 0 and ticked == total
+
+
 def rename_row(text: str) -> Row:
     stripped = text.strip()
     if not stripped:
@@ -185,8 +349,9 @@ def unserved_row() -> Row:
 def question_rows(
     question: str, records: Iterable[Record], now: datetime, found: Evidence
 ) -> list[Row]:
+    logs = list(records)
     offered = [ask_row(question, len(found.lines()), found.terms)] if question else []
-    return offered + [record_row(record, now) for record in search(question, records, now.date())]
+    return offered + [record_row(r, now, logs) for r in search(question, logs, now.date())]
 
 
 def followup_row(question: str, first: str, thread: str, lines: int) -> Row:
@@ -210,5 +375,5 @@ def ask_row(question: str, lines: int, terms: Iterable[str] = ()) -> Row:
         "arg": question,
         "icon": icon(Kind.QUESTION),
         "variables": {"action": "ask"},
-        "mods": {mod: {"valid": False, "subtitle": ""} for mod in ("shift", "alt", "cmd")},
+        "mods": NO_MODS,
     }

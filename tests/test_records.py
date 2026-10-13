@@ -303,3 +303,195 @@ def test_keep_never_overwrites_a_file_that_appears_in_between(folder, mocker):
     assert path.name == "reading-docs-2.md" and taken.read_text() == "someone else\n", (
         "a name that is taken by the time keep writes is skipped, not overwritten"
     )
+
+
+TEMPLATE = "# release checklist\n- [ ] bump version\n- [x] tag\n\nnotes between\n* [X] build\n"
+
+
+def a_checklist(folder, text=TEMPLATE):
+    folder.mkdir(exist_ok=True)
+    path = folder / "release-checklist.md"
+    path.write_text(text)
+    return path
+
+
+@pytest.mark.parametrize(
+    "text, kind, line",
+    [
+        ("# release", records.Kind.CHECKLIST, "release"),
+        ("#", records.Kind.CHECKLIST, ""),
+        ("#api", records.Kind.LOG, "#api"),
+        ("#   spaced", records.Kind.CHECKLIST, "spaced"),
+    ],
+)
+def test_parse_reads_the_checklist_sigil_only_with_a_space(text, kind, line):
+    assert records.parse(text) == (kind, line), f"{text!r} should parse as {kind} {line!r}"
+
+
+def test_normalise_spaces_the_checklist_sigil():
+    assert records.normalise("#   release") == "# release", "one space follows the sigil"
+
+
+def test_checklist_kind_knows_its_words():
+    kind = records.Kind.CHECKLIST
+    assert (kind.sigil, kind.offer, kind.tag, kind.icon) == (
+        "#",
+        "Checklist",
+        "CHECKLIST",
+        "icons/checklist.png",
+    ), "a checklist carries its sigil, offer word, model tag and icon"
+
+
+def test_checklist_slug_ignores_the_sigil(folder):
+    path = records.keep(folder, "# release checklist")
+    assert path.name == "release-checklist.md", "the sigil should not reach the file name"
+
+
+def test_read_record_keeps_the_body(folder, clock, stamps):
+    path = a_checklist(folder)
+    stamps[path.name] = NOW
+    record = records.read_record(path, clock)
+    assert record.line == "release checklist", "the line is still the first line only"
+    assert record.body == TEMPLATE.split("\n", 1)[1], "the body is everything after the first line"
+
+
+def test_parsed_defaults_to_an_empty_body():
+    record = records.Record.parsed(Path("/log/x.md"), "# release", NOW, NOW)
+    assert record.body == "", "a record read from a line alone has no body"
+
+
+def test_first_line_still_ignores_the_body():
+    assert records.first_line(TEMPLATE) == "# release checklist", "first_line is the line"
+
+
+def test_items_number_the_box_lines(folder, clock, stamps):
+    path = a_checklist(folder)
+    stamps[path.name] = NOW
+    record = records.read_record(path, clock)
+    assert records.items(record) == [
+        records.Item(1, "bump version", False),
+        records.Item(2, "tag", True),
+        records.Item(5, "build", True),
+    ], "items are the box lines, numbered by body line, ticked by their mark"
+
+
+@pytest.mark.parametrize(
+    "body, expected",
+    [
+        ("", (0, 0)),
+        ("- [ ] a\n- [ ] b\n", (0, 2)),
+        ("- [x] a\n- [ ] b\n", (1, 2)),
+        ("  - [X] a\n* [x] b\nplain\n", (2, 2)),
+    ],
+)
+def test_progress_counts_ticked_over_total(body, expected):
+    record = records.Record(Path("/log/x.md"), records.Kind.TASK, "r", NOW, NOW, body)
+    assert records.progress(record) == expected, f"{body!r} should progress to {expected}"
+
+
+def a_record(text, created, body="", name="x.md"):
+    return records.Record.parsed(Path("/log") / name, text, created, created, body)
+
+
+def test_runs_are_the_tasks_and_done_tasks_with_the_template_line():
+    template = a_record("# release", NOW)
+    older = a_record(". release", NOW - timedelta(days=2), name="release-2.md")
+    newer = a_record("* release", NOW - timedelta(days=1), name="release-3.md")
+    logs = [
+        older,
+        a_record("release", NOW),
+        a_record(". Release", NOW),
+        a_record(". release notes", NOW),
+        newer,
+        template,
+    ]
+    assert records.runs(template, logs) == [newer, older], (
+        "runs share the exact line, are tasks or done tasks, and come newest first"
+    )
+
+
+def test_open_run_is_the_newest_open_task_with_the_line():
+    template = a_record("# release", NOW)
+    done = a_record("* release", NOW - timedelta(days=1))
+    assert records.open_run(template, [done, template]) is None, "a finished run is not open"
+    open_one = a_record(". release", NOW - timedelta(hours=1))
+    assert records.open_run(template, [done, open_one]) is open_one, "an open task is the run"
+
+
+def test_start_copies_the_body_with_boxes_cleared(folder, clock, stamps):
+    template_path = a_checklist(folder)
+    stamps[template_path.name] = NOW
+    run = records.start(folder, records.read_record(template_path, clock))
+    assert run.name == "release-checklist-2.md", "a run takes the next free name"
+    assert run.read_text() == (
+        ". release checklist\n- [ ] bump version\n- [ ] tag\n\nnotes between\n* [ ] build\n"
+    ), "a run is a task with the template's body and every box cleared"
+    assert template_path.read_text() == TEMPLATE, "the template is untouched"
+
+
+@pytest.mark.parametrize(
+    "number, after",
+    [
+        (1, "# release checklist\n- [x] bump version\n- [x] tag\n\nnotes between\n* [X] build\n"),
+        (2, "# release checklist\n- [ ] bump version\n- [ ] tag\n\nnotes between\n* [X] build\n"),
+        (5, "# release checklist\n- [ ] bump version\n- [x] tag\n\nnotes between\n* [ ] build\n"),
+    ],
+)
+def test_tick_flips_one_box_and_nothing_else(folder, number, after):
+    path = a_checklist(folder)
+    line = records.tick(path, number)
+    assert path.read_text() == after, f"ticking {number} should only flip that box"
+    assert line == after.splitlines()[number], "tick hands back the line it wrote"
+
+
+@pytest.mark.parametrize("number", [0, 3, 4, 6, -1])
+def test_tick_refuses_a_line_that_is_not_a_box(folder, number):
+    path = a_checklist(folder)
+    with pytest.raises(records.NoSuchItem):
+        records.tick(path, number)
+    assert path.read_text() == TEMPLATE, "a refused tick changes nothing"
+
+
+def test_no_such_item_is_a_value_error():
+    assert issubclass(records.NoSuchItem, ValueError), "like Blank, it is a bad argument"
+
+
+@pytest.mark.parametrize(
+    "before, after",
+    [
+        (TEMPLATE, TEMPLATE + "- [ ] publish\n"),
+        ("# empty\n", "# empty\n- [ ] publish\n"),
+        ("# no newline", "# no newline\n- [ ] publish\n"),
+    ],
+)
+def test_add_appends_one_cleared_box(folder, before, after):
+    path = a_checklist(folder, before)
+    line = records.add(path, "  publish  ")
+    assert path.read_text() == after, "add appends a box line and keeps the rest"
+    assert line == "- [ ] publish", "add hands back the line it wrote"
+
+
+def test_add_refuses_blank_text(folder):
+    path = a_checklist(folder)
+    with pytest.raises(records.Blank):
+        records.add(path, "  ")
+
+
+def test_mark_leaves_a_template_alone(folder):
+    path = a_checklist(folder)
+    assert records.mark(path) == "# release checklist", "a template is never finished"
+    assert path.read_text() == TEMPLATE, "mark on a template is a no-op"
+
+
+@pytest.mark.parametrize(
+    "text, body, expected",
+    [
+        (". plain", "", []),
+        (". run", "- [ ] a\n", ["checklist"]),
+        ("# release", "", []),
+        ("* run", "- [x] a\n", ["checklist"]),
+    ],
+)
+def test_tags_say_when_a_task_is_a_run(text, body, expected):
+    record = a_record(text, NOW, body)
+    assert records.tags(record) == expected, f"{text!r} with {body!r} should tag {expected}"

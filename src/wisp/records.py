@@ -22,6 +22,7 @@ class Kind(Enum):
     NOTE = ("!", "Note", "NOTE")
     QUESTION = ("?", "Question", "QUESTION")
     DECISION = ("=", "Decision", "DECIDED")
+    CHECKLIST = ("#", "Checklist", "CHECKLIST")
 
     @property
     def sigil(self) -> str:
@@ -45,9 +46,15 @@ TIGHT = {Kind.QUESTION, Kind.NOTE, Kind.DECISION}
 SETTLED = {Kind.DONE, Kind.DECISION}
 FLIPPED = {Kind.TASK: Kind.DONE, Kind.DONE: Kind.TASK, Kind.DECISION: Kind.QUESTION}
 RESOLVED = " | "
+BOX = re.compile(r"^(\s*[-*] \[)([ xX])(\] .*)$")
+TICKED = {"x", "X"}
 
 
 class Blank(ValueError):
+    pass
+
+
+class NoSuchItem(ValueError):
     pass
 
 
@@ -58,11 +65,14 @@ class Record:
     line: str
     created: datetime
     changed: datetime
+    body: str = ""
 
     @classmethod
-    def parsed(cls, path: Path, text: str, created: datetime, changed: datetime) -> Record:
+    def parsed(
+        cls, path: Path, text: str, created: datetime, changed: datetime, body: str = ""
+    ) -> Record:
         kind, line = parse(text)
-        return cls(path, kind, line, created, changed)
+        return cls(path, kind, line, created, changed, body)
 
     @property
     def text(self) -> str:
@@ -108,12 +118,64 @@ def record_files(folder: Path) -> Iterable[Path]:
 
 
 def read_record(path: Path, stamps: Stamps = file_stamps) -> Record:
-    text = first_line(path.read_text(encoding="utf-8"))
-    return Record.parsed(path, text, *stamps(path))
+    content = path.read_text(encoding="utf-8")
+    return Record.parsed(path, first_line(content), *stamps(path), body(content))
 
 
 def first_line(content: str) -> str:
     return next((line.strip() for line in content.splitlines() if line.strip()), "")
+
+
+def body(content: str) -> str:
+    return split_body(content)[1]
+
+
+def split_body(content: str) -> tuple[str, str]:
+    lines = content.splitlines(keepends=True)
+    first = next((n for n, line in enumerate(lines) if line.strip()), len(lines))
+    return "".join(lines[: first + 1]), "".join(lines[first + 1 :])
+
+
+@dataclass(frozen=True)
+class Item:
+    number: int
+    text: str
+    ticked: bool
+
+
+def items(record: Record) -> list[Item]:
+    return [
+        Item(number, found[3][2:], found[2] in TICKED)
+        for number, found in boxes(record.body.splitlines())
+    ]
+
+
+def boxes(lines: list[str]) -> Iterator[tuple[int, re.Match[str]]]:
+    for number, line in enumerate(lines, start=1):
+        found = BOX.match(line)
+        if found:
+            yield number, found
+
+
+def progress(record: Record) -> tuple[int, int]:
+    steps = items(record)
+    return sum(item.ticked for item in steps), len(steps)
+
+
+def tags(record: Record) -> list[str]:
+    return ["checklist"] if record.kind is not Kind.CHECKLIST and items(record) else []
+
+
+RUN_KINDS = {Kind.TASK, Kind.DONE}
+
+
+def runs(template: Record, logs: Iterable[Record]) -> list[Record]:
+    found = [r for r in logs if r.kind in RUN_KINDS and r.line == template.line]
+    return sorted(found, key=newest_first)
+
+
+def open_run(template: Record, logs: Iterable[Record]) -> Record | None:
+    return next((r for r in runs(template, logs) if r.kind is Kind.TASK), None)
 
 
 def newest_first(record: Record):
@@ -135,6 +197,48 @@ def rename(path: Path, text: str) -> Path:
     target = free_path(path.parent, slug(text))
     path.rename(target)
     return target
+
+
+def start(folder: Path, template: Record) -> Path:
+    text = compose(Kind.TASK, template.line) + "\n" + cleared(template.body)
+    return create(folder, slug(template.line), text)
+
+
+def cleared(body: str) -> str:
+    return "".join(
+        BOX.sub(r"\g<1> \g<3>", line) if BOX.match(line) else line
+        for line in body.splitlines(keepends=True)
+    )
+
+
+def tick(path: Path, number: int) -> str:
+    content = path.read_text(encoding="utf-8")
+    first, rest = split_body(content)
+    lines = rest.splitlines(keepends=True)
+    found = BOX.match(lines[number - 1]) if 0 < number <= len(lines) else None
+    if not found:
+        raise NoSuchItem(number)
+    flipped = found[1] + flip(found[2]) + found[3]
+    lines[number - 1] = flipped + lines[number - 1][found.end() :]
+    path.write_text(first + "".join(lines), encoding="utf-8")
+    return flipped
+
+
+def flip(mark: str) -> str:
+    return " " if mark in TICKED else "x"
+
+
+def add(path: Path, text: str) -> str:
+    if not text.strip():
+        raise Blank(text)
+    content = path.read_text(encoding="utf-8")
+    line = f"- [ ] {text.strip()}"
+    path.write_text(ended(content) + line + "\n", encoding="utf-8")
+    return line
+
+
+def ended(content: str) -> str:
+    return content if not content or content.endswith("\n") else content + "\n"
 
 
 def mark(path: Path) -> str:

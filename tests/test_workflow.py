@@ -10,7 +10,14 @@ from wisp import cli, present, records
 
 ROOT = Path(__file__).resolve().parent.parent
 WORKFLOW = ROOT / "workflow"
-ALFRED_VARIABLES = {"alfred_workflow_data", "alfred_workflow_cache", "job", "thread"}
+ALFRED_VARIABLES = {
+    "alfred_workflow_data",
+    "alfred_workflow_cache",
+    "job",
+    "thread",
+    "path",
+    "fresh",
+}
 EQUALS = 0
 
 
@@ -53,13 +60,29 @@ def actions_in(row):
 
 
 def emitted_actions():
-    rows = [present.keep_row("x"), present.ask_row("x", 1)]
+    rows = [present.keep_row("x"), present.ask_row("x", 1), present.checklist_offer("x", [], NOW)]
     for kind in records.Kind:
-        record = records.Record(Path("/log/x.md"), kind, "x", NOW, NOW)
+        record = records.Record(Path("/log/x.md"), kind, "x", NOW, NOW, "- [ ] step\n")
         rows.append(present.record_row(record, NOW + timedelta(minutes=1)))
         rows.extend(present.menu(record))
         rows.append(present.decide_row(record, "y"))
+        rows.extend(present.item_rows(record, "") + present.item_rows(record, "new step"))
     return set().union(*map(actions_in, rows))
+
+
+def fed_by_act(plist, objects):
+    (act,) = [
+        uid for uid, o in objects.items() if "wisp act" in o.get("config", {}).get("script", "")
+    ]
+    return {c["destinationuid"] for c in plist["connections"].get(act, [])}
+
+
+def conditions_of(o):
+    return (
+        [c["matchstring"] for c in o["config"]["conditions"]]
+        if o["type"].endswith("conditional")
+        else []
+    )
 
 
 def test_every_script_runs_a_known_command(plist):
@@ -80,10 +103,46 @@ def test_every_act_action_is_emitted():
 
 
 def test_the_plist_routes_only_to_alfred_objects(plist, objects):
-    for action in match_strings(plist):
-        assert action not in cli.ACTIONS, f"{action!r} is act's, the plist should not branch on it"
+    after = fed_by_act(plist, objects)
+    for uid, o in objects.items():
+        if uid in after:
+            continue
+        for action in conditions_of(o):
+            assert action not in cli.ACTIONS, (
+                f"{action!r} is act's, the plist should not branch on it"
+            )
     for script in scripts(plist):
         assert not case_labels(script), "dispatch lives in wisp act, not in a bash case"
+
+
+def test_after_act_the_plist_only_picks_what_to_show(plist, objects):
+    (after,) = fed_by_act(plist, objects)
+    assert set(conditions_of(objects[after])) == {"start", "tick", "add"}, (
+        "act's output leads to the steps for the actions that change a checklist"
+    )
+    assert objects[after]["config"]["hideelse"], "every other action closes Alfred"
+    items_filters = [
+        uid for uid, o in objects.items() if "wisp items" in o.get("config", {}).get("script", "")
+    ]
+    (items,) = items_filters
+    for c in plist["connections"][after]:
+        step = objects[c["destinationuid"]]
+        assert step["type"].endswith("utility.argument"), "an Arg and Vars clears the typed text"
+        assert step["config"]["argument"] == "", "the steps open with nothing typed"
+        assert [x["destinationuid"] for x in plist["connections"][c["destinationuid"]]] == [
+            items
+        ], "and leads to the steps filter"
+    (start,) = [
+        c
+        for c in plist["connections"][after]
+        if c["sourceoutputuid"] == objects[after]["config"]["conditions"][0]["uid"]
+    ]
+    assert objects[start["destinationuid"]]["config"]["variables"] == {"path": "{query}"}, (
+        "after start, the path is the run act printed"
+    )
+    assert [c["destinationuid"] for c in plist["connections"][items]] == [
+        uid for uid, o in objects.items() if "wisp act" in o.get("config", {}).get("script", "")
+    ], "↩ in the steps runs act, which leads back here or closes"
 
 
 def test_every_branch_is_an_emitted_action(plist):
@@ -113,7 +172,9 @@ def test_every_connection_points_at_an_object(plist, objects):
 
 def test_every_trigger_and_filter_leads_somewhere(plist, objects):
     for uid, o in objects.items():
-        if o["type"].endswith(("hotkey", "scriptfilter", "conditional", "userinterface.text")):
+        if o["type"].endswith(
+            ("hotkey", "scriptfilter", "conditional", "userinterface.text", "utility.argument")
+        ):
             assert plist["connections"].get(uid), f"{o['type']} {uid} is wired to nothing"
 
 

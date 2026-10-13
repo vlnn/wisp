@@ -36,7 +36,9 @@ SYSTEM = (
     "TODO is a task still open, DONE is a finished task (the time after DONE is when it "
     "was finished), QUESTION is a question still open, DECIDED is a question settled or a "
     "decision made (the time after DECIDED is when; ` | ` separates a question from its "
-    "resolution), NOTE is something the person flagged as important. Lines without a word are "
+    "resolution), NOTE is something the person flagged as important, CHECKLIST is a reusable "
+    "list of steps whose runs are the TODO and DONE lines with the same text (`4/7` after a run "
+    "is steps done over steps in all). Lines without a word are "
     "plain log entries. Answer from the log only, briefly, "
     "in the language of the question, as plain text without headings."
 )
@@ -133,10 +135,15 @@ def line(record: Record) -> str:
 
 def tagged(record: Record) -> str:
     if record.kind in records.SETTLED:
-        return f"{record.kind.tag} {record.changed:{STAMP}}  {record.line}"
+        return f"{record.kind.tag} {record.changed:{STAMP}}  {record.line}{counted(record)}"
     if record.kind.tag:
-        return f"{record.kind.tag}  {record.line}"
+        return f"{record.kind.tag}  {record.line}{counted(record)}"
     return record.text
+
+
+def counted(record: Record) -> str:
+    ticked, total = records.progress(record)
+    return f"  {ticked}/{total}" if records.tags(record) else ""
 
 
 @dataclass(frozen=True)
@@ -232,6 +239,7 @@ SCOPED = {
     Kind.NOTE: "notes",
     Kind.QUESTION: "open questions",
     Kind.DECISION: "decisions",
+    Kind.CHECKLIST: "checklists",
 }
 
 

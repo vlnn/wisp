@@ -42,7 +42,7 @@
 			</dict>
 			<dict>
 				<key>destinationuid</key>
-				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C05</string>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C0F</string>
 				<key>modifiers</key>
 				<integer>1048576</integer>
 				<key>modifiersubtext</key>
@@ -100,6 +100,18 @@
 				<string></string>
 				<key>sourceoutputuid</key>
 				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C13</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C1B</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>sourceoutputuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C24</string>
 				<key>vitoclose</key>
 				<false/>
 			</dict>
@@ -175,6 +187,18 @@
 				<string></string>
 				<key>sourceoutputuid</key>
 				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C19</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C1B</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>sourceoutputuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C23</string>
 				<key>vitoclose</key>
 				<false/>
 			</dict>
@@ -283,6 +307,97 @@
 			<dict>
 				<key>destinationuid</key>
 				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C08</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C02</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C1C</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C1C</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C20</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>sourceoutputuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C1D</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C21</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>sourceoutputuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C1E</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C21</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>sourceoutputuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C1F</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C20</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C1B</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C21</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C1B</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C1B</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C02</string>
 				<key>modifiers</key>
 				<integer>0</integer>
 				<key>modifiersubtext</key>
@@ -633,6 +748,20 @@
 						<key>uid</key>
 						<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C13</string>
 					</dict>
+					<dict>
+						<key>inputstring</key>
+						<string>{var:action}</string>
+						<key>matchcasesensitive</key>
+						<false/>
+						<key>matchmode</key>
+						<integer>0</integer>
+						<key>matchstring</key>
+						<string>items</string>
+						<key>outputlabel</key>
+						<string>items</string>
+						<key>uid</key>
+						<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C24</string>
+					</dict>
 				</array>
 				<key>elselabel</key>
 				<string>act</string>
@@ -760,6 +889,20 @@
 						<key>uid</key>
 						<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C19</string>
 					</dict>
+					<dict>
+						<key>inputstring</key>
+						<string>{var:action}</string>
+						<key>matchcasesensitive</key>
+						<false/>
+						<key>matchmode</key>
+						<integer>0</integer>
+						<key>matchstring</key>
+						<string>items</string>
+						<key>outputlabel</key>
+						<string>items</string>
+						<key>uid</key>
+						<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C23</string>
+					</dict>
 				</array>
 				<key>elselabel</key>
 				<string>act</string>
@@ -877,6 +1020,152 @@
 			<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C1A</string>
 			<key>version</key>
 			<integer>3</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>alfredfiltersresults</key>
+				<false/>
+				<key>alfredfiltersresultsmatchmode</key>
+				<integer>0</integer>
+				<key>argumenttreatemptyqueryasnil</key>
+				<false/>
+				<key>argumenttrimmode</key>
+				<integer>0</integer>
+				<key>argumenttype</key>
+				<integer>1</integer>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>keyword</key>
+				<string></string>
+				<key>queuedelaycustom</key>
+				<integer>1</integer>
+				<key>queuedelayimmediatelyinitially</key>
+				<true/>
+				<key>queuedelaymode</key>
+				<integer>0</integer>
+				<key>queuemode</key>
+				<integer>1</integer>
+				<key>runningsubtext</key>
+				<string></string>
+				<key>script</key>
+				<string>/usr/bin/python3 -m wisp items "$path" "$1"</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>subtext</key>
+				<string>↩ ticks the first row; type to narrow, or a step to add</string>
+				<key>title</key>
+				<string>Steps</string>
+				<key>type</key>
+				<integer>0</integer>
+				<key>withspace</key>
+				<true/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.input.scriptfilter</string>
+			<key>uid</key>
+			<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C1B</string>
+			<key>version</key>
+			<integer>3</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>conditions</key>
+				<array>
+					<dict>
+						<key>inputstring</key>
+						<string>{var:action}</string>
+						<key>matchcasesensitive</key>
+						<false/>
+						<key>matchmode</key>
+						<integer>0</integer>
+						<key>matchstring</key>
+						<string>start</string>
+						<key>outputlabel</key>
+						<string>start</string>
+						<key>uid</key>
+						<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C1D</string>
+					</dict>
+					<dict>
+						<key>inputstring</key>
+						<string>{var:action}</string>
+						<key>matchcasesensitive</key>
+						<false/>
+						<key>matchmode</key>
+						<integer>0</integer>
+						<key>matchstring</key>
+						<string>tick</string>
+						<key>outputlabel</key>
+						<string>tick</string>
+						<key>uid</key>
+						<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C1E</string>
+					</dict>
+					<dict>
+						<key>inputstring</key>
+						<string>{var:action}</string>
+						<key>matchcasesensitive</key>
+						<false/>
+						<key>matchmode</key>
+						<integer>0</integer>
+						<key>matchstring</key>
+						<string>add</string>
+						<key>outputlabel</key>
+						<string>add</string>
+						<key>uid</key>
+						<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C1F</string>
+					</dict>
+				</array>
+				<key>elselabel</key>
+				<string>else</string>
+				<key>hideelse</key>
+				<true/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.utility.conditional</string>
+			<key>uid</key>
+			<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C1C</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>argument</key>
+				<string></string>
+				<key>passthroughargument</key>
+				<false/>
+				<key>variables</key>
+				<dict>
+					<key>path</key>
+					<string>{query}</string>
+				</dict>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.utility.argument</string>
+			<key>uid</key>
+			<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C20</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>argument</key>
+				<string></string>
+				<key>passthroughargument</key>
+				<false/>
+				<key>variables</key>
+				<dict/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.utility.argument</string>
+			<key>uid</key>
+			<string>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C21</string>
+			<key>version</key>
+			<integer>1</integer>
 		</dict>
 	</array>
 	<key>readme</key>
@@ -996,6 +1285,34 @@ Records are markdown files in the Log folder, one per line; their creation time 
 			<integer>830</integer>
 			<key>ypos</key>
 			<integer>50</integer>
+		</dict>
+		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C1B</key>
+		<dict>
+			<key>xpos</key>
+			<integer>580</integer>
+			<key>ypos</key>
+			<integer>530</integer>
+		</dict>
+		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C1C</key>
+		<dict>
+			<key>xpos</key>
+			<integer>480</integer>
+			<key>ypos</key>
+			<integer>110</integer>
+		</dict>
+		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C20</key>
+		<dict>
+			<key>xpos</key>
+			<integer>580</integer>
+			<key>ypos</key>
+			<integer>110</integer>
+		</dict>
+		<key>7F0C2C61-7C2B-4C2A-9B51-0D1F2B3A4C21</key>
+		<dict>
+			<key>xpos</key>
+			<integer>580</integer>
+			<key>ypos</key>
+			<integer>230</integer>
 		</dict>
 	</dict>
 	<key>userconfigurationconfig</key>

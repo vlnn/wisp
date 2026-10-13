@@ -202,3 +202,14 @@ def test_scope_is_kind_and_window_without_the_words(week):
         )
         is False
     ), "yesterday's task is not"
+
+
+def test_query_reads_the_checklist_sigil():
+    asked = search.query("# rel")
+    assert (asked.kind, asked.words) == (Kind.CHECKLIST, "rel"), "# scopes to checklists"
+
+
+def test_a_bare_checklist_sigil_scopes_to_templates():
+    template = Record.parsed(Path("/log/t.md"), "# release", NOW, NOW)
+    run = Record.parsed(Path("/log/r.md"), ". release", NOW, NOW)
+    assert search.search("#", [run, template]) == [template], "l # lists templates only"

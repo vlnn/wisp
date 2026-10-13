@@ -688,3 +688,104 @@ def test_ask_more_with_nothing_typed_waits(run, served, answered):
     assert row["valid"] is False and row["title"] == 'Type a follow-up to "how many api lines"', (
         "nothing to ask yet"
     )
+
+
+TEMPLATE = "# release\n- [ ] bump\n- [ ] tag\n"
+
+
+@pytest.fixture
+def template(folder, stamps):
+    folder.mkdir()
+    path = folder / "release.md"
+    path.write_text(TEMPLATE)
+    stamps[path.name] = NOW
+    return path
+
+
+def test_start_writes_a_run_and_prints_its_path(run, folder, template, stamps):
+    code, out = run("start", str(template))
+    assert code == 0 and out.strip() == str(folder / "release-2.md"), "start prints the run"
+    assert (folder / "release-2.md").read_text() == ". release\n- [ ] bump\n- [ ] tag\n", (
+        "the run is a task with the boxes cleared"
+    )
+
+
+def test_start_continues_an_open_run_unless_fresh(run, folder, template, stamps, env):
+    _, first = run("start", str(template))
+    stamps["release-2.md"] = NOW
+    _, again = run("start", str(template))
+    assert again == first, "a second start hands back the open run"
+    env["fresh"] = "1"
+    _, fresh = run("start", str(template))
+    assert fresh.strip() == str(folder / "release-3.md"), "fresh starts another run anyway"
+
+
+def test_start_with_text_creates_the_template(run, folder):
+    code, out = run("start", "# packing")
+    assert code == 0 and out.strip() == str(folder / "packing.md"), "start prints the template"
+    assert (folder / "packing.md").read_text() == "# packing\n", "a new template has no steps"
+    assert names(folder) == ["packing.md"], "no run is started for an empty new template"
+
+
+def test_tick_reads_the_path_variable_and_prints_the_line(run, template, env):
+    env["path"] = str(template)
+    code, out = run("tick", "2")
+    assert code == 0 and out.strip() == "- [x] tag", "tick prints the flipped line"
+    assert template.read_text() == "# release\n- [ ] bump\n- [x] tag\n", "the file is ticked"
+
+
+def test_tick_of_a_non_step_fails_quietly(run, template, env):
+    env["path"] = str(template)
+    code, _ = run("tick", "9")
+    assert code == 1, "a bad item number is a bad argument, like blank text"
+
+
+def test_add_appends_a_step_and_prints_it(run, template, env):
+    env["path"] = str(template)
+    code, out = run("add", "publish", "notes")
+    assert code == 0 and out.strip() == "- [ ] publish notes", "add prints the new line"
+    assert template.read_text().endswith("- [ ] publish notes\n"), "the step is appended"
+
+
+def test_items_lists_the_steps(run, template):
+    _, out = run("items", str(template), "")
+    assert titles(out) == ["☐ bump", "☐ tag"], "items emits one row per step"
+
+
+def test_items_narrows_and_offers_to_add(run, template):
+    _, out = run("items", str(template), "ta")
+    assert titles(out) == ["☐ tag"], "typed text narrows the steps"
+    _, out = run("items", str(template), "ship")
+    assert titles(out) == ['Add "ship"'], "unmatched text is offered as a new step"
+
+
+@pytest.mark.parametrize("action", ["start", "tick", "add"])
+def test_act_dispatches_the_checklist_actions(run, template, env, action):
+    env["path"] = str(template)
+    argument = {"start": str(template), "tick": "1", "add": "ship"}[action]
+    code, out = run("act", action, argument)
+    assert code == 0 and out.strip(), f"act {action} behaves as `wisp {action}`"
+
+
+def test_menu_on_a_template_offers_start_then_steps(run, template):
+    _, out = run("menu", str(template), "")
+    assert titles(out)[:2] == ["Start", "Steps"], "a template's menu starts or edits it"
+
+
+def test_menu_on_a_template_with_an_open_run_continues(run, folder, template, stamps):
+    run("start", str(template))
+    stamps["release-2.md"] = NOW
+    _, out = run("menu", str(template), "")
+    assert titles(out)[0] == "Continue", "with a run open, the menu continues it"
+
+
+def test_filter_lists_checklists_with_their_steps(run, template):
+    _, out = run("filter", "#")
+    assert rows(out) == [
+        {
+            **rows(out)[0],
+            "title": "# release",
+            "subtitle": "2 steps · 15:00 today",
+            "icon": {"path": "icons/checklist.png"},
+        }
+    ], "l # lists templates with their step count"

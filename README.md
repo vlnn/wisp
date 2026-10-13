@@ -68,6 +68,31 @@ blue for a question. Under `ask`, the *Ask* row wears the open question's ring a
 answers the decision's dot. The colours are the top of `workflow/icons.py`;
 `uv run python workflow/icons.py` redraws them.
 
+## Checklists: `l # name`
+
+A checklist is a list of steps you go through more than once: a release, a morning, packing a bag.
+`#` with a space starts a template; `#api` stays a plain log.
+
+```
+l #                          checklists, with how many steps and whether a run is open
+l # release checklist        Start "release checklist"   ↩ starts a run, or continues the open one
+                             # release checklist     7 steps · run open since 09:12 today
+l # packing                  Checklist "packing"         ↩ creates it, then lists its (empty) steps
+l . release                  the open run, as a task: 4/7 · started 09:12 today
+l * release                  finished runs: done 17:40 today · 7/7 · 09:12 today
+```
+
+The template is a file whose body is box lines (`- [ ] bump version`), one per step; ↩ on it then
+*Steps* lists them, type a step and ↩ adds it. Starting copies the body into a new task (`. release
+checklist`) with every box cleared, so a run lives the life of any task: open under `l .`,
+finished under `l *`, *Finish* and *Reopen* in its menu, and the folder is the history. In the
+steps, ↩ ticks a box (and unticks it), typing narrows the list or offers to add what matches
+nothing, and once every box is ticked the first row is *Finish*. The first row under `l # name`
+is for when you have typed the whole name: *Start* when nothing is open, *Continue* (with the
+progress) when a run is, and ⌘↩ starts a fresh run anyway; a prefix match is listed below it
+as usual, and ↩ on that row opens its menu. A checklist's icon is a plum ring, since a template
+is never settled.
+
 ## Install
 
 1. Build `dist/Wisp.alfredworkflow` with `./build.sh` (or take it from Releases) and double-click it.

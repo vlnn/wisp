@@ -18,7 +18,8 @@ Eight small modules, each with one job, so a feature lands in one of them:
 Alfred wiring is `workflow/info.plist`: two script filters, `l` for the log and `ask` for the model,
 each with a hotkey object; `ask` lists the same log rows under its own, so it has the same four
 connections as `l`. The plist only routes to Alfred's own objects; every side effect is `wisp act "$action" "$1"`,
-which dispatches through `cli.ACTIONS` (`keep`, `mark`, `open`, `copy`, `trash`). Both ↩ into one
+which dispatches through `cli.ACTIONS` (`keep`, `mark`, `open`, `copy`, `trash`, `start`, `tick`,
+`add`). Both ↩ into one
 conditional on the `action` variable: `ask` goes to the Text View (script file `view` at the bundle
 root), `menu` to a keywordless script filter (`menu`) that lists what the record can do, else `act`.
 The menu's rows carry the same `action` values the modifier keys use, and its ↩ passes a second
@@ -32,6 +33,18 @@ action is a line in `present.menu`, a `variables.action` value and an entry in `
 plist changes only when the action needs an Alfred object. A new shortcut is a connection from the
 first filter. Esc in the menu closes Alfred rather than going back to the list; ⌃↩ is not used because
 Alfred reserves it for the default fallback search.
+
+Checklists add one keywordless script filter, `items` (`wisp items "$path" "$1"`), and the only
+routing that happens after `act`: a conditional on `act`'s output sends `start`, `tick` and `add`
+back into `items` through an Arg and Vars that clears the typed text (and, after `start`, sets
+`path` to the run's path that `act` printed); every other action falls off the hidden else and
+closes Alfred. `items` is reached from the `l` ↩ conditional (the *Continue* offer row), from the
+menu's conditional (*Steps*, *Continue*), and from itself after a tick. ⌘↩ from `l` now passes the
+menu's conditional too, so the offer row's ⌘↩ (`start` with `fresh`) reaches `act` while a record's
+⌘↩ still reaches the rename filter. `tick` and `add` read the record from the `path` variable, like
+`decide`; `start` takes the template path from `$1`, or the text of a template that does not exist
+yet, which it keeps (that is the *Checklist "name"* offer row) and prints, so the same branch opens
+its empty steps.
 
 The Text View runs `wisp view <question>` with no `job` variable, which starts `wisp ask --job
 <folder>` detached and returns a rerun of 0.2 s; each rerun reads the job folder (`partial.md`,
@@ -97,6 +110,16 @@ word the model sees (`Kind.tag`). What stays outside the enum is the state machi
 `SETTLED`, `present.SETTLE`), since that relates kinds to each other. `present.Row` is Alfred's row
 as a `TypedDict`, so mypy catches a misspelt key; `oracle.Backend` is a `Protocol`, so a third model
 only needs `budget`, `respond` and `check`, and a branch in `oracle.backend`.
+
+`#` with a space is a checklist template (`Kind.CHECKLIST`); the body below the line is its steps,
+box lines that `records.BOX` reads and `records.items` numbers by body line, so a heading or a note
+between steps is kept and shown but not tickable. A run is not a kind: `records.start` creates a
+task with the template's line and its body with the boxes cleared (`records.cleared`), so `mark`,
+`l .` and `l *` already know what to do with it, `records.runs` finds a template's runs by line
+equality, and `records.tags` says `checklist` of a task with box lines, which is how `present`
+tells a run from a plain task. `tick` and `add` rewrite the body and never the first line, so the
+birth time survives and `st_mtime` is the last tick. The template is never marked: `mark` returns
+the line unchanged for a kind not in `FLIPPED`.
 
 `!` is a kind here, not a flag, so an important task has no spelling yet. If one is ever wanted,
 the choice is between a second sigil position (`!. `) and making `!` orthogonal to the others;

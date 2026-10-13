@@ -34,8 +34,13 @@ with tempfile.TemporaryDirectory() as folder:
     env = dict(os.environ, log_folder=folder)
     subprocess.run([sys.executable, "-m", "wisp", "keep", "smoke test"], cwd=stage, env=env, check=True, capture_output=True)
     out = subprocess.run([sys.executable, "-m", "wisp", "filter", "smoke"], cwd=stage, env=env, check=True, capture_output=True, text=True).stdout
+    template = subprocess.run([sys.executable, "-m", "wisp", "start", "# smoke"], cwd=stage, env=env, check=True, capture_output=True, text=True).stdout.strip()
+    subprocess.run([sys.executable, "-m", "wisp", "add", "one step"], cwd=stage, env=dict(env, path=template), check=True, capture_output=True)
+    steps = subprocess.run([sys.executable, "-m", "wisp", "items", template, ""], cwd=stage, env=env, check=True, capture_output=True, text=True).stdout
 titles = [row["title"] for row in json.loads(out)["items"]]
 assert titles == ['Log "smoke"', "smoke test"], titles
+step_titles = [row["title"] for row in json.loads(steps)["items"]]
+assert step_titles == ["☐ one step"], step_titles
 EOF
 
 echo "dist/Wisp.alfredworkflow ($version)"

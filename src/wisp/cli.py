@@ -73,6 +73,12 @@ class Context:
     def record(self, path: str) -> records.Record:
         return records.read_record(Path(path), self.stamps)
 
+    def path(self) -> Path:
+        return Path(self.env.get("path", ""))
+
+    def fresh(self) -> bool:
+        return bool(self.env.get("fresh"))
+
     def backend(self) -> oracle.Backend | None:
         return oracle.backend(self.env)
 
@@ -179,7 +185,31 @@ def act_command(args: list[str], ctx: Context) -> int:
 
 def menu_command(args: list[str], ctx: Context) -> int:
     record = ctx.record(args[0])
-    return emit(present.menu_rows(record, args[1] if len(args) > 1 else ""))
+    return emit(present.menu_rows(record, args[1] if len(args) > 1 else "", ctx.logs()))
+
+
+def items_command(args: list[str], ctx: Context) -> int:
+    record = ctx.record(args[0])
+    return emit(present.item_rows(record, args[1] if len(args) > 1 else ""))
+
+
+def start_command(args: list[str], ctx: Context) -> int:
+    given = " ".join(args).strip()
+    if not Path(given).is_file():
+        return say(str(records.keep(ctx.folder, given)))
+    template = ctx.record(given)
+    run = None if ctx.fresh() else records.open_run(template, ctx.logs())
+    return say(str(run.path if run else records.start(ctx.folder, template)))
+
+
+def tick_command(args: list[str], ctx: Context) -> int:
+    if not args or not args[0].strip().isdigit():
+        raise records.NoSuchItem(args)
+    return say(records.tick(ctx.path(), int(args[0])))
+
+
+def add_command(args: list[str], ctx: Context) -> int:
+    return say(records.add(ctx.path(), " ".join(args)))
 
 
 def decide_command(args: list[str], ctx: Context) -> int:
@@ -298,6 +328,9 @@ ACTIONS: dict[str, Command] = {
     "open": open_command,
     "copy": copy_command,
     "trash": trash_command,
+    "start": start_command,
+    "tick": tick_command,
+    "add": add_command,
 }
 
 COMMANDS: dict[str, Command] = {
@@ -308,6 +341,7 @@ COMMANDS: dict[str, Command] = {
     "rename": rename_command,
     "decide": decide_command,
     "menu": menu_command,
+    "items": items_command,
     "ask-filter": ask_filter_command,
     "ask-more": ask_more_command,
     "ask": ask_command,
@@ -331,7 +365,7 @@ def run(
     ctx = Context(env, now or datetime.now(), stamps or records.file_stamps)
     try:
         return COMMANDS[argv[0]](argv[1:], ctx)
-    except records.Blank:
+    except (records.Blank, records.NoSuchItem):
         return 1
     except FileNotFoundError as error:
         return fail(f"No such record: {error.filename}")
