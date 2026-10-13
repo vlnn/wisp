@@ -749,7 +749,9 @@ def test_add_appends_a_step_and_prints_it(run, template, env):
 
 def test_items_lists_the_steps(run, template):
     _, out = run("items", str(template), "")
-    assert titles(out) == ["☐ bump", "☐ tag"], "items emits one row per step"
+    assert titles(out) == ['Start "release"', "☐ bump", "☐ tag"], (
+        "items leads a template with Start, then one row per step"
+    )
 
 
 def test_items_narrows_and_offers_to_add(run, template):
@@ -792,8 +794,20 @@ def test_filter_lists_checklists_with_their_steps(run, template):
 
 
 def test_items_and_tick_trim_the_path_alfred_hands_over(run, template, env):
-    _, out = run("items", f"{template}\n", "")
-    assert titles(out) == ["☐ bump", "☐ tag"], "a Run Script's output ends in a newline"
+    _, out = run("items", f"{template}\n", "ta")
+    assert titles(out) == ["☐ tag"], "a Run Script's output ends in a newline"
     env["path"] = f"{template}\n"
     code, out = run("tick", "1")
     assert code == 0 and out.strip() == "- [x] bump", "tick reads the path trimmed"
+
+
+def test_start_from_a_finished_run_makes_a_fresh_one(run, folder, template, stamps):
+    _, first = run("start", str(template))
+    done = Path(first.strip())
+    done.write_text("* release\n- [x] bump\n- [x] tag\n")
+    stamps[done.name] = NOW
+    _, again = run("start", str(done))
+    assert again.strip() == str(folder / "release-3.md"), "a finished run starts another"
+    assert (folder / "release-3.md").read_text() == ". release\n- [ ] bump\n- [ ] tag\n", (
+        "the new run is open with every box cleared"
+    )

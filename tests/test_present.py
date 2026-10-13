@@ -430,3 +430,26 @@ def test_item_rows_put_the_next_step_first():
     assert [row["title"] for row in rows] == ["☐ tag", "notes", "☑ bump version", "☑ build"], (
         "ticked steps sink to the bottom, so ↩ lands on the next step to do"
     )
+
+
+@pytest.mark.parametrize(
+    "record, title, arg",
+    [
+        (template(body=ALL_TICKED), 'Start "release checklist"', "/log/template.md"),
+        (template(), 'Start "release checklist"', "/log/template.md"),
+        (a_finished_run(), 'Run "release checklist" again', "/log/done.md"),
+    ],
+)
+def test_item_rows_lead_to_a_fresh_run(record, title, arg):
+    (lead, *steps) = present.item_rows(record, "")
+    assert lead["title"] == title, "a template or a finished run starts a run from its steps"
+    assert lead["subtitle"] == "↩ starts a run with every box cleared", "the subtitle says so"
+    assert (lead["arg"], lead["variables"]) == (arg, {"action": "start"}), (
+        "the row is the start action on this file"
+    )
+    assert len(steps) == len(present.body_rows(record)), "the steps stay listed under it"
+
+
+def test_item_rows_lead_row_steps_aside_when_typing():
+    titles = [row["title"] for row in present.item_rows(template(), "bu")]
+    assert titles == ["☐ bump version", "☐ build"], "typing narrows to steps only"

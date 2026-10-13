@@ -294,9 +294,24 @@ def item_rows(record: Record, typed: str) -> list[Row]:
         return [add_row(record, typed.strip())]
     if not shown:
         return [{"title": f'Type a step to add to "{record.line}"', "valid": False}]
-    if not typed.strip() and complete(record):
-        return [menu_row("Finish", record.text, str(record.path), {"action": "mark"}), *shown]
-    return shown
+    if typed.strip():
+        return shown
+    return [*lead_rows(record), *shown]
+
+
+def lead_rows(record: Record) -> list[Row]:
+    if complete(record):
+        return [menu_row("Finish", record.text, str(record.path), {"action": "mark"})]
+    if record.kind is Kind.CHECKLIST:
+        return [fresh_run_row(record, f'Start "{record.line}"')]
+    if record.kind is Kind.DONE:
+        return [fresh_run_row(record, f'Run "{record.line}" again')]
+    return []
+
+
+def fresh_run_row(record: Record, title: str) -> Row:
+    subtitle = "↩ starts a run with every box cleared"
+    return menu_row(title, subtitle, str(record.path), {"action": "start"})
 
 
 def body_rows(record: Record) -> list[Row]:
