@@ -30,7 +30,9 @@ Matching: every word you type must be a prefix of a word in the line; case and d
 ignored. One word may be a day instead: `today`, `yesterday`, a weekday (`mon`, `friday`: the most
 recent one), `2026-10-03` or a month `2026-09`, and the list narrows to records from then. The
 first row still offers the whole text, so `l today standup` logs "today standup" and lists today's
-records about standups. There is no cap on the number of rows.
+records about standups. A word with a dash in front leaves out the lines it matches instead: `l api
+-v2` lists the api records that say nothing about v2, `l . -build` the open tasks that are not about
+the build. `--force` and `x-ray` stay ordinary words. There is no cap on the number of rows.
 
 ## Tasks, notes, questions, decisions
 
@@ -145,7 +147,9 @@ The model sees each line as `YYYY-MM-DD HH:MM  text`; the other kinds carry a wo
 text, `TODO`, `QUESTION`, `NOTE`, or `DONE` and `DECIDED` with the time they were settled, so "what
 is still open?", "what did I finish this week?" and "why postgres?" are questions it can answer. A day word in the question (`what
 did I do yesterday`, `summary of 2026-09`) sends that day's lines and nothing else, and a sigil
-(`ask . what is still open`) sends that kind only. The question goes with the log, newest
+(`ask . what is still open`) sends that kind only. A dashed word (`ask what did I do today
+-meetings`) keeps the lines it matches away from the model altogether, and the log's heading says
+so. The question goes with the log, newest
 line first, cut at about 12 000 characters for a server and
 6 000 for the Apple model, whose context window is 4 096 tokens. If any line matches the
 question's words (the rows listed under **Ask**), only those lines go, however old they are, so

@@ -14,6 +14,7 @@ Span = tuple[date, date]
 DAY_NAMES = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
 WEEKDAYS = {name[:cut]: n for n, name in enumerate(DAY_NAMES) for cut in (3, len(name))}
 DATED = re.compile(r"(\d{4})-(\d{2})(?:-(\d{2}))?")
+EXCLUDED = re.compile(r"-\w.*")
 
 
 @dataclass(frozen=True)
@@ -21,6 +22,7 @@ class Query:
     kind: Kind | None
     words: str
     span: Span | None = None
+    without: tuple[str, ...] = ()
 
 
 def fold(text: str) -> str:
@@ -39,8 +41,18 @@ def matches(query: str, text: str) -> bool:
 
 def query(text: str, today: date | None = None) -> Query:
     kind, rest = parse(text.strip())
-    span, remaining = windowed(rest.split(), today) if today else (None, rest.split())
-    return Query(None if kind is Kind.LOG else kind, " ".join(remaining), span)
+    span, tokens = windowed(rest.split(), today) if today else (None, rest.split())
+    without, remaining = exclusions(tokens)
+    return Query(None if kind is Kind.LOG else kind, " ".join(remaining), span, without)
+
+
+def exclusions(tokens: list[str]) -> tuple[tuple[str, ...], list[str]]:
+    excluded = tuple(token[1:] for token in tokens if is_exclusion(token))
+    return excluded, [token for token in tokens if not is_exclusion(token)]
+
+
+def is_exclusion(token: str) -> bool:
+    return EXCLUDED.fullmatch(token) is not None
 
 
 def windowed(tokens: list[str], today: date) -> tuple[Span | None, list[str]]:
@@ -77,11 +89,19 @@ def calendar_span(token: str) -> Span | None:
 
 
 def in_scope(query: Query, record: Record) -> bool:
-    return query.kind in (None, record.kind) and within(query.span, record)
+    return (
+        query.kind in (None, record.kind)
+        and within(query.span, record)
+        and not left_out(query.without, record)
+    )
 
 
 def within(span: Span | None, record: Record) -> bool:
     return span is None or span[0] <= record.created.date() <= span[1]
+
+
+def left_out(without: Iterable[str], record: Record) -> bool:
+    return any(matches(word, record.line) for word in without)
 
 
 def wanted(query: Query, record: Record) -> bool:

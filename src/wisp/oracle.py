@@ -151,6 +151,7 @@ class Evidence:
     matching: list[Record]
     filling: list[Record]
     terms: list[str]
+    without: tuple[str, ...] = ()
 
     def records(self) -> list[Record]:
         return sorted(self.matching + self.filling, key=records.newest_first)
@@ -169,8 +170,8 @@ def evidence(
     pool = [r for r in sorted(logs, key=records.newest_first) if search.in_scope(asked, r)]
     singled, terms = single_out(asked.words, pool)
     if singled:
-        return Evidence(fit(singled, budget), [], terms)
-    return Evidence([], fit(pool, budget) or pool[:1], [])
+        return Evidence(fit(singled, budget), [], terms, asked.without)
+    return Evidence([], fit(pool, budget) or pool[:1], [], asked.without)
 
 
 def single_out(words: str, pool: list[Record]) -> tuple[list[Record], list[str]]:
@@ -253,6 +254,8 @@ def heading(question: str, now: datetime, terms: Iterable[str] = ()) -> str:
         bounds.append(f"{first} only" if first == last else f"{first} to {last} only")
     if terms:
         bounds.append(f"lines matching {', '.join(terms)} only")
+    if asked.without:
+        bounds.append(f"leaving out lines matching {', '.join(asked.without)}")
     return f"Log, {', '.join(bounds)}:" if bounds else "Log:"
 
 

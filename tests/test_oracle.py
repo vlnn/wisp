@@ -286,3 +286,39 @@ def test_template_line_spells_the_kind_out():
 def test_run_lines_carry_their_progress(text, body, expected):
     run = records.Record.parsed(Path("/log/x.md"), text, NOW, NOW, body)
     assert oracle.line(run) == expected, f"{text!r} with {body!r} should be sent as {expected!r}"
+
+
+def test_evidence_leaves_out_excluded_lines_whether_matching_or_filling():
+    logs = [
+        record("api v1", 1),
+        record("api postgres", 2),
+        record("postgres tuning", 3),
+        record("docs", 4),
+    ]
+    matched = oracle.evidence("api -postgres", logs, now=NOW)
+    assert [r.text for r in matched.records()] == ["api v1"], (
+        "lines matching the question should drop those matching an excluded word"
+    )
+    filled = oracle.evidence("summary -postgres", logs, now=NOW)
+    assert [r.text for r in filled.records()] == ["api v1", "docs"], (
+        "the newest lines filling the budget should drop those matching an excluded word"
+    )
+
+
+def test_evidence_names_what_it_left_out():
+    found = oracle.evidence("api -postgres -mysql", [record("api v1", 1)], now=NOW)
+    assert found.without == ("postgres", "mysql"), "evidence should carry the excluded words"
+
+
+@pytest.mark.parametrize(
+    "question, heading",
+    [
+        ("api -v2", "Log, lines matching api only, leaving out lines matching v2:"),
+        ("summary -wisp -logs", "Log, leaving out lines matching wisp, logs:"),
+        (". -v2 today", "Log, open tasks only, 2026-10-10 only, leaving out lines matching v2:"),
+    ],
+)
+def test_prompt_tells_the_model_what_was_left_out(question, heading):
+    logs = [record("x", 1), record("api", 2), record("wisp", 3), record("logs", 4)]
+    _, user = (m["content"] for m in oracle.prompt(question, logs, NOW))
+    assert f"\n\n{heading}\n" in user, f"{question!r} should head the log with {heading!r}"

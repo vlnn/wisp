@@ -371,7 +371,9 @@ def question_rows(
     question: str, records: Iterable[Record], now: datetime, found: Evidence
 ) -> list[Row]:
     logs = list(records)
-    offered = [ask_row(question, len(found.lines()), found.terms)] if question else []
+    offered = (
+        [ask_row(question, len(found.lines()), found.terms, found.without)] if question else []
+    )
     return offered + [record_row(r, now, logs) for r in search(question, logs, now.date())]
 
 
@@ -387,12 +389,15 @@ def followup_row(question: str, first: str, thread: str, lines: int) -> Row:
     }
 
 
-def ask_row(question: str, lines: int, terms: Iterable[str] = ()) -> Row:
+def ask_row(
+    question: str, lines: int, terms: Iterable[str] = (), without: Iterable[str] = ()
+) -> Row:
     counted = f"{lines} line" if lines == 1 else f"{lines} lines"
     matched = f" matching {', '.join(terms)}" if terms else ""
+    excluded = f", leaving out {', '.join(without)}" if without else ""
     return {
         "title": f'Ask "{question}"',
-        "subtitle": f"↩ asks the model about {counted}{matched}",
+        "subtitle": f"↩ asks the model about {counted}{matched}{excluded}",
         "arg": question,
         "icon": icon(Kind.QUESTION),
         "variables": {"action": "ask"},

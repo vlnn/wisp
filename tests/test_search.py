@@ -213,3 +213,59 @@ def test_a_bare_checklist_sigil_scopes_to_templates():
     template = Record.parsed(Path("/log/t.md"), "# release", NOW, NOW)
     run = Record.parsed(Path("/log/r.md"), ". release", NOW, NOW)
     assert search.search("#", [run, template]) == [template], "l # lists templates only"
+
+
+@pytest.mark.parametrize(
+    "text, kind, words, without",
+    [
+        ("api -v2", None, "api", ("v2",)),
+        ("-v2", None, "", ("v2",)),
+        ("-v2 -patch api", None, "api", ("v2", "patch")),
+        (". -build", Kind.TASK, "", ("build",)),
+        ("-", None, "-", ()),
+        ("--force", None, "--force", ()),
+        ("x-ray", None, "x-ray", ()),
+    ],
+)
+def test_query_takes_dashed_words_out_as_exclusions(text, kind, words, without):
+    assert search.query(text) == search.Query(kind, words, None, without), (
+        f"{text!r} should ask for {words!r} without {without}"
+    )
+
+
+def test_query_takes_a_window_and_an_exclusion_together():
+    asked = search.query("api -v2 today", TODAY)
+    assert (asked.words, asked.span, asked.without) == ("api", (TODAY, TODAY), ("v2",)), (
+        "a day word and a dashed word should both leave the words"
+    )
+
+
+@pytest.mark.parametrize(
+    "query, expected",
+    [
+        (
+            "api -v2",
+            ["! api keys are in 1password", "* test api manually", ". document api", "api v1"],
+        ),
+        ("api -v", ["! api keys are in 1password", "* test api manually", ". document api"]),
+        ("-api", [". fix the build"]),
+        (". -doc", [". fix the build"]),
+        ("-api -fix", []),
+        (
+            "api -V2",
+            ["! api keys are in 1password", "* test api manually", ". document api", "api v1"],
+        ),
+    ],
+)
+def test_search_leaves_out_lines_matching_a_dashed_word(mixed, query, expected):
+    assert [r.text for r in search.search(query, mixed)] == expected, (
+        f"{query!r} should list {expected}"
+    )
+
+
+def test_an_exclusion_narrows_the_scope():
+    asked = search.query("-api")
+    line = Record.parsed(Path("/log/a.md"), "api v1", NOW, NOW)
+    assert search.in_scope(asked, line) is False, (
+        "an excluded line should be out of scope, so the model never sees it either"
+    )

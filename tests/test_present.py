@@ -234,6 +234,19 @@ def test_ask_row_says_what_goes(lines, matching, subtitle):
     )
 
 
+@pytest.mark.parametrize(
+    "matching, without, subtitle",
+    [
+        (["api"], ["v2"], "↩ asks the model about 2 lines matching api, leaving out v2"),
+        ([], ["v2", "patch"], "↩ asks the model about 2 lines, leaving out v2, patch"),
+    ],
+)
+def test_ask_row_says_what_is_left_out(matching, without, subtitle):
+    assert present.ask_row("q", 2, matching, without)["subtitle"] == subtitle, (
+        "the row should name the words whose lines stay out"
+    )
+
+
 def test_unserved_row_cannot_be_actioned():
     row = present.unserved_row()
     assert row["title"] == present.NO_SERVER and row["valid"] is False, (
