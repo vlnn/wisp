@@ -3,7 +3,7 @@ from __future__ import annotations
 import calendar
 import re
 import unicodedata
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import date, timedelta
 
@@ -72,7 +72,38 @@ def days(token: str, today: date) -> Span | None:
     if word in WEEKDAYS:
         back = (today.weekday() - WEEKDAYS[word]) % 7
         return (today - timedelta(days=back),) * 2
+    if word in RANGES:
+        return RANGES[word](today)
     return calendar_span(token)
+
+
+def this_day(today: date) -> Span:
+    return today, today
+
+
+def this_week(today: date) -> Span:
+    monday = today - timedelta(days=today.weekday())
+    return monday, monday + timedelta(days=6)
+
+
+def this_month(today: date) -> Span:
+    return whole_month(today.year, today.month)
+
+
+def this_year(today: date) -> Span:
+    return date(today.year, 1, 1), date(today.year, 12, 31)
+
+
+RANGES: dict[str, Callable[[date], Span]] = {
+    "#today": this_day,
+    "#week": this_week,
+    "#month": this_month,
+    "#year": this_year,
+}
+
+
+def whole_month(year: int, month: int) -> Span:
+    return date(year, month, 1), date(year, month, calendar.monthrange(year, month)[1])
 
 
 def calendar_span(token: str) -> Span | None:
@@ -83,7 +114,7 @@ def calendar_span(token: str) -> Span | None:
     try:
         if found[3]:
             return (date(year, month, int(found[3])),) * 2
-        return date(year, month, 1), date(year, month, calendar.monthrange(year, month)[1])
+        return whole_month(year, month)
     except ValueError:
         return None
 

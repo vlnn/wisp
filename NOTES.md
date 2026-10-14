@@ -93,7 +93,8 @@ slug ignores them and marking never moves a file.
 
 The query carries the same sigil as a filter on kind (`search.query`), with the words matched
 against `Record.line`; no sigil means every kind. The first word that reads as a day (`search.days`:
-`today`, `yesterday`, a weekday, `YYYY-MM-DD`, `YYYY-MM`) becomes `Query.span` and is taken out of
+`today`, `yesterday`, a weekday, `YYYY-MM-DD`, `YYYY-MM`, or a `search.RANGES` word: `#today`,
+`#week`, `#month`, `#year`, each the whole calendar unit around today) becomes `Query.span` and is taken out of
 the words; so is every word that starts with a dash and a word character, which becomes
 `Query.without`. `search.in_scope` is kind, span and not `search.left_out`, `search.wanted` adds the
 words. Exclusion belongs to the scope rather than the words so that the model never sees an

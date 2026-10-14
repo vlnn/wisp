@@ -269,3 +269,53 @@ def test_an_exclusion_narrows_the_scope():
     assert search.in_scope(asked, line) is False, (
         "an excluded line should be out of scope, so the model never sees it either"
     )
+
+
+@pytest.mark.parametrize(
+    "token, first, last",
+    [
+        ("#today", TODAY, TODAY),
+        ("#week", date(2026, 10, 5), date(2026, 10, 11)),
+        ("#month", date(2026, 10, 1), date(2026, 10, 31)),
+        ("#year", date(2026, 1, 1), date(2026, 12, 31)),
+        ("#Week", date(2026, 10, 5), date(2026, 10, 11)),
+    ],
+)
+def test_days_reads_a_range_word(token, first, last):
+    assert search.days(token, TODAY) == (first, last), f"{token!r} should span {first}..{last}"
+
+
+@pytest.mark.parametrize("token", ["week", "month", "year", "#weeks", "#api", "#"])
+def test_days_needs_the_hash_and_the_whole_range_word(token):
+    assert search.days(token, TODAY) is None, f"{token!r} is not a range word"
+
+
+def test_query_takes_a_range_word_as_the_window():
+    asked = search.query("api #week", TODAY)
+    assert (asked.words, asked.span) == ("api", (date(2026, 10, 5), date(2026, 10, 11))), (
+        "a range word should leave the words and become the window"
+    )
+
+
+def logged_on(when: date) -> Record:
+    moment = NOW.replace(year=when.year, month=when.month, day=when.day)
+    return Record.parsed(Path(f"/log/{when}.md"), f"on {when}", moment, moment)
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("#today", ["on 2026-10-10"]),
+        ("#week", ["on 2026-10-10", "on 2026-10-05"]),
+        ("#month", ["on 2026-10-10", "on 2026-10-05", "on 2026-10-04", "on 2026-10-01"]),
+        (
+            "#year",
+            ["on 2026-10-10", "on 2026-10-05", "on 2026-10-04", "on 2026-10-01", "on 2026-09-30"],
+        ),
+    ],
+)
+def test_search_within_a_range(text, expected):
+    days = [date(2026, 10, 10), date(2026, 10, 5), date(2026, 10, 4), date(2026, 10, 1)]
+    days += [date(2026, 9, 30), date(2025, 12, 31)]
+    found = search.search(text, [logged_on(day) for day in days], TODAY)
+    assert [r.text for r in found] == expected, f"{text!r} should list {expected}"

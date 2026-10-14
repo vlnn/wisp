@@ -28,7 +28,8 @@ folder needs no index, no database and no sync of its own.
 
 Matching: every word you type must be a prefix of a word in the line; case and diacritics are
 ignored. One word may be a day instead: `today`, `yesterday`, a weekday (`mon`, `friday`: the most
-recent one), `2026-10-03` or a month `2026-09`, and the list narrows to records from then. The
+recent one), `2026-10-03`, a month `2026-09`, or a range around today: `#today`, `#week` (Monday to
+Sunday), `#month`, `#year`. The list narrows to records from then. The
 first row still offers the whole text, so `l today standup` logs "today standup" and lists today's
 records about standups. A word with a dash in front leaves out the lines it matches instead: `l api
 -v2` lists the api records that say nothing about v2, `l . -build` the open tasks that are not about
