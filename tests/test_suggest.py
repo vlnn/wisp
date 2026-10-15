@@ -44,7 +44,7 @@ def test_vocabulary_counts_records_not_repeats():
         ("wrote #ARTI", ["wrote #articles"]),
         ("wrote #articles", []),
         ("wrote #zz", []),
-        ("wrote art", []),
+        ("wrote down", []),
     ],
 )
 def test_completions_finish_the_tag_being_typed(text, expected):
@@ -140,8 +140,8 @@ def test_related(word, part, expected):
         ("story time", ["story time #stories"]),
         ("wrote art", []),
         ("article #articles", []),
-        ("an article #zz", []),
-        ("an article @fl", []),
+        ("an article #zz", ["an article #zz #articles"]),
+        ("an article @fl", ["an article @fl #articles"]),
     ],
 )
 def test_a_line_naming_a_tag_is_offered_it(text, expected):
@@ -243,4 +243,31 @@ def test_a_rule_at_the_end_is_not_a_mention_being_typed():
     vocab = known("x #articles")
     assert offered("an article @week", vocab) == ["an article @week #articles"], (
         "a trailing @rule is the search, so the line's words still suggest"
+    )
+
+
+def test_two_spellings_of_one_tag_count_once():
+    vocab = known("foo #café #cafe", "bar #cafe")
+    assert vocab.count("cafe") == 2, "a record counts once per tag, however it spells it"
+    assert vocab.with_tag["cafe"]["foo"] == 1, "its words count once for the tag too"
+
+
+def test_a_finished_tag_at_the_end_still_lets_the_line_suggest():
+    vocab = known("essay one #articles", "essay two #articles", "x #work")
+    assert offered("essay draft #work", vocab) == ["essay draft #work #articles"], (
+        "when nothing completes the last tag, the line's words still suggest"
+    )
+
+
+def test_a_mention_already_in_the_line_is_not_offered_again():
+    vocab = known("with @Flash", "with @Flora")
+    assert offered("met @Flash and @fl", vocab) == ["met @Flash and @Flora"], (
+        "a mention the line already has is not offered again"
+    )
+
+
+@pytest.mark.parametrize("word, tag", [("news", "#news"), ("blog", "#blog")])
+def test_a_short_word_names_a_tag_spelled_the_same(word, tag):
+    assert offered(f"reading {word}", known(f"x {tag}")) == [f"reading {word} {tag}"], (
+        f"{word!r} should name {tag} even though its stem is short"
     )

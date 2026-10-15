@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter, defaultdict
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -42,16 +42,19 @@ class Vocabulary:
     def add(self, record: Record) -> None:
         words = set(search.words(untagged(record.line)))
         self.seen.update(words)
-        for tag in set(record.tags):
-            key = search.tag_key(tag)
+        for key, tag in by_key(record.tags, search.tag_key).items():
             self.spellings[key][tag.lower()] += 1
             self.with_tag[key].update(words)
             self.last[key] = max(self.last.get(key, record.created), record.created)
-        for mention in set(mentions_in(record.line)):
-            self.mentions[mention_key(mention)][mention] += 1
+        for key, mention in by_key(mentions_in(record.line), mention_key).items():
+            self.mentions[key][mention] += 1
 
     def count(self, key: str) -> int:
         return sum(self.spellings[key].values()) if key in self.spellings else 0
+
+
+def by_key(words: Iterable[str], key: Callable[[str], str]) -> dict[str, str]:
+    return {key(word): word for word in reversed(list(words))}
 
 
 def vocabulary(records: Iterable[Record]) -> Vocabulary:
@@ -78,7 +81,7 @@ def spelling(key: str, spellings: Mapping[str, Counter[str]]) -> str:
 
 
 def suggestions(text: str, vocab: Vocabulary, limit: int = LIMIT) -> list[Suggestion]:
-    found = completions(text, vocab) if typing(text) else ranked(text, vocab)
+    found = (completions(text, vocab) if typing(text) else []) or ranked(text, vocab)
     return found[:limit]
 
 
@@ -95,7 +98,8 @@ def completions(text: str, vocab: Vocabulary) -> list[Suggestion]:
     head, _, last = text.rstrip().rpartition(" ")
     if search.is_tag(last):
         return completed(head, search.tag_key(last), vocab.spellings, carried(text))
-    return completed(head, mention_key(last), vocab.mentions, set())
+    present = {mention_key(mention) for mention in mentions_in(head)}
+    return completed(head, mention_key(last), vocab.mentions, present)
 
 
 def completed(
@@ -154,7 +158,7 @@ def names(words: Iterable[str], key: str) -> bool:
 
 def related(word: str, part: str) -> bool:
     shorter, longer = sorted((stem(word), stem(part)), key=len)
-    return len(shorter) >= MIN_STEM and longer.startswith(shorter)
+    return word == part or (len(shorter) >= MIN_STEM and longer.startswith(shorter))
 
 
 def stem(word: str) -> str:
