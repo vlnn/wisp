@@ -32,6 +32,8 @@ class Query:
 
 
 def fold(text: str) -> str:
+    if text.isascii():
+        return text.lower()
     decomposed = unicodedata.normalize("NFKD", text.casefold())
     return "".join(char for char in decomposed if not unicodedata.combining(char))
 
@@ -198,14 +200,12 @@ def carries(key: str, keys: list[str]) -> bool:
     return any(have.startswith(key) for have in keys)
 
 
-def tagged_with(wanted: Iterable[str], record: Record) -> bool:
-    keys = tag_keys(record)
-    return all(carries(key, keys) for key in wanted)
+def tagged_with(wanted: tuple[str, ...], record: Record) -> bool:
+    return not wanted or all(carries(key, tag_keys(record)) for key in wanted)
 
 
-def tagged_any(unwanted: Iterable[str], record: Record) -> bool:
-    keys = tag_keys(record)
-    return any(carries(key, keys) for key in unwanted)
+def tagged_any(unwanted: tuple[str, ...], record: Record) -> bool:
+    return bool(unwanted) and any(carries(key, tag_keys(record)) for key in unwanted)
 
 
 def wanted(query: Query, record: Record) -> bool:

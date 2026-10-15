@@ -508,3 +508,18 @@ def test_a_dashed_number_is_a_word(token):
     assert search.logged(f"temperature {token}") == f"temperature {token}", (
         f"{token!r} should be kept when logging"
     )
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("Making API v1", "making api v1"),
+        ("Réunion", "reunion"),
+        ("Straße", "strasse"),
+        ("ДОКИ", "доки"),
+        ("ﬁle", "file"),
+        ("", ""),
+    ],
+)
+def test_fold(text, expected):
+    assert search.fold(text) == expected, f"{text!r} should fold to {expected!r}"
