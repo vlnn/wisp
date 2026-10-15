@@ -128,7 +128,7 @@ box lines that `records.BOX` reads and `records.items` numbers by body line, so 
 between steps is kept and shown but not tickable. A run is not a kind: `records.start` creates a
 task with the template's line and its body with the boxes cleared (`records.cleared`), so `mark`,
 `l .` and `l *` already know what to do with it, `records.runs` finds a template's runs by line
-equality, and `records.is_run` is true of a task with box lines, which is how `present`
+equality with the tags left out (`records.untagged`), so tagging a template keeps its history, and `records.is_run` is true of a task with box lines, which is how `present`
 tells a run from a plain task. `tick` and `add` rewrite the body and never the first line, so the
 birth time survives and `st_mtime` is the last tick. The template is never marked: `mark` returns
 the line unchanged for a kind not in `FLIPPED`.

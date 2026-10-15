@@ -187,7 +187,8 @@ RUN_KINDS = {Kind.TASK, Kind.DONE}
 
 
 def runs(template: Record, logs: Iterable[Record]) -> list[Record]:
-    found = [r for r in logs if r.kind in RUN_KINDS and r.line == template.line]
+    name = untagged(template.line)
+    found = [r for r in logs if r.kind in RUN_KINDS and untagged(r.line) == name]
     return sorted(found, key=newest_first)
 
 

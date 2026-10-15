@@ -580,3 +580,29 @@ def test_rename_adding_a_tag_keeps_the_path(folder):
     renamed = records.rename(path, "reading docs #Docs")
     assert renamed == path, "tagging a record through rename should not move its file"
     assert path.read_text() == "reading docs #docs\n", "the new tag should be written lowercase"
+
+
+@pytest.mark.parametrize(
+    "template_line, run_line",
+    [
+        ("# release #work", ". release"),
+        ("# release", ". release #work"),
+        ("# release #work", "* release #work #urgent"),
+    ],
+)
+def test_runs_ignore_tags(template_line, run_line):
+    template = a_record(template_line, NOW)
+    run = a_record(run_line, NOW, name="release-2.md")
+    assert records.runs(template, [template, run]) == [run], (
+        f"{run_line!r} should be a run of {template_line!r} whatever their tags"
+    )
+
+
+def test_start_copies_the_template_tags(folder):
+    folder.mkdir()
+    template = a_record("# release #work", NOW, "- [x] bump\n")
+    path = records.start(folder, template)
+    assert path.read_text().splitlines()[0] == ". release #work", (
+        "a run should carry its template's tags"
+    )
+    assert path.name == "release.md", "the run's file name leaves the tags out"

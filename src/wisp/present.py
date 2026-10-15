@@ -17,6 +17,7 @@ from wisp.records import (
     parse,
     progress,
     runs,
+    untagged,
 )
 from wisp.search import Query, fold, is_tag, logged, matches, query, search, spoken
 
@@ -186,8 +187,10 @@ def fresh_mod(template: Record) -> Mod:
 
 
 def exact_template(line: str, logs: Iterable[Record]) -> Record | None:
-    wanted = fold(line)
-    return next((r for r in logs if r.kind is Kind.CHECKLIST and fold(r.line) == wanted), None)
+    wanted = fold(untagged(line))
+    return next(
+        (r for r in logs if r.kind is Kind.CHECKLIST and fold(untagged(r.line)) == wanted), None
+    )
 
 
 def items_action(record: Record) -> dict[str, str]:

@@ -611,3 +611,9 @@ def test_tag_rows_only_without_words(tagged_log):
     assert "#articles" not in titles_of(present.rows("essay #art", tagged_log, NOW)), (
         "with words typed, a # word is completed under the Log row instead"
     )
+
+
+def test_a_checklist_offer_finds_its_template_whatever_the_tags():
+    logs = [Record.parsed(Path("/log/r.md"), "# release #work", NOW, NOW)]
+    (first, *_) = present.rows("# release", logs, NOW)
+    assert first["title"] == 'Start "release #work"', "typing the name finds the tagged template"
