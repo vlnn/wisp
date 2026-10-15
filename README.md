@@ -41,6 +41,31 @@ with it (see *Tags* below): `l #art` lists everything tagged `#articles` or `#ar
 @today` today's open work tasks, and `-#draft` leaves the drafts out. Without the `#`, `articles`
 matches the word anywhere in the line, tags included. There is no cap on the number of rows.
 
+## Tags
+
+A word with `#` and a letter in front, anywhere in the line, is a tag: `wrote small article on
+modules #articles`. A record can carry several, and any kind can: a task, a question, a checklist
+template. Tags are written in lowercase, they never reach the file name, and `C#` or `fixed #123`
+stay plain words. Nothing has to be declared: a tag exists once a record carries it.
+
+Once it exists, `l` offers it. The first row always keeps exactly what you typed; up to three rows
+below it keep the line with a tag added, so ↩ ignores them and ⌘2, ⌘3, ⌘4 (or ↓ ↩) take one:
+
+```
+l wrote small article on modules   Log "wrote small article on modules"
+                                   Log "… on modules #articles"   with #articles · the line names it
+l essay draft                      Log "essay draft"
+                                   Log "essay draft #articles"    with #articles · seen with essay
+l wrote #art                       Log "wrote #articles"          with #articles · completes what you typed
+l met @fl                          Log "met @Flash"               with @Flash · completes what you typed
+```
+
+A line names a tag when one of its words and the tag share a stem of four letters or more
+(`article`, `#articles`). A line is seen with a tag when one of its words came with that tag in two
+records or more, and in more than half the records it appears in at all. While a `#` or `@` word is
+being typed, the rows complete it instead: tags most used first, mentions in the spelling you use
+most. A record's tags are repeated at the end of its subtitle, `14:02 today · #articles`.
+
 ## Tasks, notes, questions, decisions
 
 A line is a plain log unless it starts with a sigil:

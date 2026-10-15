@@ -14,6 +14,8 @@ MIN_ROOT = 3
 SUFFIXES = (("ies", "y"), ("ing", ""), ("ed", ""), ("s", ""))
 MIN_TOGETHER = 2
 MIN_SHARE = 0.5
+COMPLETES = "completes what you typed"
+NAMES = "the line names it"
 MENTION = re.compile(r"(?<!\w)@[^\W\d_](?:[\w-]*\w)?")
 
 
@@ -75,7 +77,7 @@ def suggestions(text: str, vocab: Vocabulary, limit: int = LIMIT) -> list[Sugges
 
 def typing(text: str) -> bool:
     last = last_word(text)
-    return search.is_tag(last) or MENTION.fullmatch(last) is not None
+    return search.is_tag(last) or (MENTION.fullmatch(last) is not None and not search.is_rule(last))
 
 
 def last_word(text: str) -> str:
@@ -101,7 +103,7 @@ def by_use(spellings: Mapping[str, Counter[str]]) -> list[str]:
 
 
 def finished(head: str, word: str) -> Suggestion:
-    return Suggestion(f"{head} {word}".lstrip(), word, "completes")
+    return Suggestion(f"{head} {word}".lstrip(), word, COMPLETES)
 
 
 def ranked(text: str, vocab: Vocabulary) -> list[Suggestion]:
@@ -109,7 +111,7 @@ def ranked(text: str, vocab: Vocabulary) -> list[Suggestion]:
     present = carried(text)
     named = [key for key in by_use(vocab.spellings) if key not in present and names(words, key)]
     seen = [key for key in strongest(words, vocab) if key not in present and key not in named]
-    return [added(text, spelling(key, vocab.spellings), "names it") for key in named] + [
+    return [added(text, spelling(key, vocab.spellings), NAMES) for key in named] + [
         added(text, spelling(key, vocab.spellings), seen_with(shares(key, words, vocab)))
         for key in seen
     ]

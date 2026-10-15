@@ -503,3 +503,68 @@ def test_nothing_to_log_without_words(text):
 def test_a_checklist_offer_ignores_the_search_words():
     (first, *_) = present.rows("# packing @week", [], NOW)
     assert first["title"] == 'Checklist "packing"', "a rule is never part of a checklist's name"
+
+
+def titles_of(rows):
+    return [row["title"] for row in rows]
+
+
+def test_suggestions_follow_the_log_row():
+    logs = [a_record("x #articles", NOW)]
+    found = present.rows("wrote small article", logs, NOW)
+    assert titles_of(found) == [
+        'Log "wrote small article"',
+        'Log "wrote small article #articles"',
+    ], "the plain Log row comes first and a suggestion right after it"
+
+
+def test_plain_enter_keeps_exactly_what_was_typed():
+    logs = [a_record("x #articles", NOW)]
+    (first, _) = present.rows("wrote small article", logs, NOW)
+    assert first["arg"] == "wrote small article", "↩ on the first row adds no tag"
+
+
+def test_a_suggestion_row_keeps_the_tagged_line():
+    logs = [a_record("x #articles", NOW)]
+    (_, suggested) = present.rows("wrote small article", logs, NOW)
+    assert suggested["arg"] == "wrote small article #articles", "the row keeps the tagged line"
+    assert suggested["variables"] == {"action": "keep"}, "a suggestion is kept like any log"
+    assert suggested["subtitle"] == "↩ keeps it with #articles · the line names it", (
+        "the subtitle names the tag and why it is offered"
+    )
+    assert suggested["icon"] == {"path": "icons/log.png"}, "it wears its kind's icon"
+
+
+def test_a_suggestion_keeps_the_kind_and_drops_the_search():
+    logs = [a_record("x #articles", NOW)]
+    (_, suggested) = present.rows(". write article @week", logs, NOW)
+    assert (suggested["title"], suggested["arg"]) == (
+        'Task "write article #articles"',
+        ". write article #articles",
+    ), "a task stays a task and the rule stays out of the record"
+
+
+def test_at_most_three_suggestions():
+    logs = [a_record(f"x #art{n}", NOW) for n in range(5)]
+    assert len(present.rows("wrote #art", logs, NOW)) == 1 + 3, "Log plus three suggestions"
+
+
+def test_a_checklist_offer_has_no_suggestions():
+    logs = [a_record("x #packing", NOW)]
+    assert titles_of(present.rows("# packing", logs, NOW))[:1] == ['Checklist "packing"'], (
+        "a checklist offer stands alone"
+    )
+    assert len(present.rows("# packing", logs, NOW)) == 1, "nothing is suggested for a template"
+
+
+@pytest.mark.parametrize(
+    "text, changed, subtitle",
+    [
+        ("essay #articles #clojure", None, "15:00 today · #articles #clojure"),
+        ("* ship #work", NOW, "done 15:00 today · 15:00 today · #work"),
+        ("no tags", None, "15:00 today"),
+    ],
+)
+def test_subtitle_lists_the_tags(text, changed, subtitle):
+    row = present.record_row(a_record(text, NOW, changed), NOW)
+    assert row["subtitle"] == subtitle, f"{text!r} should be subtitled {subtitle!r}"

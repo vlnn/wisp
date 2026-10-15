@@ -2,12 +2,13 @@
 
 ## What is here
 
-Eight small modules, each with one job, so a feature lands in one of them:
+Nine small modules, each with one job, so a feature lands in one of them:
 
 | Module | Owns | Grows when |
 | --- | --- | --- |
 | `records` | the folder: reading, naming, kinds, keep, rename, mark, trash | a record gets a new attribute, a new verb touches files |
-| `search` | folding, word-prefix matching, the kind axis of a query | matching gets smarter (tags, dates) |
+| `search` | folding, word-prefix matching, rules, the kind and tag axes of a query | matching gets smarter |
+| `suggest` | the tag vocabulary of the log, completions, which tags a line names or goes with | suggestions get smarter |
 | `present` | time words, Alfred rows, the icon per kind | a row gets a new key, a new kind of row appears |
 | `macos` | Finder trash and notifications | another osascript call is needed |
 | `oracle` | the model: evidence, prompt, request, streaming, answers on disk, which backend | a new question shape, a different budget |
@@ -136,7 +137,32 @@ the line unchanged for a kind not in `FLIPPED`.
 the choice is between a second sigil position (`!. `) and making `!` orthogonal to the others;
 `parse` is the only function that would change.
 
+## Tags
+
+A tag is `records.TAG`: `#` and a letter, then word characters and dashes, not glued to a word
+before it. It lives in the line, so a record has no other place to keep anything and every verb
+already handles it; `normalise` writes tags lowercase, `slug` skips them so tagging never moves a
+file. `search.tag_key` is a tag's identity, folded and without the `#`.
+
+`suggest.vocabulary` reads the log once per keystroke, only when there is a Log row to suggest
+for: per tag, its spellings and the records carrying it; per mention, its spellings; per tag, the
+words of the lines carrying it; per word, the records it appears in. `suggest.suggestions` either
+completes the `#` or `@` word being typed (`completions`) or ranks the tags the line names (stems
+sharing four letters, `related`) ahead of those it goes with (`shares`: `MIN_TOGETHER` records,
+more than `MIN_SHARE` of the word's). Everything is a named constant so the tests pin it.
+`present.offer_rows` puts at most `suggest.LIMIT` rows after the Log row; a suggestion row is a
+`keep_row` with a different subtitle, so the plist did not change.
+
 ## Deliberately not here
+
+- **A model for suggestions.** When the name match and co-occurrence miss too much, a second pass
+  goes in `present.rows`: return the rows at once with a `rerun` of about a second, and on the
+  rerun with the same query ask `oracle` for tags from the vocabulary, cached by query under the
+  workflow's cache folder. Typing a key replaces the pending rerun, so the list never waits.
+- **Rules of your own.** `@work` for `#acme #client` needs the folder to hold configuration, which
+  it does not. A rule is a function from today to a `Span`; one that sets more widens it.
+- **Folders, backfilling tags, tags that change behaviour (`#pin`).** Each was weighed and left
+  out; folders and behaviour would change what a record is.
 
 - **Caching.** The folder is read in full on every keystroke. At ten lines a day that is under
   100 ms for two or three years. Then a snapshot file next to the log (refreshed when the folder

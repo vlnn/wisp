@@ -4,6 +4,7 @@ from collections.abc import Iterable, Sequence
 from datetime import datetime
 from typing import TypedDict
 
+from wisp import suggest
 from wisp.oracle import Evidence
 from wisp.records import (
     RESOLVED,
@@ -67,8 +68,25 @@ def when(created: datetime, now: datetime) -> str:
 
 def rows(text: str, records: Iterable[Record], now: datetime) -> list[Row]:
     logs = list(records)
-    offered = [offer_row(text, logs, now)] if query(text, now.date()).words else []
+    offered = offer_rows(text, logs, now) if query(text, now.date()).words else []
     return offered + [record_row(record, now, logs) for record in search(text, logs, now.date())]
+
+
+def offer_rows(text: str, logs: Sequence[Record], now: datetime) -> list[Row]:
+    first = offer_row(text, logs, now)
+    if parse(logged(text))[0] is Kind.CHECKLIST:
+        return [first]
+    return [first, *suggestion_rows(text, logs)]
+
+
+def suggestion_rows(text: str, logs: Sequence[Record]) -> list[Row]:
+    found = suggest.suggestions(text, suggest.vocabulary(logs))
+    return [suggestion_row(suggestion) for suggestion in found]
+
+
+def suggestion_row(suggestion: suggest.Suggestion) -> Row:
+    subtitle = f"↩ keeps it with {suggestion.adds} · {suggestion.why}"
+    return {**keep_row(suggestion.text), "subtitle": subtitle}
 
 
 def offer_row(text: str, logs: Sequence[Record], now: datetime) -> Row:
@@ -174,6 +192,11 @@ def icon(kind: Kind) -> Icon:
 
 
 def subtitle(record: Record, now: datetime, logs: Sequence[Record]) -> str:
+    shown = state(record, now, logs)
+    return f"{shown} · {' '.join(record.tags)}" if record.tags else shown
+
+
+def state(record: Record, now: datetime, logs: Sequence[Record]) -> str:
     if record.kind is Kind.CHECKLIST:
         return f"{steps(record)} · {template_state(record, logs, now)}"
     if not items(record):

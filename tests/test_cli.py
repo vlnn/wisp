@@ -818,3 +818,12 @@ def test_start_from_a_finished_run_makes_a_fresh_one(run, folder, template, stam
     assert (folder / "release-3.md").read_text() == ". release\n- [ ] bump\n- [ ] tag\n", (
         "the new run is open with every box cleared"
     )
+
+
+def test_filter_suggests_a_tag_the_log_already_has(run, logged):
+    logged("essay on types #articles", 30)
+    _, out = run("filter", "wrote small article on modules")
+    assert titles(out) == [
+        'Log "wrote small article on modules"',
+        'Log "wrote small article on modules #articles"',
+    ], "once #articles exists, a line about an article is offered the tag"

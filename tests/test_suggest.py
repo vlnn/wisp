@@ -158,7 +158,7 @@ def test_named_tags_come_most_used_first():
 
 def test_a_named_suggestion_says_why():
     (named,) = suggest.suggestions("an article", known("x #articles"))
-    assert (named.adds, named.why) == ("#articles", "names it"), (
+    assert (named.adds, named.why) == ("#articles", "the line names it"), (
         "a name match should say it adds the tag because the line names it"
     )
 
@@ -229,4 +229,18 @@ def test_a_tag_is_offered_once_whatever_the_reasons():
     vocab = known("article draft #articles", "article draft #articles")
     assert offered("article draft", vocab) == ["article draft #articles"], (
         "a tag both named and seen is offered once"
+    )
+
+
+def test_a_completion_says_why():
+    (done,) = suggest.suggestions("an #arti", known("x #articles"))
+    assert (done.adds, done.why) == ("#articles", "completes what you typed"), (
+        "a completion should say it finishes what was typed"
+    )
+
+
+def test_a_rule_at_the_end_is_not_a_mention_being_typed():
+    vocab = known("x #articles")
+    assert offered("an article @week", vocab) == ["an article @week #articles"], (
+        "a trailing @rule is the search, so the line's words still suggest"
     )
