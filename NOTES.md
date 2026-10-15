@@ -151,7 +151,10 @@ completes the `#` or `@` word being typed (`completions`) or ranks the tags the 
 sharing four letters, `related`) ahead of those it goes with (`shares`: `MIN_TOGETHER` records,
 more than `MIN_SHARE` of the word's). Everything is a named constant so the tests pin it.
 `present.offer_rows` puts at most `suggest.LIMIT` rows after the Log row; a suggestion row is a
-`keep_row` with a different subtitle, so the plist did not change.
+`keep_row` with a different subtitle, so the plist did not change. With no words but a tag,
+`present.tag_rows` lists the tags the last one starts (`suggest.tags_starting`), each with its
+count and `Vocabulary.last`; a tag row is not valid and carries `autocomplete`, which Alfred
+puts in the query on ↩ and ⇥, so narrowing needs no connection either.
 
 ## Deliberately not here
 

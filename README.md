@@ -66,6 +66,17 @@ records or more, and in more than half the records it appears in at all. While a
 being typed, the rows complete it instead: tags most used first, mentions in the spelling you use
 most. A record's tags are repeated at the end of its subtitle, `14:02 today · #articles`.
 
+`l #` lists checklists, as before; `l #a`, a `#` word and nothing else, lists the tags it starts,
+most used first, above the records carrying them:
+
+```
+l #art                             #articles      12 records · last Tue 13 Oct 14:02
+                                   #arts          1 record · last yesterday 09:30
+                                   essay on modules #articles     14:02 Tue 13 Oct
+```
+
+↩ or ⇥ on a tag finishes it in the query (`l #articles `), so the list narrows to it.
+
 ## Tasks, notes, questions, decisions
 
 A line is a plain log unless it starts with a sigil:

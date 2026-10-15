@@ -4,6 +4,7 @@ import re
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
+from datetime import datetime
 
 from wisp import search
 from wisp.records import Record, tags_in, untagged
@@ -36,6 +37,7 @@ class Vocabulary:
     mentions: defaultdict[str, Counter[str]] = field(default_factory=spelled_by_key)
     with_tag: defaultdict[str, Counter[str]] = field(default_factory=spelled_by_key)
     seen: Counter[str] = field(default_factory=Counter)
+    last: dict[str, datetime] = field(default_factory=dict)
 
     def add(self, record: Record) -> None:
         words = set(search.words(untagged(record.line)))
@@ -44,6 +46,7 @@ class Vocabulary:
             key = search.tag_key(tag)
             self.spellings[key][tag.lower()] += 1
             self.with_tag[key].update(words)
+            self.last[key] = max(self.last.get(key, record.created), record.created)
         for mention in set(mentions_in(record.line)):
             self.mentions[mention_key(mention)][mention] += 1
 
@@ -56,6 +59,10 @@ def vocabulary(records: Iterable[Record]) -> Vocabulary:
     for record in records:
         vocab.add(record)
     return vocab
+
+
+def tags_starting(prefix: str, vocab: Vocabulary) -> list[str]:
+    return [key for key in by_use(vocab.spellings) if key.startswith(prefix)]
 
 
 def mentions_in(line: str) -> list[str]:

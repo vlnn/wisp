@@ -18,7 +18,7 @@ from wisp.records import (
     progress,
     runs,
 )
-from wisp.search import fold, logged, matches, query, search, spoken
+from wisp.search import Query, fold, is_tag, logged, matches, query, search, spoken
 
 
 class Icon(TypedDict):
@@ -42,6 +42,7 @@ class Row(TypedDict, total=False):
     mods: dict[str, Mod]
     text: dict[str, str]
     quicklookurl: str
+    autocomplete: str
 
 
 SETTLE = {
@@ -68,8 +69,36 @@ def when(created: datetime, now: datetime) -> str:
 
 def rows(text: str, records: Iterable[Record], now: datetime) -> list[Row]:
     logs = list(records)
-    offered = offer_rows(text, logs, now) if query(text, now.date()).words else []
+    asked = query(text, now.date())
+    offered = offer_rows(text, logs, now) if asked.words else tag_rows(text, asked, logs, now)
     return offered + [record_row(record, now, logs) for record in search(text, logs, now.date())]
+
+
+def tag_rows(text: str, asked: Query, logs: Sequence[Record], now: datetime) -> list[Row]:
+    if not asked.tags:
+        return []
+    vocab = suggest.vocabulary(logs)
+    return [tag_row(key, vocab, text, now) for key in suggest.tags_starting(asked.tags[-1], vocab)]
+
+
+def tag_row(key: str, vocab: suggest.Vocabulary, text: str, now: datetime) -> Row:
+    tag = suggest.spelling(key, vocab.spellings)
+    return {
+        "title": tag,
+        "subtitle": f"{counted(vocab.count(key))} · last {when(vocab.last[key], now)}",
+        "valid": False,
+        "autocomplete": f"{with_tag_finished(text, tag)} ",
+    }
+
+
+def counted(records: int) -> str:
+    return "1 record" if records == 1 else f"{records} records"
+
+
+def with_tag_finished(text: str, tag: str) -> str:
+    tokens = text.split()
+    last = max(n for n, token in enumerate(tokens) if is_tag(token))
+    return " ".join([*tokens[:last], tag, *tokens[last + 1 :]])
 
 
 def offer_rows(text: str, logs: Sequence[Record], now: datetime) -> list[Row]:

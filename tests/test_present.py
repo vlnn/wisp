@@ -568,3 +568,46 @@ def test_a_checklist_offer_has_no_suggestions():
 def test_subtitle_lists_the_tags(text, changed, subtitle):
     row = present.record_row(a_record(text, NOW, changed), NOW)
     assert row["subtitle"] == subtitle, f"{text!r} should be subtitled {subtitle!r}"
+
+
+@pytest.fixture
+def tagged_log():
+    return [
+        a_record("essay #articles", NOW),
+        a_record("refactor #work", NOW),
+        a_record("gallery #arts", NOW - timedelta(days=1)),
+        a_record("draft #articles", NOW - timedelta(days=2)),
+    ]
+
+
+def test_a_bare_tag_prefix_lists_the_tags_first(tagged_log):
+    found = present.rows("#art", tagged_log, NOW)
+    assert titles_of(found)[:2] == ["#articles", "#arts"], "matching tags lead, most used first"
+    assert titles_of(found)[2:] == ["essay #articles", "gallery #arts", "draft #articles"], (
+        "the records carrying them follow, newest first"
+    )
+
+
+def test_a_tag_row_says_how_much_and_how_recent(tagged_log):
+    (articles, arts, *_) = present.rows("#art", tagged_log, NOW)
+    assert articles["subtitle"] == "2 records · last 15:00 today", "count and last use"
+    assert arts["subtitle"] == "1 record · last yesterday 15:00", "one record is singular"
+
+
+def test_a_tag_row_narrows_the_query(tagged_log):
+    (articles, *_) = present.rows(". #art", tagged_log, NOW)
+    assert (articles["valid"], articles["autocomplete"]) == (False, ". #articles "), (
+        "↩ or ⇥ on a tag should finish it in the query rather than act"
+    )
+
+
+def test_a_complete_tag_is_still_listed(tagged_log):
+    assert titles_of(present.rows("#work", tagged_log, NOW))[0] == "#work", (
+        "a tag typed in full still gets its row"
+    )
+
+
+def test_tag_rows_only_without_words(tagged_log):
+    assert "#articles" not in titles_of(present.rows("essay #art", tagged_log, NOW)), (
+        "with words typed, a # word is completed under the Log row instead"
+    )
