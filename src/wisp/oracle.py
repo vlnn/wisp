@@ -130,20 +130,20 @@ def answers_folder(env: Mapping[str, str]) -> Path:
 
 
 def line(record: Record) -> str:
-    return f"{record.created:{STAMP}}  {tagged(record)}"
+    return f"{record.created:{STAMP}}  {spoken(record)}"
 
 
-def tagged(record: Record) -> str:
+def spoken(record: Record) -> str:
     if record.kind in records.SETTLED:
-        return f"{record.kind.tag} {record.changed:{STAMP}}  {record.line}{counted(record)}"
-    if record.kind.tag:
-        return f"{record.kind.tag}  {record.line}{counted(record)}"
+        return f"{record.kind.spoken} {record.changed:{STAMP}}  {record.line}{counted(record)}"
+    if record.kind.spoken:
+        return f"{record.kind.spoken}  {record.line}{counted(record)}"
     return record.text
 
 
 def counted(record: Record) -> str:
     ticked, total = records.progress(record)
-    return f"  {ticked}/{total}" if records.tags(record) else ""
+    return f"  {ticked}/{total}" if records.is_run(record) else ""
 
 
 @dataclass(frozen=True)

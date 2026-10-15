@@ -283,7 +283,7 @@ def test_decide_refuses_a_blank_resolution(folder):
     ],
 )
 def test_a_kind_knows_its_words(kind, sigil, offer, tag, icon):
-    assert (kind.sigil, kind.offer, kind.tag, kind.icon) == (sigil, offer, tag, icon), (
+    assert (kind.sigil, kind.offer, kind.spoken, kind.icon) == (sigil, offer, tag, icon), (
         f"{kind} should carry its sigil, offer word, model tag and icon"
     )
 
@@ -334,7 +334,7 @@ def test_normalise_spaces_the_checklist_sigil():
 
 def test_checklist_kind_knows_its_words():
     kind = records.Kind.CHECKLIST
-    assert (kind.sigil, kind.offer, kind.tag, kind.icon) == (
+    assert (kind.sigil, kind.offer, kind.spoken, kind.icon) == (
         "#",
         "Checklist",
         "CHECKLIST",
@@ -486,12 +486,14 @@ def test_mark_leaves_a_template_alone(folder):
 @pytest.mark.parametrize(
     "text, body, expected",
     [
-        (". plain", "", []),
-        (". run", "- [ ] a\n", ["checklist"]),
-        ("# release", "", []),
-        ("* run", "- [x] a\n", ["checklist"]),
+        (". plain", "", False),
+        (". run", "- [ ] a\n", True),
+        ("# release", "", False),
+        ("* run", "- [x] a\n", True),
     ],
 )
-def test_tags_say_when_a_task_is_a_run(text, body, expected):
+def test_is_run_says_when_a_task_is_a_run(text, body, expected):
     record = a_record(text, NOW, body)
-    assert records.tags(record) == expected, f"{text!r} with {body!r} should tag {expected}"
+    assert records.is_run(record) is expected, (
+        f"{text!r} with {body!r} should {'be' if expected else 'not be'} a run"
+    )

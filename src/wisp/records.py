@@ -33,7 +33,7 @@ class Kind(Enum):
         return self.value[1]
 
     @property
-    def tag(self) -> str:
+    def spoken(self) -> str:
         return self.value[2]
 
     @property
@@ -162,8 +162,8 @@ def progress(record: Record) -> tuple[int, int]:
     return sum(item.ticked for item in steps), len(steps)
 
 
-def tags(record: Record) -> list[str]:
-    return ["checklist"] if record.kind is not Kind.CHECKLIST and items(record) else []
+def is_run(record: Record) -> bool:
+    return record.kind is not Kind.CHECKLIST and bool(items(record))
 
 
 RUN_KINDS = {Kind.TASK, Kind.DONE}

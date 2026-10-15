@@ -110,7 +110,7 @@ drawn by `workflow/icons.py` with the standard library (a ring while open, a dis
 `Kind.icon` is `icons/<name>.png` relative to the bundle, which is where `build.sh` copies the folder.
 
 A kind is one line of `records.Kind`: its sigil, the word `l` offers it with (`Kind.offer`) and the
-word the model sees (`Kind.tag`). What stays outside the enum is the state machine (`FLIPPED`,
+word the model sees (`Kind.spoken`). What stays outside the enum is the state machine (`FLIPPED`,
 `SETTLED`, `present.SETTLE`), since that relates kinds to each other. `present.Row` is Alfred's row
 as a `TypedDict`, so mypy catches a misspelt key; `oracle.Backend` is a `Protocol`, so a third model
 only needs `budget`, `respond` and `check`, and a branch in `oracle.backend`.
@@ -120,7 +120,7 @@ box lines that `records.BOX` reads and `records.items` numbers by body line, so 
 between steps is kept and shown but not tickable. A run is not a kind: `records.start` creates a
 task with the template's line and its body with the boxes cleared (`records.cleared`), so `mark`,
 `l .` and `l *` already know what to do with it, `records.runs` finds a template's runs by line
-equality, and `records.tags` says `checklist` of a task with box lines, which is how `present`
+equality, and `records.is_run` is true of a task with box lines, which is how `present`
 tells a run from a plain task. `tick` and `add` rewrite the body and never the first line, so the
 birth time survives and `st_mtime` is the last tick. The template is never marked: `mark` returns
 the line unchanged for a kind not in `FLIPPED`.
