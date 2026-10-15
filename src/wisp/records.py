@@ -48,7 +48,7 @@ FLIPPED = {Kind.TASK: Kind.DONE, Kind.DONE: Kind.TASK, Kind.DECISION: Kind.QUEST
 RESOLVED = " | "
 BOX = re.compile(r"^(\s*[-*] \[)([ xX])(\] .*)$")
 TICKED = {"x", "X"}
-TAG = re.compile(r"(?<!\w)#[^\W\d_](?:[\w-]*\w)?")
+TAG = re.compile(r"(?<![\w/&])#[^\W\d_](?:[\w-]*\w)?")
 
 
 class Blank(ValueError):
@@ -187,9 +187,19 @@ RUN_KINDS = {Kind.TASK, Kind.DONE}
 
 
 def runs(template: Record, logs: Iterable[Record]) -> list[Record]:
-    name = untagged(template.line)
-    found = [r for r in logs if r.kind in RUN_KINDS and untagged(r.line) == name]
+    logs = list(logs)
+    others = {r.line for r in logs if r.kind is Kind.CHECKLIST and r.line != template.line}
+    found = [
+        r
+        for r in logs
+        if r.kind in RUN_KINDS and r.line not in others and same_checklist(r.line, template.line)
+    ]
     return sorted(found, key=newest_first)
+
+
+def same_checklist(line: str, name: str) -> bool:
+    bare = untagged(name)
+    return line == name or (bool(bare) and untagged(line) == bare)
 
 
 def open_run(template: Record, logs: Iterable[Record]) -> Record | None:
@@ -274,7 +284,7 @@ def decide(path: Path, resolution: str) -> str:
     kind, line = parse(first_line(content))
     if kind not in (Kind.QUESTION, Kind.DECISION):
         return first_line(content)
-    settled = compose(Kind.DECISION, line + RESOLVED + resolution.strip())
+    settled = compose(Kind.DECISION, line + RESOLVED + lowered_tags(resolution.strip()))
     return rewrite_first_line(path, content, settled)
 
 

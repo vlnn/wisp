@@ -645,3 +645,12 @@ def test_nothing_left_to_log_offers_no_log_row(text):
 def test_a_glued_sigil_still_drops_the_search(text, title):
     (first, *_) = present.rows(text, [], NOW)
     assert first["title"] == title, f"{text!r} should offer {title!r}"
+
+
+def test_a_checklist_offer_prefers_the_exactly_named_template():
+    logs = [
+        Record.parsed(Path("/log/s.md"), "# packing #summer", NOW, NOW),
+        Record.parsed(Path("/log/w.md"), "# packing #winter", NOW, NOW),
+    ]
+    (first, *_) = present.rows("# packing #winter", logs, NOW)
+    assert first["title"] == 'Start "packing #winter"', "the template named in full wins"

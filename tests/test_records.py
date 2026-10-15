@@ -606,3 +606,43 @@ def test_start_copies_the_template_tags(folder):
         "a run should carry its template's tags"
     )
     assert path.name == "release.md", "the run's file name leaves the tags out"
+
+
+@pytest.mark.parametrize("line", ["see https://x.com/#Intro", "path/#Section", "colour &#Hex"])
+def test_a_hash_after_a_slash_or_ampersand_is_not_a_tag(line):
+    assert records.tags_in(line) == [], f"{line!r} carries no tag"
+    assert records.normalise(line) == line, f"{line!r} should be kept exactly"
+
+
+def test_decide_writes_tags_in_lowercase(folder):
+    path = records.keep(folder, "? which db")
+    assert records.decide(path, "postgres #DB") == "= which db | postgres #db", (
+        "a tag in the resolution is written lowercase like any other"
+    )
+
+
+@pytest.fixture
+def packing():
+    summer = a_record("# packing #summer", NOW, name="packing.md")
+    winter = a_record("# packing #winter", NOW, name="packing-2.md")
+    run = a_record(". packing #winter", NOW, name="packing-3.md")
+    return summer, winter, run
+
+
+def test_a_run_belongs_to_the_template_it_copies(packing):
+    summer, winter, run = packing
+    logs = [summer, winter, run]
+    assert (records.runs(summer, logs), records.runs(winter, logs)) == ([], [run]), (
+        "when two templates differ only by tags, a run is its exact template's"
+    )
+
+
+@pytest.mark.parametrize(
+    "run_line, expected", [(". #urgent", False), (". #work", True), (". anything", False)]
+)
+def test_a_template_of_tags_only_matches_exactly(run_line, expected):
+    template = a_record("# #work", NOW)
+    run = a_record(run_line, NOW, name="r.md")
+    assert (records.runs(template, [template, run]) == [run]) is expected, (
+        f"{run_line!r} should {'be' if expected else 'not be'} a run of a tags-only template"
+    )

@@ -197,10 +197,10 @@ def fresh_mod(template: Record) -> Mod:
 
 
 def exact_template(line: str, logs: Iterable[Record]) -> Record | None:
-    wanted = fold(untagged(line))
-    return next(
-        (r for r in logs if r.kind is Kind.CHECKLIST and fold(untagged(r.line)) == wanted), None
-    )
+    templates = [r for r in logs if r.kind is Kind.CHECKLIST]
+    exact = [r for r in templates if fold(r.line) == fold(line)]
+    named = [r for r in templates if fold(untagged(r.line)) == fold(untagged(line))]
+    return next(iter(exact + named), None)
 
 
 def items_action(record: Record) -> dict[str, str]:
