@@ -486,3 +486,25 @@ def test_tags_combine_with_a_rule():
 )
 def test_logged_keeps_the_record_and_drops_the_query(text, expected):
     assert search.logged(text) == expected, f"logging {text!r} should write {expected!r}"
+
+
+@pytest.mark.parametrize("token", ["week", "month", "year", "Week"])
+def test_spoken_leaves_bare_ranges_as_words(token):
+    assert search.spoken(token, TODAY) is None, (
+        f"bare {token!r} is prose (last week, next year), so only @{token} is a range"
+    )
+
+
+def test_a_question_about_last_week_sends_no_wrong_window():
+    asked = search.query("what did I do last week", TODAY, search.spoken)
+    assert asked.span is None, "'last week' must not silently become this week"
+
+
+@pytest.mark.parametrize("token", ["-5", "-10.5", "-2026"])
+def test_a_dashed_number_is_a_word(token):
+    assert search.query(f"temperature {token} degrees").words == f"temperature {token} degrees", (
+        f"{token!r} is a negative number, not a word to leave out"
+    )
+    assert search.logged(f"temperature {token}") == f"temperature {token}", (
+        f"{token!r} should be kept when logging"
+    )

@@ -96,11 +96,12 @@ The query carries the same sigil as a filter on kind (`search.query`), with the 
 against `Record.line`; no sigil means every kind. The first word that reads as a rule becomes
 `Query.span` and is taken out of the words. A rule is `@` and a name in `search.RULES` (`today`,
 `yesterday`, the weekdays, `week`, `month`, `year`, the last three the whole calendar unit around
-today) or a date (`YYYY-MM-DD`, `YYYY-MM`); `search.rule` reads it. `ask` reads the same words
-without the `@` too (`search.spoken`, passed as `recognise`), because a question is prose, while in
+today) or a date (`YYYY-MM-DD`, `YYYY-MM`); `search.rule` reads it. `ask` reads the days (`search.DAYS`, dates)
+without the `@` too (`search.spoken`, passed as `recognise`), because a question is prose, but not
+the ranges, since "last week" is not this week. In
 `l` a bare `today` stays a word. A rule is a function from today to a `Span` for now; one that needs
 to set more than the window widens that to a piece of `Query`. `search.is_rule` answers without a
-date, for stripping rules out of what gets logged; so is every word that starts with a dash and a word character, which becomes
+date, for stripping rules out of what gets logged; so is every word that starts with a dash and a letter (`-5` is a number), which becomes
 `Query.without`. A token that is a whole tag goes to `Query.tags`, a dashed one to
 `Query.without_tags`, both as `search.tag_key`s (folded, without the `#`) matched as prefixes of the
 record's own keys. `search.in_scope` is kind, span, tags and nothing left out; `search.wanted` adds

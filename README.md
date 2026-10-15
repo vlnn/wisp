@@ -36,7 +36,7 @@ first row offers what belongs to the record: `l wrote article #articles @week -d
 article #articles" and lists this week's `#articles` records that are not drafts, while `l @today`
 or `l #articles` alone only search. A word with a dash in front leaves out the lines it matches instead: `l api
 -v2` lists the api records that say nothing about v2, `l . -build` the open tasks that are not about
-the build. `--force` and `x-ray` stay ordinary words. A word with `#` in front keeps the records tagged
+the build. `--force`, `x-ray` and a negative number like `-5` stay ordinary words. A word with `#` in front keeps the records tagged
 with it (see *Tags* below): `l #art` lists everything tagged `#articles` or `#art-history`, `l . #work
 @today` today's open work tasks, and `-#draft` leaves the drafts out. Without the `#`, `articles`
 matches the word anywhere in the line, tags included. There is no cap on the number of rows.
@@ -189,8 +189,8 @@ workflow, opened as they are kept; they are not listed in Alfred.
 The model sees each line as `YYYY-MM-DD HH:MM  text`; the other kinds carry a word before the
 text, `TODO`, `QUESTION`, `NOTE`, or `DONE` and `DECIDED` with the time they were settled, so "what
 is still open?", "what did I finish this week?" and "why postgres?" are questions it can answer. A day in the question, with or
-without the `@` (`what did I do yesterday`, `summary of @2026-09`, `@week`), sends that day's lines
-and nothing else, and a sigil
+without the `@` (`what did I do yesterday`, `summary of 2026-09`), or a range with it (`@week`),
+sends those lines and nothing else; a bare `week` stays prose, since "last week" is not this one, and a sigil
 (`ask . what is still open`) sends that kind only. A dashed word (`ask what did I do today
 -meetings`) keeps the lines it matches away from the model altogether, and the log's heading says
 so. The question goes with the log, newest

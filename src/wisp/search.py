@@ -17,7 +17,7 @@ Recognise = Callable[[str, date], Optional[Span]]
 DAY_NAMES = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
 WEEKDAYS = {name[:cut]: n for n, name in enumerate(DAY_NAMES) for cut in (3, len(name))}
 DATED = re.compile(r"(\d{4})-(\d{2})(?:-(\d{2}))?")
-EXCLUDED = re.compile(r"-\w.*")
+EXCLUDED = re.compile(r"-[^\W\d].*")
 RULE = "@"
 
 
@@ -101,11 +101,11 @@ def windowed(tokens: list[str], today: date, recognise: Recognise) -> tuple[Span
 
 
 def rule(token: str, today: date) -> Span | None:
-    return day(token[1:], today) if token.startswith(RULE) else None
+    return named(token[1:], today, RULES) if token.startswith(RULE) else None
 
 
 def spoken(token: str, today: date) -> Span | None:
-    return rule(token, today) or day(token, today)
+    return rule(token, today) or named(token, today, DAYS)
 
 
 def is_rule(token: str) -> bool:
@@ -113,9 +113,9 @@ def is_rule(token: str) -> bool:
     return token.startswith(RULE) and (fold(name) in RULES or calendar_span(name) is not None)
 
 
-def day(word: str, today: date) -> Span | None:
-    named = RULES.get(fold(word))
-    return named(today) if named else calendar_span(word)
+def named(word: str, today: date, rules: dict[str, Rule]) -> Span | None:
+    found = rules.get(fold(word))
+    return found(today) if found else calendar_span(word)
 
 
 def this_day(today: date) -> Span:
@@ -146,14 +146,13 @@ def this_year(today: date) -> Span:
     return date(today.year, 1, 1), date(today.year, 12, 31)
 
 
-RULES: dict[str, Rule] = {
+DAYS: dict[str, Rule] = {
     "today": this_day,
     "yesterday": the_day_before,
-    "week": this_week,
-    "month": this_month,
-    "year": this_year,
     **{name: last_weekday(n) for name, n in WEEKDAYS.items()},
 }
+RANGES: dict[str, Rule] = {"week": this_week, "month": this_month, "year": this_year}
+RULES: dict[str, Rule] = {**DAYS, **RANGES}
 
 
 def whole_month(year: int, month: int) -> Span:
