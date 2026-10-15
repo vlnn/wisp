@@ -380,3 +380,94 @@ def test_search_within_a_range(text, expected):
     days += [date(2026, 9, 30), date(2025, 12, 31)]
     found = search.search(text, [logged_on(day) for day in days], TODAY)
     assert [r.text for r in found] == expected, f"{text!r} should list {expected}"
+
+
+@pytest.mark.parametrize(
+    "text, kind, words, tags, without_tags",
+    [
+        ("#art api", None, "api", ("art",), ()),
+        ("api #Articles", None, "api", ("articles",), ()),
+        ("#a #b", None, "", ("a", "b"), ()),
+        ("api -#draft", None, "api", (), ("draft",)),
+        (". #work fix", Kind.TASK, "fix", ("work",), ()),
+        ("# release", Kind.CHECKLIST, "release", (), ()),
+        ("#", Kind.CHECKLIST, "", (), ()),
+        ("C# notes #123", None, "C# notes #123", (), ()),
+    ],
+)
+def test_query_reads_tags(text, kind, words, tags, without_tags):
+    asked = search.query(text)
+    assert (asked.kind, asked.words, asked.tags, asked.without_tags) == (
+        kind,
+        words,
+        tags,
+        without_tags,
+    ), f"{text!r} should read as {kind}, {words!r}, tags {tags}, without {without_tags}"
+
+
+@pytest.mark.parametrize(
+    "tag, key",
+    [("#articles", "articles"), ("#Réunion", "reunion"), ("#side-project", "side-project")],
+)
+def test_tag_key_folds(tag, key):
+    assert search.tag_key(tag) == key, f"{tag} should be known as {key}"
+
+
+TAGGED = (
+    "essay on modules #articles",
+    "art history notes #art-history",
+    "gallery visit #arts",
+    "articles to read later",
+    ". write #Articles #clojure",
+)
+
+
+@pytest.fixture
+def tagged():
+    return [
+        Record.parsed(
+            Path(f"/log/{n}.md"), text, NOW - timedelta(minutes=n), NOW - timedelta(minutes=n)
+        )
+        for n, text in enumerate(TAGGED)
+    ]
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("#articles", ["essay on modules #articles", ". write #Articles #clojure"]),
+        (
+            "#art",
+            [
+                "essay on modules #articles",
+                "art history notes #art-history",
+                "gallery visit #arts",
+                ". write #Articles #clojure",
+            ],
+        ),
+        (
+            "articles",
+            ["essay on modules #articles", "articles to read later", ". write #Articles #clojure"],
+        ),
+        (
+            "-#articles",
+            ["art history notes #art-history", "gallery visit #arts", "articles to read later"],
+        ),
+        ("#articles #clojure", [". write #Articles #clojure"]),
+        (". #articles", [". write #Articles #clojure"]),
+        ("#articles essay", ["essay on modules #articles"]),
+        ("#nothing", []),
+    ],
+)
+def test_search_by_tag(tagged, text, expected):
+    assert [r.text for r in search.search(text, tagged)] == expected, (
+        f"{text!r} should list {expected}"
+    )
+
+
+def test_tags_combine_with_a_rule():
+    old = Record.parsed(Path("/log/o.md"), "plan #work", NOW - timedelta(days=1), NOW)
+    new = Record.parsed(Path("/log/n.md"), "plan #work", NOW, NOW)
+    assert search.search("#work @today plan", [old, new], TODAY) == [new], (
+        "a tag, a rule and words narrow together"
+    )

@@ -35,7 +35,10 @@ rule, like `@Flash`, is ordinary text too. The
 first row still offers the whole text, so `l @today standup` logs "@today standup" and lists today's
 records about standups. A word with a dash in front leaves out the lines it matches instead: `l api
 -v2` lists the api records that say nothing about v2, `l . -build` the open tasks that are not about
-the build. `--force` and `x-ray` stay ordinary words. There is no cap on the number of rows.
+the build. `--force` and `x-ray` stay ordinary words. A word with `#` in front keeps the records tagged
+with it (see *Tags* below): `l #art` lists everything tagged `#articles` or `#art-history`, `l . #work
+@today` today's open work tasks, and `-#draft` leaves the drafts out. Without the `#`, `articles`
+matches the word anywhere in the line, tags included. There is no cap on the number of rows.
 
 ## Tasks, notes, questions, decisions
 

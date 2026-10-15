@@ -100,8 +100,11 @@ without the `@` too (`search.spoken`, passed as `recognise`), because a question
 `l` a bare `today` stays a word. A rule is a function from today to a `Span` for now; one that needs
 to set more than the window widens that to a piece of `Query`. `search.is_rule` answers without a
 date, for stripping rules out of what gets logged; so is every word that starts with a dash and a word character, which becomes
-`Query.without`. `search.in_scope` is kind, span and not `search.left_out`, `search.wanted` adds the
-words. Exclusion belongs to the scope rather than the words so that the model never sees an
+`Query.without`. A token that is a whole tag goes to `Query.tags`, a dashed one to
+`Query.without_tags`, both as `search.tag_key`s (folded, without the `#`) matched as prefixes of the
+record's own keys. `search.in_scope` is kind, span, tags and nothing left out; `search.wanted` adds
+the words. Because tags are scope, `ask #articles summary` sends tagged lines only, and the log's
+heading says so. Exclusion belongs to the scope rather than the words so that the model never sees an
 excluded line, not even among the newest lines that fill the budget. `oracle.evidence`
 uses the same query: the scope bounds what can go to the model; the words single lines out within
 it (`oracle.single_out`: every word, else any word of three letters or more that is not filler) and

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Optional
 
-from wisp.records import Kind, Record, parse
+from wisp.records import TAG, Kind, Record, parse
 
 Span = tuple[date, date]
 Rule = Callable[[date], Span]
@@ -27,6 +27,8 @@ class Query:
     words: str
     span: Span | None = None
     without: tuple[str, ...] = ()
+    tags: tuple[str, ...] = ()
+    without_tags: tuple[str, ...] = ()
 
 
 def fold(text: str) -> str:
@@ -47,17 +49,37 @@ def query(text: str, today: date | None = None, recognise: Recognise | None = No
     kind, rest = parse(text.strip())
     tokens = rest.split()
     span, tokens = windowed(tokens, today, recognise or rule) if today else (None, tokens)
-    without, remaining = exclusions(tokens)
-    return Query(None if kind is Kind.LOG else kind, " ".join(remaining), span, without)
+    without_tags, tokens = picked(is_excluded_tag, tokens)
+    tags, tokens = picked(is_tag, tokens)
+    without, remaining = picked(is_exclusion, tokens)
+    return Query(
+        None if kind is Kind.LOG else kind,
+        " ".join(remaining),
+        span,
+        tuple(token[1:] for token in without),
+        tuple(tag_key(token) for token in tags),
+        tuple(tag_key(token[1:]) for token in without_tags),
+    )
 
 
-def exclusions(tokens: list[str]) -> tuple[tuple[str, ...], list[str]]:
-    excluded = tuple(token[1:] for token in tokens if is_exclusion(token))
-    return excluded, [token for token in tokens if not is_exclusion(token)]
+def picked(wanted: Callable[[str], bool], tokens: list[str]) -> tuple[list[str], list[str]]:
+    return [t for t in tokens if wanted(t)], [t for t in tokens if not wanted(t)]
 
 
 def is_exclusion(token: str) -> bool:
     return EXCLUDED.fullmatch(token) is not None
+
+
+def is_tag(token: str) -> bool:
+    return TAG.fullmatch(token) is not None
+
+
+def is_excluded_tag(token: str) -> bool:
+    return token.startswith("-") and is_tag(token[1:])
+
+
+def tag_key(tag: str) -> str:
+    return fold(tag.lstrip("#"))
 
 
 def windowed(tokens: list[str], today: date, recognise: Recognise) -> tuple[Span | None, list[str]]:
@@ -146,6 +168,8 @@ def in_scope(query: Query, record: Record) -> bool:
         query.kind in (None, record.kind)
         and within(query.span, record)
         and not left_out(query.without, record)
+        and tagged_with(query.tags, record)
+        and not tagged_any(query.without_tags, record)
     )
 
 
@@ -155,6 +179,24 @@ def within(span: Span | None, record: Record) -> bool:
 
 def left_out(without: Iterable[str], record: Record) -> bool:
     return any(matches(word, record.line) for word in without)
+
+
+def tag_keys(record: Record) -> list[str]:
+    return [tag_key(tag) for tag in record.tags]
+
+
+def carries(key: str, keys: list[str]) -> bool:
+    return any(have.startswith(key) for have in keys)
+
+
+def tagged_with(wanted: Iterable[str], record: Record) -> bool:
+    keys = tag_keys(record)
+    return all(carries(key, keys) for key in wanted)
+
+
+def tagged_any(unwanted: Iterable[str], record: Record) -> bool:
+    keys = tag_keys(record)
+    return any(carries(key, keys) for key in unwanted)
 
 
 def wanted(query: Query, record: Record) -> bool:

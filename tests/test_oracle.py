@@ -244,7 +244,9 @@ def test_evidence_within_a_window_fills_from_that_window_only():
         (". @week", "Log, open tasks only, 2026-10-05 to 2026-10-11 only:"),
         ("summary @year", "Log, 2026-01-01 to 2026-12-31 only:"),
         ("tasks @yesterday", "Log, 2026-10-09 only:"),
-        ("summary #week", "Log:"),
+        ("summary #week", "Log, tagged #week only:"),
+        ("summary #articles #clojure", "Log, tagged #articles, #clojure only:"),
+        ("summary -#draft", "Log, leaving out lines tagged #draft:"),
     ],
 )
 def test_prompt_names_the_window_so_the_model_need_not_find_it(question, heading):
@@ -326,3 +328,11 @@ def test_prompt_tells_the_model_what_was_left_out(question, heading):
     logs = [record("x", 1), record("api", 2), record("wisp", 3), record("logs", 4)]
     _, user = (m["content"] for m in oracle.prompt(question, logs, NOW))
     assert f"\n\n{heading}\n" in user, f"{question!r} should head the log with {heading!r}"
+
+
+def test_evidence_keeps_to_the_asked_tags():
+    logs = [record("essay on modules #articles", 1), record("modules refactor", 2)]
+    found = oracle.evidence("#articles summary", logs, now=NOW)
+    assert [r.text for r in found.records()] == ["essay on modules #articles"], (
+        "a tag in the question should scope what the model is sent"
+    )

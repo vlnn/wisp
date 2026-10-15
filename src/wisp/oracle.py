@@ -252,11 +252,19 @@ def heading(question: str, now: datetime, terms: Iterable[str] = ()) -> str:
     if asked.span:
         first, last = asked.span
         bounds.append(f"{first} only" if first == last else f"{first} to {last} only")
+    if asked.tags:
+        bounds.append(f"tagged {hashed(asked.tags)} only")
     if terms:
         bounds.append(f"lines matching {', '.join(terms)} only")
     if asked.without:
         bounds.append(f"leaving out lines matching {', '.join(asked.without)}")
+    if asked.without_tags:
+        bounds.append(f"leaving out lines tagged {hashed(asked.without_tags)}")
     return f"Log, {', '.join(bounds)}:" if bounds else "Log:"
+
+
+def hashed(keys: Iterable[str]) -> str:
+    return ", ".join(f"#{key}" for key in keys)
 
 
 def payload(server: Llama, messages: list[dict]) -> dict:
