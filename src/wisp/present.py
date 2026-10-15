@@ -11,6 +11,7 @@ from wisp.records import (
     Item,
     Kind,
     Record,
+    compose,
     items,
     normalise,
     open_run,
@@ -71,8 +72,12 @@ def when(created: datetime, now: datetime) -> str:
 def rows(text: str, records: Iterable[Record], now: datetime) -> list[Row]:
     logs = list(records)
     asked = query(text, now.date())
-    offered = offer_rows(text, logs, now) if asked.words else tag_rows(text, asked, logs, now)
+    offered = offer_rows(text, logs, now) if loggable(text) else tag_rows(text, asked, logs, now)
     return offered + [record_row(record, now, logs) for record in search(text, logs, now.date())]
+
+
+def loggable(text: str) -> bool:
+    return bool(untagged(parse(logged(text))[1]))
 
 
 def tag_rows(text: str, asked: Query, logs: Sequence[Record], now: datetime) -> list[Row]:
@@ -88,12 +93,17 @@ def tag_row(key: str, vocab: suggest.Vocabulary, text: str, now: datetime) -> Ro
         "title": tag,
         "subtitle": f"{counted(vocab.count(key))} · last {when(vocab.last[key], now)}",
         "valid": False,
-        "autocomplete": f"{with_tag_finished(text, tag)} ",
+        "autocomplete": f"{finished_query(text, tag)} ",
     }
 
 
 def counted(records: int) -> str:
     return "1 record" if records == 1 else f"{records} records"
+
+
+def finished_query(text: str, tag: str) -> str:
+    kind, rest = parse(text.strip())
+    return compose(kind, with_tag_finished(rest, tag))
 
 
 def with_tag_finished(text: str, tag: str) -> str:

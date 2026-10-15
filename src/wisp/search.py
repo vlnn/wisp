@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Optional
 
-from wisp.records import TAG, Kind, Record, parse
+from wisp.records import TAG, Kind, Record, compose, parse
 
 Span = tuple[date, date]
 Rule = Callable[[date], Span]
@@ -79,7 +79,9 @@ def is_excluded_tag(token: str) -> bool:
 
 
 def logged(text: str) -> str:
-    return " ".join(token for token in text.split() if not only_searches(token))
+    kind, rest = parse(text.strip())
+    kept = " ".join(token for token in rest.split() if not only_searches(token))
+    return compose(kind, kept).strip()
 
 
 def only_searches(token: str) -> bool:

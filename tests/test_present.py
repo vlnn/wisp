@@ -617,3 +617,31 @@ def test_a_checklist_offer_finds_its_template_whatever_the_tags():
     logs = [Record.parsed(Path("/log/r.md"), "# release #work", NOW, NOW)]
     (first, *_) = present.rows("# release", logs, NOW)
     assert first["title"] == 'Start "release #work"', "typing the name finds the tagged template"
+
+
+def test_a_tight_sigil_glued_to_a_tag_lists_tags(tagged_log):
+    (first, *_) = present.rows("?#art", tagged_log, NOW)
+    assert (first["title"], first["autocomplete"]) == ("#articles", "? #articles "), (
+        "`?#art` reads as `? #art`, so its tag rows finish the tag after the sigil"
+    )
+
+
+@pytest.mark.parametrize("text", ["@today @week", "@today .", "-draft ?", "@week !", ". -#x"])
+def test_nothing_left_to_log_offers_no_log_row(text):
+    logs = [a_record("standup", NOW)]
+    titles = titles_of(present.rows(text, logs, NOW))
+    assert not any(
+        title.split(" ")[0] in ("Log", "Task", "Question", "Note") for title in titles
+    ), f"{text!r} leaves nothing to keep, so there is no row to keep it"
+
+
+@pytest.mark.parametrize(
+    "text, title",
+    [
+        ("?@today which db", 'Question "which db"'),
+        ("!-x keys in vault", 'Note "keys in vault"'),
+    ],
+)
+def test_a_glued_sigil_still_drops_the_search(text, title):
+    (first, *_) = present.rows(text, [], NOW)
+    assert first["title"] == title, f"{text!r} should offer {title!r}"
