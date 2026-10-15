@@ -134,34 +134,94 @@ TODAY = NOW.date()
         ("2024-02", date(2024, 2, 1), date(2024, 2, 29)),
     ],
 )
-def test_days_reads_a_date_word(token, first, last):
-    assert search.days(token, TODAY) == (first, last), f"{token!r} should span {first}..{last}"
+def test_rule_reads_an_at_day(token, first, last):
+    assert search.rule(f"@{token}", TODAY) == (first, last), f"@{token} should span {first}..{last}"
+    assert search.rule(token, TODAY) is None, f"bare {token!r} should not be a rule in a query"
 
 
-@pytest.mark.parametrize("token", ["api", "2026-13", "2026-10-99", "mondays", "20261003", "to"])
-def test_days_leaves_other_words_alone(token):
-    assert search.days(token, TODAY) is None, f"{token!r} is not a date"
+@pytest.mark.parametrize(
+    "token, first",
+    [
+        ("yesterday", TODAY - timedelta(days=1)),
+        ("@yesterday", TODAY - timedelta(days=1)),
+        ("fri", TODAY - timedelta(days=1)),
+        ("@2026-10-03", date(2026, 10, 3)),
+        ("2026-10-03", date(2026, 10, 3)),
+    ],
+)
+def test_spoken_reads_bare_days_and_rules(token, first):
+    assert search.spoken(token, TODAY) == (first, first), (
+        f"{token!r} should be a day in a question to the model"
+    )
+
+
+@pytest.mark.parametrize(
+    "token",
+    [
+        "api",
+        "2026-13",
+        "2026-10-99",
+        "mondays",
+        "20261003",
+        "to",
+        "@api",
+        "@2026-13",
+        "@",
+        "@@today",
+    ],
+)
+def test_rules_leave_other_words_alone(token):
+    assert search.rule(token, TODAY) is None, f"{token!r} is not a rule"
+    assert search.spoken(token, TODAY) is None, f"{token!r} is not a day"
+
+
+@pytest.mark.parametrize(
+    "token, expected",
+    [
+        ("@today", True),
+        ("@Week", True),
+        ("@2026-09", True),
+        ("@2026-10-03", True),
+        ("@flash", False),
+        ("today", False),
+        ("#week", False),
+        ("@2026-13", False),
+    ],
+)
+def test_is_rule_needs_no_date(token, expected):
+    assert search.is_rule(token) is expected, (
+        f"{token!r} should {'be' if expected else 'not be'} a rule"
+    )
 
 
 @pytest.mark.parametrize(
     "text, words, span",
     [
         ("api", "api", None),
-        ("today", "", (TODAY, TODAY)),
-        ("api today", "api", (TODAY, TODAY)),
-        ("yesterday api v1", "api v1", (TODAY - timedelta(days=1), TODAY - timedelta(days=1))),
-        ("today yesterday", "yesterday", (TODAY, TODAY)),
-        (". today", "", (TODAY, TODAY)),
+        ("@today", "", (TODAY, TODAY)),
+        ("api @today", "api", (TODAY, TODAY)),
+        ("@yesterday api v1", "api v1", (TODAY - timedelta(days=1), TODAY - timedelta(days=1))),
+        ("@today @yesterday", "@yesterday", (TODAY, TODAY)),
+        (". @today", "", (TODAY, TODAY)),
+        ("today standup", "today standup", None),
+        ("talked to @Flash", "talked to @Flash", None),
     ],
 )
-def test_query_takes_the_first_date_word_as_a_window(text, words, span):
+def test_query_takes_the_first_rule_as_a_window(text, words, span):
     asked = search.query(text, TODAY)
     assert (asked.words, asked.span) == (words, span), f"{text!r} should narrow to {span}"
 
 
-def test_query_without_a_day_keeps_date_words_as_words():
-    assert search.query("today api") == search.Query(None, "today api"), (
+def test_query_without_a_day_keeps_rules_as_words():
+    assert search.query("@today api") == search.Query(None, "@today api"), (
         "with no day to count from, nothing is a date"
+    )
+
+
+def test_a_question_reads_bare_days():
+    asked = search.query("what did I do yesterday", TODAY, search.spoken)
+    assert (asked.words, asked.span) == ("what did I do", (TODAY - timedelta(days=1),) * 2), (
+        "a question to the model keeps its natural day words"
     )
 
 
@@ -176,13 +236,14 @@ def week():
 @pytest.mark.parametrize(
     "text, expected",
     [
-        ("today", ["day 0"]),
-        ("yesterday", ["day 1"]),
-        ("thursday", ["day 2"]),
-        ("day today", ["day 0"]),
+        ("@today", ["day 0"]),
+        ("@yesterday", ["day 1"]),
+        ("@thursday", ["day 2"]),
+        ("day @today", ["day 0"]),
         ("day", ["day 0", "day 1", "day 2", "day 3"]),
-        ("2026-10", ["day 0", "day 1", "day 2", "day 3"]),
-        ("2026-09", []),
+        ("@2026-10", ["day 0", "day 1", "day 2", "day 3"]),
+        ("@2026-09", []),
+        ("today", []),
     ],
 )
 def test_search_within_a_window(week, text, expected):
@@ -192,7 +253,7 @@ def test_search_within_a_window(week, text, expected):
 
 
 def test_scope_is_kind_and_window_without_the_words(week):
-    asked = search.query(". today api", TODAY)
+    asked = search.query(". @today api", TODAY)
     task = Record.parsed(Path("/log/t.md"), ". fix", NOW, NOW)
     assert search.in_scope(asked, task) is True, "a task from today is in scope"
     assert search.in_scope(asked, week[0]) is False, "a log is not, whatever its words"
@@ -234,7 +295,7 @@ def test_query_takes_dashed_words_out_as_exclusions(text, kind, words, without):
 
 
 def test_query_takes_a_window_and_an_exclusion_together():
-    asked = search.query("api -v2 today", TODAY)
+    asked = search.query("api -v2 @today", TODAY)
     assert (asked.words, asked.span, asked.without) == ("api", (TODAY, TODAY), ("v2",)), (
         "a day word and a dashed word should both leave the words"
     )
@@ -274,24 +335,24 @@ def test_an_exclusion_narrows_the_scope():
 @pytest.mark.parametrize(
     "token, first, last",
     [
-        ("#today", TODAY, TODAY),
-        ("#week", date(2026, 10, 5), date(2026, 10, 11)),
-        ("#month", date(2026, 10, 1), date(2026, 10, 31)),
-        ("#year", date(2026, 1, 1), date(2026, 12, 31)),
-        ("#Week", date(2026, 10, 5), date(2026, 10, 11)),
+        ("@today", TODAY, TODAY),
+        ("@week", date(2026, 10, 5), date(2026, 10, 11)),
+        ("@month", date(2026, 10, 1), date(2026, 10, 31)),
+        ("@year", date(2026, 1, 1), date(2026, 12, 31)),
+        ("@Week", date(2026, 10, 5), date(2026, 10, 11)),
     ],
 )
-def test_days_reads_a_range_word(token, first, last):
-    assert search.days(token, TODAY) == (first, last), f"{token!r} should span {first}..{last}"
+def test_rule_reads_a_range(token, first, last):
+    assert search.rule(token, TODAY) == (first, last), f"{token!r} should span {first}..{last}"
 
 
-@pytest.mark.parametrize("token", ["week", "month", "year", "#weeks", "#api", "#"])
-def test_days_needs_the_hash_and_the_whole_range_word(token):
-    assert search.days(token, TODAY) is None, f"{token!r} is not a range word"
+@pytest.mark.parametrize("token", ["week", "#week", "#month", "#year", "@weeks", "@"])
+def test_a_range_needs_the_at_and_the_whole_word(token):
+    assert search.rule(token, TODAY) is None, f"{token!r} is not a range"
 
 
-def test_query_takes_a_range_word_as_the_window():
-    asked = search.query("api #week", TODAY)
+def test_query_takes_a_range_as_the_window():
+    asked = search.query("api @week", TODAY)
     assert (asked.words, asked.span) == ("api", (date(2026, 10, 5), date(2026, 10, 11))), (
         "a range word should leave the words and become the window"
     )
@@ -305,11 +366,11 @@ def logged_on(when: date) -> Record:
 @pytest.mark.parametrize(
     "text, expected",
     [
-        ("#today", ["on 2026-10-10"]),
-        ("#week", ["on 2026-10-10", "on 2026-10-05"]),
-        ("#month", ["on 2026-10-10", "on 2026-10-05", "on 2026-10-04", "on 2026-10-01"]),
+        ("@today", ["on 2026-10-10"]),
+        ("@week", ["on 2026-10-10", "on 2026-10-05"]),
+        ("@month", ["on 2026-10-10", "on 2026-10-05", "on 2026-10-04", "on 2026-10-01"]),
         (
-            "#year",
+            "@year",
             ["on 2026-10-10", "on 2026-10-05", "on 2026-10-04", "on 2026-10-01", "on 2026-09-30"],
         ),
     ],

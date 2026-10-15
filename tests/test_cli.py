@@ -582,12 +582,19 @@ def test_job_finish_keeps_the_final_text(tmp_path):
     assert job.partial() == "You read docs." and job.done(), "finish writes the answer and done"
 
 
-def test_filter_by_a_day_lists_that_day_and_still_offers_the_text(run, logged):
+def test_filter_by_a_day_lists_that_day(run, logged):
     logged("standup", 60 * 24 + 10)
     logged("review", 10)
+    _, out = run("filter", "@yesterday")
+    assert titles(out)[1:] == ["standup"], "the list narrows to yesterday"
+
+
+def test_filter_reads_a_bare_day_as_a_word(run, logged):
+    logged("standup", 60 * 24 + 10)
+    logged("yesterday's review", 10)
     _, out = run("filter", "yesterday")
-    assert titles(out) == ['Log "yesterday"', "standup"], (
-        "the list narrows to yesterday while the offer keeps what was typed"
+    assert titles(out) == ['Log "yesterday"', "yesterday's review"], (
+        "in l, a bare day is an ordinary word"
     )
 
 

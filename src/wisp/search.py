@@ -6,15 +6,19 @@ import unicodedata
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import date, timedelta
+from typing import Optional
 
 from wisp.records import Kind, Record, parse
 
 Span = tuple[date, date]
+Rule = Callable[[date], Span]
+Recognise = Callable[[str, date], Optional[Span]]
 
 DAY_NAMES = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
 WEEKDAYS = {name[:cut]: n for n, name in enumerate(DAY_NAMES) for cut in (3, len(name))}
 DATED = re.compile(r"(\d{4})-(\d{2})(?:-(\d{2}))?")
 EXCLUDED = re.compile(r"-\w.*")
+RULE = "@"
 
 
 @dataclass(frozen=True)
@@ -39,9 +43,10 @@ def matches(query: str, text: str) -> bool:
     return all(any(word.startswith(wanted) for word in have) for wanted in words(query))
 
 
-def query(text: str, today: date | None = None) -> Query:
+def query(text: str, today: date | None = None, recognise: Recognise | None = None) -> Query:
     kind, rest = parse(text.strip())
-    span, tokens = windowed(rest.split(), today) if today else (None, rest.split())
+    tokens = rest.split()
+    span, tokens = windowed(tokens, today, recognise or rule) if today else (None, tokens)
     without, remaining = exclusions(tokens)
     return Query(None if kind is Kind.LOG else kind, " ".join(remaining), span, without)
 
@@ -55,30 +60,45 @@ def is_exclusion(token: str) -> bool:
     return EXCLUDED.fullmatch(token) is not None
 
 
-def windowed(tokens: list[str], today: date) -> tuple[Span | None, list[str]]:
+def windowed(tokens: list[str], today: date, recognise: Recognise) -> tuple[Span | None, list[str]]:
     for n, token in enumerate(tokens):
-        span = days(token, today)
+        span = recognise(token, today)
         if span:
             return span, tokens[:n] + tokens[n + 1 :]
     return None, tokens
 
 
-def days(token: str, today: date) -> Span | None:
-    word = fold(token)
-    if word == "today":
-        return today, today
-    if word == "yesterday":
-        return (today - timedelta(days=1),) * 2
-    if word in WEEKDAYS:
-        back = (today.weekday() - WEEKDAYS[word]) % 7
-        return (today - timedelta(days=back),) * 2
-    if word in RANGES:
-        return RANGES[word](today)
-    return calendar_span(token)
+def rule(token: str, today: date) -> Span | None:
+    return day(token[1:], today) if token.startswith(RULE) else None
+
+
+def spoken(token: str, today: date) -> Span | None:
+    return rule(token, today) or day(token, today)
+
+
+def is_rule(token: str) -> bool:
+    name = token[1:]
+    return token.startswith(RULE) and (fold(name) in RULES or calendar_span(name) is not None)
+
+
+def day(word: str, today: date) -> Span | None:
+    named = RULES.get(fold(word))
+    return named(today) if named else calendar_span(word)
 
 
 def this_day(today: date) -> Span:
     return today, today
+
+
+def the_day_before(today: date) -> Span:
+    return (today - timedelta(days=1),) * 2
+
+
+def last_weekday(weekday: int) -> Rule:
+    def back(today: date) -> Span:
+        return (today - timedelta(days=(today.weekday() - weekday) % 7),) * 2
+
+    return back
 
 
 def this_week(today: date) -> Span:
@@ -94,11 +114,13 @@ def this_year(today: date) -> Span:
     return date(today.year, 1, 1), date(today.year, 12, 31)
 
 
-RANGES: dict[str, Callable[[date], Span]] = {
-    "#today": this_day,
-    "#week": this_week,
-    "#month": this_month,
-    "#year": this_year,
+RULES: dict[str, Rule] = {
+    "today": this_day,
+    "yesterday": the_day_before,
+    "week": this_week,
+    "month": this_month,
+    "year": this_year,
+    **{name: last_weekday(n) for name, n in WEEKDAYS.items()},
 }
 
 
@@ -139,6 +161,11 @@ def wanted(query: Query, record: Record) -> bool:
     return in_scope(query, record) and matches(query.words, record.line)
 
 
-def search(text: str, records: Iterable[Record], today: date | None = None) -> list[Record]:
-    asked = query(text, today)
+def search(
+    text: str,
+    records: Iterable[Record],
+    today: date | None = None,
+    recognise: Recognise | None = None,
+) -> list[Record]:
+    asked = query(text, today, recognise)
     return [record for record in records if wanted(asked, record)]

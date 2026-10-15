@@ -92,10 +92,14 @@ reopened and re-decided question carries every resolution it ever had. The sigil
 slug ignores them and marking never moves a file.
 
 The query carries the same sigil as a filter on kind (`search.query`), with the words matched
-against `Record.line`; no sigil means every kind. The first word that reads as a day (`search.days`:
-`today`, `yesterday`, a weekday, `YYYY-MM-DD`, `YYYY-MM`, or a `search.RANGES` word: `#today`,
-`#week`, `#month`, `#year`, each the whole calendar unit around today) becomes `Query.span` and is taken out of
-the words; so is every word that starts with a dash and a word character, which becomes
+against `Record.line`; no sigil means every kind. The first word that reads as a rule becomes
+`Query.span` and is taken out of the words. A rule is `@` and a name in `search.RULES` (`today`,
+`yesterday`, the weekdays, `week`, `month`, `year`, the last three the whole calendar unit around
+today) or a date (`YYYY-MM-DD`, `YYYY-MM`); `search.rule` reads it. `ask` reads the same words
+without the `@` too (`search.spoken`, passed as `recognise`), because a question is prose, while in
+`l` a bare `today` stays a word. A rule is a function from today to a `Span` for now; one that needs
+to set more than the window widens that to a piece of `Query`. `search.is_rule` answers without a
+date, for stripping rules out of what gets logged; so is every word that starts with a dash and a word character, which becomes
 `Query.without`. `search.in_scope` is kind, span and not `search.left_out`, `search.wanted` adds the
 words. Exclusion belongs to the scope rather than the words so that the model never sees an
 excluded line, not even among the newest lines that fill the budget. `oracle.evidence`

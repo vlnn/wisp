@@ -17,7 +17,7 @@ from wisp.records import (
     progress,
     runs,
 )
-from wisp.search import fold, matches, query, search
+from wisp.search import fold, matches, query, search, spoken
 
 
 class Icon(TypedDict):
@@ -374,7 +374,8 @@ def question_rows(
     offered = (
         [ask_row(question, len(found.lines()), found.terms, found.without)] if question else []
     )
-    return offered + [record_row(r, now, logs) for r in search(question, logs, now.date())]
+    listed = search(question, logs, now.date(), spoken)
+    return offered + [record_row(r, now, logs) for r in listed]
 
 
 def followup_row(question: str, first: str, thread: str, lines: int) -> Row:

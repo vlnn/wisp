@@ -27,10 +27,12 @@ folder needs no index, no database and no sync of its own.
 | ⇧ or ⌘Y | Quick Look |
 
 Matching: every word you type must be a prefix of a word in the line; case and diacritics are
-ignored. One word may be a day instead: `today`, `yesterday`, a weekday (`mon`, `friday`: the most
-recent one), `2026-10-03`, a month `2026-09`, or a range around today: `#today`, `#week` (Monday to
-Sunday), `#month`, `#year`. The list narrows to records from then. The
-first row still offers the whole text, so `l today standup` logs "today standup" and lists today's
+ignored. One word may be a rule instead, spelled with `@`: a day (`@today`, `@yesterday`, a weekday
+`@mon` or `@friday`, the most recent one, `@2026-10-03`, a month `@2026-09`) or a range around today
+(`@week`, Monday to Sunday, `@month`, `@year`). The list narrows to records from then. Without the
+`@` a day is an ordinary word, so `l today` finds "today standup", and any `@word` that is not a
+rule, like `@Flash`, is ordinary text too. The
+first row still offers the whole text, so `l @today standup` logs "@today standup" and lists today's
 records about standups. A word with a dash in front leaves out the lines it matches instead: `l api
 -v2` lists the api records that say nothing about v2, `l . -build` the open tasks that are not about
 the build. `--force` and `x-ray` stay ordinary words. There is no cap on the number of rows.
@@ -146,8 +148,9 @@ workflow, opened as they are kept; they are not listed in Alfred.
 
 The model sees each line as `YYYY-MM-DD HH:MM  text`; the other kinds carry a word before the
 text, `TODO`, `QUESTION`, `NOTE`, or `DONE` and `DECIDED` with the time they were settled, so "what
-is still open?", "what did I finish this week?" and "why postgres?" are questions it can answer. A day word in the question (`what
-did I do yesterday`, `summary of 2026-09`) sends that day's lines and nothing else, and a sigil
+is still open?", "what did I finish this week?" and "why postgres?" are questions it can answer. A day in the question, with or
+without the `@` (`what did I do yesterday`, `summary of @2026-09`, `@week`), sends that day's lines
+and nothing else, and a sigil
 (`ask . what is still open`) sends that kind only. A dashed word (`ask what did I do today
 -meetings`) keeps the lines it matches away from the model altogether, and the log's heading says
 so. The question goes with the log, newest

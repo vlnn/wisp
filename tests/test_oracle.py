@@ -241,8 +241,10 @@ def test_evidence_within_a_window_fills_from_that_window_only():
         ("api", "Log, lines matching api only:"),
         ("logs about wisp", "Log, lines matching logs, wisp only:"),
         ("summary", "Log:"),
-        (". #week", "Log, open tasks only, 2026-10-05 to 2026-10-11 only:"),
-        ("summary #year", "Log, 2026-01-01 to 2026-12-31 only:"),
+        (". @week", "Log, open tasks only, 2026-10-05 to 2026-10-11 only:"),
+        ("summary @year", "Log, 2026-01-01 to 2026-12-31 only:"),
+        ("tasks @yesterday", "Log, 2026-10-09 only:"),
+        ("summary #week", "Log:"),
     ],
 )
 def test_prompt_names_the_window_so_the_model_need_not_find_it(question, heading):

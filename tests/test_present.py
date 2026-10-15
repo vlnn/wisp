@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -212,6 +212,21 @@ def test_rows_carry_the_icon_of_their_kind(text, icon):
     row = present.record_row(a_record(text, NOW), NOW)
     assert row["icon"] == {"path": icon}, f"{text!r} should show {icon}"
     assert present.keep_row(text)["icon"] == {"path": icon}, "the offer row shows the kind too"
+
+
+@pytest.mark.parametrize("question", ["summary yesterday", "summary @yesterday"])
+def test_ask_lists_what_the_model_would_get(question):
+    logs = [a_record("summary of docs", NOW), a_record("summary of api", NOW - timedelta(days=1))]
+    (_, *listed) = present.question_rows(question, logs, NOW, oracle.Evidence([], [], []))
+    assert [row["title"] for row in listed] == ["summary of api"], (
+        f"{question!r} should list yesterday's lines under Ask, as the model reads it"
+    )
+
+
+def test_l_reads_a_bare_day_as_a_word():
+    logs = [a_record("today standup", NOW), a_record("standup", NOW)]
+    titles = [row["title"] for row in present.rows("today", logs, NOW)]
+    assert titles == ['Log "today"', "today standup"], "in l, a bare day is an ordinary word"
 
 
 def test_ask_row_is_an_open_question():

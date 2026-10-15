@@ -166,7 +166,7 @@ class Evidence:
 def evidence(
     question: str, logs: Iterable[Record], budget: int = BUDGET, now: datetime | None = None
 ) -> Evidence:
-    asked = search.query(question, now.date() if now else None)
+    asked = search.query(question, now.date() if now else None, search.spoken)
     pool = [r for r in sorted(logs, key=records.newest_first) if search.in_scope(asked, r)]
     singled, terms = single_out(asked.words, pool)
     if singled:
@@ -245,7 +245,7 @@ SCOPED = {
 
 
 def heading(question: str, now: datetime, terms: Iterable[str] = ()) -> str:
-    asked = search.query(question, now.date())
+    asked = search.query(question, now.date(), search.spoken)
     bounds = []
     if asked.kind:
         bounds.append(f"{SCOPED[asked.kind]} only")
