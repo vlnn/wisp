@@ -481,3 +481,25 @@ def test_item_rows_lead_to_a_fresh_run(record, title, arg):
 def test_item_rows_lead_row_steps_aside_when_typing():
     titles = [row["title"] for row in present.item_rows(template(), "bu")]
     assert titles == ["☐ bump version", "☐ build"], "typing narrows to steps only"
+
+
+def test_the_log_row_writes_what_belongs_to_the_record():
+    (first, *_) = present.rows("wrote article #Articles @week -draft", [], NOW)
+    assert (first["title"], first["arg"]) == (
+        'Log "wrote article #articles"',
+        "wrote article #articles",
+    ), "rules and exclusions are only the search; tags are kept, in lowercase"
+
+
+@pytest.mark.parametrize("text", ["#articles", "@today", ". @week", "-#draft"])
+def test_nothing_to_log_without_words(text):
+    logs = [a_record("essay #articles", NOW)]
+    titles = [row["title"] for row in present.rows(text, logs, NOW)]
+    assert not any(title.startswith("Log ") for title in titles), (
+        f"{text!r} is a pure search, so there is nothing to offer to log"
+    )
+
+
+def test_a_checklist_offer_ignores_the_search_words():
+    (first, *_) = present.rows("# packing @week", [], NOW)
+    assert first["title"] == 'Checklist "packing"', "a rule is never part of a checklist's name"

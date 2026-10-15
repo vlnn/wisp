@@ -471,3 +471,18 @@ def test_tags_combine_with_a_rule():
     assert search.search("#work @today plan", [old, new], TODAY) == [new], (
         "a tag, a rule and words narrow together"
     )
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("wrote article #Articles @week -draft", "wrote article #Articles"),
+        ("@today standup", "standup"),
+        ("talked to @Flash", "talked to @Flash"),
+        (". fix it -#later", ". fix it"),
+        ("pushed --force", "pushed --force"),
+        ("x-ray results @2026-10-03", "x-ray results"),
+    ],
+)
+def test_logged_keeps_the_record_and_drops_the_query(text, expected):
+    assert search.logged(text) == expected, f"logging {text!r} should write {expected!r}"

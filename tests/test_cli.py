@@ -586,7 +586,7 @@ def test_filter_by_a_day_lists_that_day(run, logged):
     logged("standup", 60 * 24 + 10)
     logged("review", 10)
     _, out = run("filter", "@yesterday")
-    assert titles(out)[1:] == ["standup"], "the list narrows to yesterday"
+    assert titles(out) == ["standup"], "the list narrows to yesterday with nothing to log"
 
 
 def test_filter_reads_a_bare_day_as_a_word(run, logged):

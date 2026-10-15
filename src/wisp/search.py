@@ -78,6 +78,14 @@ def is_excluded_tag(token: str) -> bool:
     return token.startswith("-") and is_tag(token[1:])
 
 
+def logged(text: str) -> str:
+    return " ".join(token for token in text.split() if not only_searches(token))
+
+
+def only_searches(token: str) -> bool:
+    return is_rule(token) or is_exclusion(token) or is_excluded_tag(token)
+
+
 def tag_key(tag: str) -> str:
     return fold(tag.lstrip("#"))
 

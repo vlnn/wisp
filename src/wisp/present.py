@@ -17,7 +17,7 @@ from wisp.records import (
     progress,
     runs,
 )
-from wisp.search import fold, matches, query, search, spoken
+from wisp.search import fold, logged, matches, query, search, spoken
 
 
 class Icon(TypedDict):
@@ -67,23 +67,24 @@ def when(created: datetime, now: datetime) -> str:
 
 def rows(text: str, records: Iterable[Record], now: datetime) -> list[Row]:
     logs = list(records)
-    offered = [offer_row(text, logs, now)] if query(text).words else []
+    offered = [offer_row(text, logs, now)] if query(text, now.date()).words else []
     return offered + [record_row(record, now, logs) for record in search(text, logs, now.date())]
 
 
 def offer_row(text: str, logs: Sequence[Record], now: datetime) -> Row:
-    kind, line = parse(text.strip())
+    kind, line = parse(logged(text))
     if kind is Kind.CHECKLIST:
         return checklist_offer(line, logs, now)
     return keep_row(text)
 
 
 def keep_row(text: str) -> Row:
-    kind, line = parse(text.strip())
+    kept = normalise(logged(text))
+    kind, line = parse(kept)
     return {
         "title": f'{kind.offer} "{line}"',
         "subtitle": "↩ keeps it",
-        "arg": normalise(text),
+        "arg": kept,
         "icon": icon(kind),
         "variables": {"action": "keep"},
         "mods": NO_MODS,

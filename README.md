@@ -32,8 +32,9 @@ ignored. One word may be a rule instead, spelled with `@`: a day (`@today`, `@ye
 (`@week`, Monday to Sunday, `@month`, `@year`). The list narrows to records from then. Without the
 `@` a day is an ordinary word, so `l today` finds "today standup", and any `@word` that is not a
 rule, like `@Flash`, is ordinary text too. The
-first row still offers the whole text, so `l @today standup` logs "@today standup" and lists today's
-records about standups. A word with a dash in front leaves out the lines it matches instead: `l api
+first row offers what belongs to the record: `l wrote article #articles @week -draft` logs "wrote
+article #articles" and lists this week's `#articles` records that are not drafts, while `l @today`
+or `l #articles` alone only search. A word with a dash in front leaves out the lines it matches instead: `l api
 -v2` lists the api records that say nothing about v2, `l . -build` the open tasks that are not about
 the build. `--force` and `x-ray` stay ordinary words. A word with `#` in front keeps the records tagged
 with it (see *Tags* below): `l #art` lists everything tagged `#articles` or `#art-history`, `l . #work
