@@ -148,7 +148,7 @@ already handles it; `normalise` writes tags lowercase, `slug` skips them so tagg
 file. `search.tag_key` is a tag's identity, folded and without the `#`.
 
 `suggest.vocabulary` reads the log once per keystroke, only when there is a Log row to suggest
-for: per tag, its spellings and the records carrying it; per mention, its spellings; per tag, the
+for or tags to list: per tag, its spellings and the records carrying it; per mention, its spellings; per tag, the
 words of the lines carrying it; per word, the records it appears in. `suggest.suggestions` either
 completes the `#` or `@` word being typed (`completions`) or ranks the tags the line names (stems
 sharing four letters, `related`) ahead of those it goes with (`shares`: `MIN_TOGETHER` records,

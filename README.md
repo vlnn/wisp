@@ -45,10 +45,10 @@ matches the word anywhere in the line, tags included. There is no cap on the num
 
 A word with `#` and a letter in front, anywhere in the line, is a tag: `wrote small article on
 modules #articles`. A record can carry several, and any kind can: a task, a question, a checklist
-template. Tags are written in lowercase, they never reach the file name, and `C#` or `fixed #123`
-stay plain words. Nothing has to be declared: a tag exists once a record carries it.
+template. Tags are written in lowercase, they never reach the file name, and `C#`, `fixed #123`
+or a link's `/#section` stay plain text. Nothing has to be declared: a tag exists once a record carries it.
 
-Once it exists, `l` offers it. The first row always keeps exactly what you typed; up to three rows
+Once it exists, `l` offers it. The first row keeps what you typed with no tag added; up to three rows
 below it keep the line with a tag added, so ↩ ignores them and ⌘2, ⌘3, ⌘4 (or ↓ ↩) take one:
 
 ```
@@ -64,7 +64,7 @@ A line names a tag when one of its words and the tag share a stem of four letter
 (`article`, `#articles`). A line is seen with a tag when one of its words came with that tag in two
 records or more, and in more than half the records it appears in at all. While a `#` or `@` word is
 being typed, the rows complete it instead: tags most used first, mentions in the spelling you use
-most. A record's tags are repeated at the end of its subtitle, `14:02 today · #articles`.
+most; when nothing completes it, the line's own suggestions follow as usual. A record's tags are repeated at the end of its subtitle, `14:02 today · #articles`.
 
 `l #` lists checklists, as before; `l #a`, a `#` word and nothing else, lists the tags it starts,
 most used first, above the records carrying them:
@@ -116,7 +116,7 @@ answers the decision's dot. The colours are the top of `workflow/icons.py`;
 ## Checklists: `l # name`
 
 A checklist is a list of steps you go through more than once: a release, a morning, packing a bag.
-`#` with a space starts a template; `#api` stays a plain log.
+`#` with a space starts a template; `#api` is a tag.
 
 ```
 l #                          checklists, with how many steps and whether a run is open
