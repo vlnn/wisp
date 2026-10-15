@@ -48,6 +48,7 @@ FLIPPED = {Kind.TASK: Kind.DONE, Kind.DONE: Kind.TASK, Kind.DECISION: Kind.QUEST
 RESOLVED = " | "
 BOX = re.compile(r"^(\s*[-*] \[)([ xX])(\] .*)$")
 TICKED = {"x", "X"}
+TAG = re.compile(r"(?<!\w)#[^\W\d_](?:[\w-]*\w)?")
 
 
 class Blank(ValueError):
@@ -78,6 +79,10 @@ class Record:
     def text(self) -> str:
         return compose(self.kind, self.line)
 
+    @property
+    def tags(self) -> list[str]:
+        return tags_in(self.line)
+
 
 def parse(text: str) -> tuple[Kind, str]:
     kind = SIGILS.get(text[:1])
@@ -94,7 +99,19 @@ def normalise(text: str) -> str:
     kind, line = parse(text.strip())
     if not line:
         raise Blank(text)
-    return compose(kind, line)
+    return compose(kind, lowered_tags(line))
+
+
+def tags_in(line: str) -> list[str]:
+    return TAG.findall(line)
+
+
+def lowered_tags(text: str) -> str:
+    return TAG.sub(lambda found: found[0].lower(), text)
+
+
+def untagged(text: str) -> str:
+    return " ".join(TAG.sub("", text).split())
 
 
 def file_stamps(path: Path) -> tuple[datetime, datetime]:
@@ -279,7 +296,7 @@ def write_text(path: Path, text: str) -> None:
 
 
 def slug(text: str) -> str:
-    joined = "-".join(re.findall(r"\w+", text.casefold()))
+    joined = "-".join(re.findall(r"\w+", untagged(text).casefold()))
     return joined[:SLUG_LIMIT].strip("-") or FALLBACK_SLUG
 
 

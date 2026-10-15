@@ -497,3 +497,86 @@ def test_is_run_says_when_a_task_is_a_run(text, body, expected):
     assert records.is_run(record) is expected, (
         f"{text!r} with {body!r} should {'be' if expected else 'not be'} a run"
     )
+
+
+@pytest.mark.parametrize(
+    "line, expected",
+    [
+        ("wrote article #articles", ["#articles"]),
+        ("#a and #b", ["#a", "#b"]),
+        ("#Articles first", ["#Articles"]),
+        ("planning #side-project", ["#side-project"]),
+        ("dangling #trailing-", ["#trailing"]),
+        ("#Réunion notes", ["#Réunion"]),
+        ("release", []),
+        ("fixed #123", []),
+        ("C# notes", []),
+        ("mail a#b", []),
+        ("a lone # here", []),
+    ],
+)
+def test_tags_in(line, expected):
+    assert records.tags_in(line) == expected, f"tags in {line!r} should be {expected}"
+
+
+def test_record_tags_read_the_line_as_written():
+    record = a_record(". write #Articles #clojure", NOW)
+    assert record.tags == ["#Articles", "#clojure"], "a record's tags are its line's, as written"
+
+
+def test_a_checklist_template_can_carry_tags():
+    record = a_record("# release #work", NOW)
+    assert (record.kind, record.tags) == (records.Kind.CHECKLIST, ["#work"]), (
+        "a `# name` template stays a checklist and its other hashes are tags"
+    )
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("Met @Flash about #Articles", "Met @Flash about #articles"),
+        (". Fix #Build", ". Fix #build"),
+        ("#ÉTÉ plans", "#été plans"),
+        ("C# and #123 stay", "C# and #123 stay"),
+    ],
+)
+def test_normalise_lowercases_tags_only(text, expected):
+    assert records.normalise(text) == expected, f"{text!r} should be kept as {expected!r}"
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("wrote article #articles", "wrote article"),
+        ("#articles wrote", "wrote"),
+        ("a #b c", "a c"),
+        ("no tags", "no tags"),
+    ],
+)
+def test_untagged(text, expected):
+    assert records.untagged(text) == expected, f"{text!r} without tags should be {expected!r}"
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("wrote article #articles", "wrote-article"),
+        ("#only-a-tag", "note"),
+        (". fix #build now", "fix-now"),
+    ],
+)
+def test_slug_ignores_tags(text, expected):
+    assert records.slug(text) == expected, f"slug of {text!r} should leave its tags out"
+
+
+def test_keep_writes_tags_in_lowercase(folder):
+    path = records.keep(folder, "wrote article #Articles")
+    assert path.name == "wrote-article.md", "the file name should not carry the tag"
+    assert path.read_text() == "wrote article #articles\n", "the tag should be written lowercase"
+
+
+def test_rename_adding_a_tag_keeps_the_path(folder):
+    path = records.keep(folder, "reading docs")
+    renamed = records.rename(path, "reading docs #Docs")
+    assert renamed == path, "tagging a record through rename should not move its file"
+    assert path.read_text() == "reading docs #docs\n", "the new tag should be written lowercase"

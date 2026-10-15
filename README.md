@@ -170,7 +170,8 @@ names the alias when the server serves several; **Model server API key** is sent
 ## How files are named
 
 `reading docs` becomes `reading-docs.md`; a second `reading docs` becomes `reading-docs-2.md`; the
-sigil never reaches the name, so `. fix the build` is `fix-the-build.md`. The
+sigil never reaches the name, so `. fix the build` is `fix-the-build.md`, and neither does a tag,
+so `wrote article #articles` is `wrote-article.md` and tagging a record never moves it. The
 name is only a convenience for Finder and grep. Rename changes the text in place and then moves the
 file to a name that fits, so the file keeps its creation time.
 
