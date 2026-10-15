@@ -9,6 +9,9 @@ from wisp import search
 from wisp.records import Record, tags_in, untagged
 
 LIMIT = 3
+MIN_STEM = 4
+MIN_ROOT = 3
+SUFFIXES = (("ies", "y"), ("ing", ""), ("ed", ""), ("s", ""))
 MENTION = re.compile(r"(?<!\w)@[^\W\d_](?:[\w-]*\w)?")
 
 
@@ -64,29 +67,71 @@ def spelling(key: str, spellings: Mapping[str, Counter[str]]) -> str:
 
 
 def suggestions(text: str, vocab: Vocabulary, limit: int = LIMIT) -> list[Suggestion]:
-    return completions(text, vocab)[:limit]
+    found = completions(text, vocab) if typing(text) else ranked(text, vocab)
+    return found[:limit]
+
+
+def typing(text: str) -> bool:
+    last = last_word(text)
+    return search.is_tag(last) or MENTION.fullmatch(last) is not None
+
+
+def last_word(text: str) -> str:
+    return text.rstrip().rpartition(" ")[2]
 
 
 def completions(text: str, vocab: Vocabulary) -> list[Suggestion]:
     head, _, last = text.rstrip().rpartition(" ")
     if search.is_tag(last):
         return completed(head, search.tag_key(last), vocab.spellings, carried(text))
-    if MENTION.fullmatch(last):
-        return completed(head, mention_key(last), vocab.mentions, set())
-    return []
+    return completed(head, mention_key(last), vocab.mentions, set())
 
 
 def completed(
     head: str, typed: str, spellings: Mapping[str, Counter[str]], present: set[str]
 ) -> list[Suggestion]:
-    keys = [key for key in spellings if key.startswith(typed) and key != typed]
-    fresh = [key for key in keys if key not in present]
-    ordered = sorted(fresh, key=lambda key: (-sum(spellings[key].values()), key))
-    return [finished(head, spelling(key, spellings)) for key in ordered]
+    keys = [key for key in by_use(spellings) if key.startswith(typed) and key != typed]
+    return [finished(head, spelling(key, spellings)) for key in keys if key not in present]
+
+
+def by_use(spellings: Mapping[str, Counter[str]]) -> list[str]:
+    return sorted(spellings, key=lambda key: (-sum(spellings[key].values()), key))
 
 
 def finished(head: str, word: str) -> Suggestion:
     return Suggestion(f"{head} {word}".lstrip(), word, "completes")
+
+
+def ranked(text: str, vocab: Vocabulary) -> list[Suggestion]:
+    words = line_words(text)
+    present = carried(text)
+    named = [key for key in by_use(vocab.spellings) if key not in present and names(words, key)]
+    return [added(text, spelling(key, vocab.spellings), "names it") for key in named]
+
+
+def line_words(text: str) -> list[str]:
+    return search.words(untagged(search.logged(text)))
+
+
+def names(words: Iterable[str], key: str) -> bool:
+    return any(related(word, part) for word in words for part in key.split("-"))
+
+
+def related(word: str, part: str) -> bool:
+    shorter, longer = sorted((stem(word), stem(part)), key=len)
+    return len(shorter) >= MIN_STEM and longer.startswith(shorter)
+
+
+def stem(word: str) -> str:
+    for suffix, replacement in SUFFIXES:
+        root = word[: -len(suffix)]
+        if word.endswith(suffix) and len(root) >= MIN_ROOT:
+            return root + replacement
+    return word
+
+
+def added(text: str, tag: str, why: str) -> Suggestion:
+    return Suggestion(f"{text.rstrip()} {tag}", tag, why)
 
 
 def carried(text: str) -> set[str]:

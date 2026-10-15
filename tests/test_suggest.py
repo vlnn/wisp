@@ -94,3 +94,70 @@ def test_completions_order_by_how_often_a_tag_is_used():
 
 def test_nothing_known_offers_nothing():
     assert offered("wrote small article #art", known()) == [], "an empty log suggests nothing"
+
+
+@pytest.mark.parametrize(
+    "word, expected",
+    [
+        ("articles", "article"),
+        ("modules", "module"),
+        ("stories", "story"),
+        ("testing", "test"),
+        ("wanted", "want"),
+        ("used", "used"),
+        ("bus", "bus"),
+        ("clojure", "clojure"),
+    ],
+)
+def test_stem(word, expected):
+    assert suggest.stem(word) == expected, f"{word!r} should stem to {expected!r}"
+
+
+@pytest.mark.parametrize(
+    "word, part, expected",
+    [
+        ("article", "articles", True),
+        ("articles", "article", True),
+        ("modul", "modules", True),
+        ("stories", "story", True),
+        ("post", "postgres", True),
+        ("art", "articles", False),
+        ("cat", "category", False),
+        ("modules", "articles", False),
+    ],
+)
+def test_related(word, part, expected):
+    assert suggest.related(word, part) is expected, (
+        f"{word!r} and {part!r} should {'be' if expected else 'not be'} related"
+    )
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("wrote small article on modules", ["wrote small article on modules #articles"]),
+        ("project notes", ["project notes #side-project"]),
+        ("story time", ["story time #stories"]),
+        ("wrote art", []),
+        ("article #articles", []),
+        ("an article #zz", []),
+        ("an article @fl", []),
+    ],
+)
+def test_a_line_naming_a_tag_is_offered_it(text, expected):
+    vocab = known("x #articles", "y #side-project", "z #stories")
+    assert offered(text, vocab) == expected, f"{text!r} should be offered {expected}"
+
+
+def test_named_tags_come_most_used_first():
+    vocab = known("a #post", "b #postgres", "c #postgres")
+    assert offered("post it", vocab) == ["post it #postgres", "post it #post"], (
+        "tags a line names are offered most used first"
+    )
+
+
+def test_a_named_suggestion_says_why():
+    (named,) = suggest.suggestions("an article", known("x #articles"))
+    assert (named.adds, named.why) == ("#articles", "names it"), (
+        "a name match should say it adds the tag because the line names it"
+    )
