@@ -161,3 +161,72 @@ def test_a_named_suggestion_says_why():
     assert (named.adds, named.why) == ("#articles", "names it"), (
         "a name match should say it adds the tag because the line names it"
     )
+
+
+def test_a_word_seen_once_with_a_tag_is_not_enough():
+    vocab = known("essay on modules #articles")
+    assert offered("essay draft", vocab) == [], "one record is not a habit yet"
+
+
+def test_a_word_seen_twice_with_a_tag_offers_it():
+    vocab = known("essay on modules #articles", "essay on types #articles")
+    (seen,) = suggest.suggestions("essay draft", vocab)
+    assert (seen.text, seen.why) == ("essay draft #articles", "seen with essay"), (
+        "a word that came with a tag twice should offer it and say which word"
+    )
+
+
+def test_a_word_seen_mostly_without_the_tag_offers_nothing():
+    vocab = known(
+        "essay one #articles",
+        "essay two #articles",
+        "essay three",
+        "essay four",
+        "essay five",
+    )
+    assert offered("essay draft", vocab) == [], (
+        "a word must come with the tag more than half the time"
+    )
+
+
+def test_half_the_time_is_not_more_than_half():
+    vocab = known("essay one #articles", "essay two #articles", "essay three", "essay four")
+    assert offered("essay draft", vocab) == [], "exactly half is not a majority"
+
+
+def test_seen_with_names_every_word_that_counted():
+    vocab = known("wrote essay #articles", "wrote essay again #articles")
+    (seen,) = suggest.suggestions("wrote an essay", vocab)
+    assert seen.why == "seen with essay, wrote", "the reason lists the words that counted, sorted"
+
+
+def test_named_tags_come_before_seen_ones():
+    vocab = known(
+        "essay #articles",
+        "essay again #articles",
+        "macros #clojure",
+    )
+    assert offered("essay on clojure", vocab) == [
+        "essay on clojure #clojure",
+        "essay on clojure #articles",
+    ], "a tag the line names is a stronger hint than one it was seen with"
+
+
+def test_seen_tags_rank_by_how_strongly_they_go_with_the_line():
+    vocab = known(
+        "essay draft #articles",
+        "essay draft #articles",
+        "talk review #critique",
+        "book review #critique",
+        "review again #critique",
+    )
+    assert offered("essay draft review", vocab)[0] == "essay draft review #articles", (
+        "the tag more of the line's words go with comes first"
+    )
+
+
+def test_a_tag_is_offered_once_whatever_the_reasons():
+    vocab = known("article draft #articles", "article draft #articles")
+    assert offered("article draft", vocab) == ["article draft #articles"], (
+        "a tag both named and seen is offered once"
+    )

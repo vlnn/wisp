@@ -12,6 +12,8 @@ LIMIT = 3
 MIN_STEM = 4
 MIN_ROOT = 3
 SUFFIXES = (("ies", "y"), ("ing", ""), ("ed", ""), ("s", ""))
+MIN_TOGETHER = 2
+MIN_SHARE = 0.5
 MENTION = re.compile(r"(?<!\w)@[^\W\d_](?:[\w-]*\w)?")
 
 
@@ -106,7 +108,31 @@ def ranked(text: str, vocab: Vocabulary) -> list[Suggestion]:
     words = line_words(text)
     present = carried(text)
     named = [key for key in by_use(vocab.spellings) if key not in present and names(words, key)]
-    return [added(text, spelling(key, vocab.spellings), "names it") for key in named]
+    seen = [key for key in strongest(words, vocab) if key not in present and key not in named]
+    return [added(text, spelling(key, vocab.spellings), "names it") for key in named] + [
+        added(text, spelling(key, vocab.spellings), seen_with(shares(key, words, vocab)))
+        for key in seen
+    ]
+
+
+def strongest(words: list[str], vocab: Vocabulary) -> list[str]:
+    scored = {key: sum(shares(key, words, vocab).values()) for key in vocab.with_tag}
+    going = [key for key, score in scored.items() if score > 0]
+    return sorted(going, key=lambda key: (-scored[key], -vocab.count(key), key))
+
+
+def shares(key: str, words: Iterable[str], vocab: Vocabulary) -> dict[str, float]:
+    together = vocab.with_tag[key]
+    found = {word: together[word] / vocab.seen[word] for word in set(words) if together[word]}
+    return {
+        word: share
+        for word, share in found.items()
+        if together[word] >= MIN_TOGETHER and share > MIN_SHARE
+    }
+
+
+def seen_with(counted: Mapping[str, float]) -> str:
+    return f"seen with {', '.join(sorted(counted))}"
 
 
 def line_words(text: str) -> list[str]:
