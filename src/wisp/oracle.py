@@ -1,18 +1,18 @@
 from __future__ import annotations
 
-import json
 import os
-import re
 import shutil
-import urllib.error
-import urllib.request
-from collections.abc import Callable, Iterable, Iterator, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
-from wisp import apple, records, search
+from hoard.alfred import apple, chat
+from hoard.alfred.settings import is_on
+from hoard.alfred.text import words
+
+from wisp import records, search
 from wisp.records import Kind, Record
 
 BUDGET = 12_000
@@ -23,10 +23,9 @@ FILLER = frozenset(
     "this that these those from into over last any all some there here than then".split()
 )
 TIMEOUT = 120
-PROBE_TIMEOUT = 3
 MAX_TOKENS = 600
+TEMPERATURE = 0.2
 DEFAULT_DATA = "~/Library/Application Support/wisp"
-THINKING = re.compile(r"<think>.*?</think>", re.DOTALL)
 
 SYSTEM = (
     "You answer questions about a person's own one-line work log. "
@@ -45,14 +44,16 @@ SYSTEM = (
 
 STAMP = "%Y-%m-%d %H:%M"
 
-
-CHECKED = {"1", "true", "yes", "on"}
 OnText = Callable[[str], None]
-UNCLOSED_THINKING = re.compile(r"<think>.*\Z", re.DOTALL)
+ModelError = chat.ModelError
 
 
-class ModelError(Exception):
-    pass
+def worded(error: chat.ModelError, url: str) -> str:
+    if error.reason.startswith("HTTP "):
+        return f"Model answered {error.reason.split()[1]} at {url}"
+    if str(error).startswith(url):
+        return f"Model not reachable at {url}"
+    return f"Model refused: {error.reason}"
 
 
 @dataclass(frozen=True)
@@ -62,25 +63,29 @@ class Llama:
     key: str = ""
     budget: int = BUDGET
 
+    @property
+    def server(self) -> chat.Server:
+        return chat.Server(self.url, self.model, self.key)
+
     def respond(self, messages: list[dict], on_text: OnText | None) -> str:
         try:
-            return visible(stream(self, payload(self, messages), on_text))
-        except urllib.error.HTTPError as error:
-            raise ModelError(f"Model answered {error.code} at {self.url}") from None
-        except (urllib.error.URLError, TimeoutError, OSError):
-            raise ModelError(f"Model not reachable at {self.url}") from None
+            return chat.respond(
+                self.server,
+                messages,
+                on_text,
+                timeout=TIMEOUT,
+                temperature=TEMPERATURE,
+                max_tokens=MAX_TOKENS,
+            )
+        except chat.ModelError as error:
+            raise ModelError(worded(error, self.url)) from None
 
     def check(self) -> str:
         named = f" (model {self.model})" if self.model else ""
         return f"server {self.url}{named}: {'reachable' if self.reachable() else 'not reachable'}"
 
     def reachable(self) -> bool:
-        request = urllib.request.Request(f"{self.url}/v1/models", headers=headers(self))
-        try:
-            with urllib.request.urlopen(request, timeout=PROBE_TIMEOUT):
-                return True
-        except (urllib.error.URLError, TimeoutError, OSError):
-            return False
+        return chat.reachable(self.server)
 
 
 @dataclass(frozen=True)
@@ -89,13 +94,10 @@ class Apple:
     budget: int = APPLE_BUDGET
 
     def respond(self, messages: list[dict], on_text: OnText | None) -> str:
-        try:
-            return visible(apple.respond(messages, self.data, on_text))
-        except apple.AppleError as error:
-            raise ModelError(str(error)) from None
+        return chat.without_thinking(apple.respond(messages, str(self.data), on_text))
 
     def check(self) -> str:
-        if apple.binary(self.data).exists():
+        if apple.binary(str(self.data)).exists():
             return "Apple Intelligence: helper compiled"
         if shutil.which("swiftc"):
             return "Apple Intelligence: helper compiles on first ask"
@@ -113,7 +115,7 @@ class Backend(Protocol):
 
 
 def backend(env: Mapping[str, str]) -> Backend | None:
-    if env.get("oracle_apple", "").strip().lower() in CHECKED:
+    if is_on(env.get("oracle_apple", "")):
         return Apple(data_folder(env))
     url = env.get("oracle_url", "").strip().rstrip("/")
     if not url:
@@ -174,11 +176,11 @@ def evidence(
     return Evidence([], fit(pool, budget) or pool[:1], [], asked.without)
 
 
-def single_out(words: str, pool: list[Record]) -> tuple[list[Record], list[str]]:
-    exact = [r for r in pool if search.matches(words, r.line)] if words else []
+def single_out(typed: str, pool: list[Record]) -> tuple[list[Record], list[str]]:
+    exact = [r for r in pool if search.matches(typed, r.line)] if typed else []
     if exact:
-        return exact, search.words(words)
-    terms = [w for w in search.words(words) if len(w) >= MIN_TERM and w not in FILLER]
+        return exact, words(typed)
+    terms = [w for w in words(typed) if len(w) >= MIN_TERM and w not in FILLER]
     hits = [w for w in terms if any(search.matches(w, r.line) for r in pool)]
     loose = [r for r in pool if any(search.matches(w, r.line) for w in hits)]
     return loose, hits
@@ -265,69 +267,6 @@ def heading(question: str, now: datetime, terms: Iterable[str] = ()) -> str:
 
 def hashed(keys: Iterable[str]) -> str:
     return ", ".join(f"#{key}" for key in keys)
-
-
-def payload(server: Llama, messages: list[dict]) -> dict:
-    body = {
-        "messages": messages,
-        "temperature": 0.2,
-        "max_tokens": MAX_TOKENS,
-        "chat_template_kwargs": {"enable_thinking": False},
-    }
-    if server.model:
-        body["model"] = server.model
-    return body
-
-
-def visible(text: str) -> str:
-    return UNCLOSED_THINKING.sub("", THINKING.sub("", text)).strip()
-
-
-def deltas(lines: Iterable[bytes]) -> Iterator[str]:
-    for raw in lines:
-        line = raw.decode("utf-8", "replace").strip()
-        if not line.startswith("data:") or line == "data: [DONE]":
-            continue
-        try:
-            delta = json.loads(line[5:])["choices"][0]["delta"].get("content")
-        except (ValueError, KeyError, IndexError, TypeError):
-            refused(line)
-            continue
-        if delta:
-            yield delta
-
-
-def refused(line: str) -> None:
-    try:
-        error = json.loads(line[5:])["error"]
-    except (ValueError, KeyError, TypeError):
-        return
-    message = error.get("message") if isinstance(error, dict) else error
-    raise ModelError(f"Model refused: {message}")
-
-
-def headers(server: Llama) -> dict[str, str]:
-    sent = {"Content-Type": "application/json"}
-    if server.key:
-        sent["Authorization"] = f"Bearer {server.key}"
-    return sent
-
-
-def stream(server: Llama, body: dict, on_text: OnText | None) -> str:
-    streaming = dict(body, stream=True)
-    request = urllib.request.Request(
-        f"{server.url}/v1/chat/completions",
-        json.dumps(streaming).encode(),
-        headers(server),
-        method="POST",
-    )
-    text = ""
-    with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
-        for delta in deltas(response):
-            text += delta
-            if on_text:
-                on_text(text)
-    return text
 
 
 def remember(folder: Path, question: str, answer: str) -> Path:

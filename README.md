@@ -142,7 +142,7 @@ is never settled.
 
 ## Install
 
-1. Build `dist/Wisp.alfredworkflow` with `./build.sh` (or take it from Releases) and double-click it.
+1. Build `dist/wisp.alfredworkflow` with `make build` (or take `Wisp.alfredworkflow` from Releases) and double-click it.
 2. In the workflow's configuration set **Log folder**. The default is `~/log`; it is created on the
    first log.
 3. Optional: hotkeys. The workflow ships two Hotkey objects, one wired to the `l` list and meant
@@ -151,7 +151,8 @@ is never settled.
    press the combination you want.
 
 Nothing to install: the bundle runs on macOS's own `/usr/bin/python3` (3.9+) with the standard
-library only.
+library only. It carries [hoard](https://github.com/vlnn/hoard)'s toolkit next to `wisp`, the
+part of that library any Alfred workflow needs: rows, folding, the model client, the macOS calls.
 
 ## Ask the log: `ask`
 
@@ -250,18 +251,20 @@ background: progress goes to that folder instead of notifications.
 ```
 make test                                pytest
 make lint                                ruff check and format, mypy
-make build                               → dist/Wisp.alfredworkflow
+make build                               → dist/wisp.alfredworkflow, by hoard.build
+make check                               build, import the package from the bundle, run scripts/smoke.py
 uv run --isolated --python 3.9 pytest    the interpreter the workflow runs on
 ```
 
-The bundle's version is `git describe --tags` at build time, so a tagged build shows `0.1.0` in
-Alfred and a build from main shows `0.1.0-7-gabc1234`; the `version` in `workflow/info.plist` is
-only what an untagged checkout falls back to.
+`workflow/plist.toml` tells `hoard.build` where the canvas (`workflow/info.plist`), the package
+(`src/wisp`) and the Text View script are; the build stamps the name, bundle id and the version from
+`pyproject.toml` into the plist and vendors `wisp` and `hoard` side by side. hoard is pinned to a tag
+in `pyproject.toml`; to move to a newer one, change the tag and run `uv lock`.
 CI runs the tests and lint on Python 3.9 and 3.13, builds the bundle on macOS and publishes it: every
 push to `main` updates the `latest` pre-release, a `v*` tag makes a release with notes. To cut one:
 
 ```
-git tag v0.1.0 && git push origin v0.1.0
+git tag v0.2.0 && git push origin v0.2.0
 ```
 
 `NOTES.md` lists what is deliberately not here yet and where it would go.

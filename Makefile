@@ -1,4 +1,4 @@
-.PHONY: test lint build clean
+.PHONY: test lint build check clean
 
 test:
 	uv run pytest
@@ -9,7 +9,11 @@ lint:
 	uv run mypy
 
 build:
-	./build.sh
+	uv run --python 3.13 python -m hoard.build
+
+check: build
+	uv run --python 3.13 python -m hoard.build --check
+	/usr/bin/env python3 scripts/smoke.py dist/wisp.alfredworkflow
 
 clean:
 	rm -rf dist .pytest_cache .ruff_cache

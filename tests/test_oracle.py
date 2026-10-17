@@ -180,19 +180,6 @@ def test_prompt_carries_question_date_and_log():
     assert "2026-10-10 14:50  reading docs" in user, "the log follows the question"
 
 
-@pytest.mark.parametrize(
-    "server, has_model",
-    [(SERVER, True), (oracle.Llama("http://h", "", ""), False)],
-)
-def test_payload(server, has_model):
-    payload = oracle.payload(server, [{"role": "user", "content": "q"}])
-    assert ("model" in payload) is has_model, "model is named only when configured"
-    assert payload["chat_template_kwargs"] == {"enable_thinking": False}, (
-        "the template is asked not to think so the answer is not spent inside <think>"
-    )
-    assert payload["messages"] == [{"role": "user", "content": "q"}], "messages pass through"
-
-
 def test_remember_writes_question_then_answer(tmp_path):
     path = oracle.remember(tmp_path / "answers", "today summary", "You read docs.\nTwice.")
     assert path.name == "today-summary.md", "the file is named after the question"

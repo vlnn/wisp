@@ -10,7 +10,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Union
 
-from wisp import macos, oracle, present, records, view
+from hoard.alfred import macos
+
+from wisp import oracle, present, records, view
 
 DEFAULT_FOLDER = "~/log"
 DRY_RUN = "--dry-run"
@@ -108,16 +110,16 @@ def say(text: str) -> int:
 
 class Notify:
     def begin(self, lines: int) -> None:
-        macos.notify(f"Asking about {lines} lines…")
+        macos.notify(f"Asking about {lines} lines…", "Wisp")
 
     def progress(self, text: str) -> None:
         pass
 
     def finish(self, answer: str) -> None:
-        macos.notify(answer)
+        macos.notify(answer, "Wisp")
 
     def fail(self, message: str) -> None:
-        macos.notify(message)
+        macos.notify(message, "Wisp")
 
 
 Sink = Union[Notify, view.Job]
@@ -162,7 +164,7 @@ def rename_command(args: list[str], ctx: Context) -> int:
 def trash_command(args: list[str], ctx: Context) -> int:
     path = Path(args[0])
     text = records.first_line(path.read_text(encoding="utf-8"))
-    macos.trash(path)
+    macos.trash(str(path))
     return say(text)
 
 
@@ -173,7 +175,7 @@ def copy_command(args: list[str], ctx: Context) -> int:
 
 
 def open_command(args: list[str], ctx: Context) -> int:
-    macos.open(Path(args[0]))
+    macos.open(args[0])
     return say(args[0])
 
 

@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import calendar
 import re
-import unicodedata
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Optional
+
+from hoard.alfred.text import fold, matches
 
 from wisp.records import TAG, Kind, Record, compose, parse
 
@@ -29,22 +30,6 @@ class Query:
     without: tuple[str, ...] = ()
     tags: tuple[str, ...] = ()
     without_tags: tuple[str, ...] = ()
-
-
-def fold(text: str) -> str:
-    if text.isascii():
-        return text.lower()
-    decomposed = unicodedata.normalize("NFKD", text.casefold())
-    return "".join(char for char in decomposed if not unicodedata.combining(char))
-
-
-def words(text: str) -> list[str]:
-    return re.findall(r"\w+", fold(text))
-
-
-def matches(query: str, text: str) -> bool:
-    have = words(text)
-    return all(any(word.startswith(wanted) for word in have) for wanted in words(query))
 
 
 def query(text: str, today: date | None = None, recognise: Recognise | None = None) -> Query:

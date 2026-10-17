@@ -1,0 +1,8 @@
+kind = "wisp"
+name = "Wisp"
+bundleid = "com.anokhin.wisp"
+description = "One-line logs and tasks: type l, see them newest first, keep, mark done, rename, trash"
+createdby = "Volodymyr Anokhin"
+plist = "workflow/info.plist"
+source = "src"
+assets = ["workflow/view"]

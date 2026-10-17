@@ -2,9 +2,10 @@ import json
 from pathlib import Path
 
 import pytest
+from hoard.alfred import apple, chat
 
 from conftest import LINES, NOW, names
-from wisp import apple, cli, oracle, present, view
+from wisp import cli, oracle, present, view
 
 
 @pytest.fixture
@@ -28,7 +29,7 @@ def model_says(mocker, text):
         if on_text:
             on_text(text[:3])
             on_text(text)
-        return oracle.visible(text)
+        return chat.without_thinking(text)
 
     return mocker.patch("wisp.oracle.Llama.respond", respond)
 
@@ -203,7 +204,7 @@ def test_act_open_opens_the_file(run, mocker):
     opened = mocker.patch("wisp.cli.macos.open")
     code, out = run("act", "open", "/log/x.md")
     assert code == 0 and out.strip() == "/log/x.md", "open echoes the path"
-    opened.assert_called_once_with(Path("/log/x.md"))
+    opened.assert_called_once_with("/log/x.md")
 
 
 def test_act_trash_moves_the_file(run, logged, mocker):
@@ -211,7 +212,7 @@ def test_act_trash_moves_the_file(run, logged, mocker):
     path = logged("reading docs", 5)
     code, out = run("act", "trash", str(path))
     assert code == 0 and out.strip() == "reading docs", "trash echoes the text"
-    trash.assert_called_once_with(path)
+    trash.assert_called_once_with(str(path))
 
 
 def test_act_refuses_an_unknown_action(run, capsys):
@@ -277,7 +278,7 @@ def test_trash_sends_the_file_to_the_trash(run, sample, mocker):
     path = sample[0]
     code, out = run("trash", str(path))
     assert code == 0 and out.strip() == "making API v1", "trash should echo the text"
-    trash.assert_called_once_with(path)
+    trash.assert_called_once_with(str(path))
 
 
 @pytest.mark.parametrize(
@@ -288,7 +289,7 @@ def test_a_missing_record_is_reported_not_raised(run, notify, argv):
     verb, rest = argv[0], argv[1:]
     code, _ = run(verb, "/nowhere/nope.md", *rest)
     assert code == 1, f"{verb} of a missing file should fail cleanly"
-    notify.assert_called_once_with("No such record: /nowhere/nope.md")
+    notify.assert_called_once_with("No such record: /nowhere/nope.md", "Wisp")
 
 
 def test_unknown_command(run):
@@ -384,7 +385,7 @@ def test_keep_answer_needs_both(run):
 
 
 def test_ask_dry_run_prints_the_prompt_and_asks_nothing(run, served, sample, mocker, notify):
-    stream = mocker.patch("wisp.oracle.stream")
+    stream = mocker.patch("hoard.alfred.chat.stream")
     code, out = run("ask", "--dry-run", "today summary")
     assert code == 0 and out.startswith("today summary\n") and "making API v1" in out, (
         "dry run prints what the model would be sent"
@@ -396,14 +397,14 @@ def test_ask_dry_run_prints_the_prompt_and_asks_nothing(run, served, sample, moc
 def test_ask_without_a_server(run, sample, notify):
     code, _ = run("ask", "today summary")
     assert code == 1, "no server, no answer"
-    notify.assert_called_once_with(present.NO_SERVER)
+    notify.assert_called_once_with(present.NO_SERVER, "Wisp")
 
 
 def test_ask_failures_become_messages(run, served, sample, mocker, notify):
     model_fails(mocker, oracle.ModelError("Model not reachable at http://h"))
     code, _ = run("ask", "today summary")
     assert code == 1, "a model failure fails the command"
-    notify.assert_called_with("Model not reachable at http://h")
+    notify.assert_called_with("Model not reachable at http://h", "Wisp")
 
 
 def test_ask_with_blank_question(run, served, sample, notify):
@@ -478,10 +479,10 @@ def test_ask_with_a_job_records_the_failure(run, served, sample, mocker, notify,
 
 def test_ask_apple_errors_are_messages(run, env, sample, mocker, notify):
     env["oracle_apple"] = "1"
-    mocker.patch("wisp.oracle.apple.respond", side_effect=apple.AppleError("not enabled"))
+    mocker.patch("hoard.alfred.apple.respond", side_effect=apple.AppleError("not enabled"))
     code, _ = run("ask", "today summary")
     assert code == 1, "an Apple failure fails the command"
-    notify.assert_called_with("not enabled")
+    notify.assert_called_with("not enabled", "Wisp")
 
 
 def test_view_starts_a_job_in_the_background(run, served, sample, mocker):

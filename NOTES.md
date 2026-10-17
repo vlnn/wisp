@@ -2,7 +2,12 @@
 
 ## What is here
 
-Nine small modules, each with one job, so a feature lands in one of them:
+Seven small modules, each with one job, so a feature lands in one of them. Below them sits
+`hoard.alfred`, the toolkit floor of [hoard](https://github.com/vlnn/hoard): `text` (fold, words,
+matches), `chat` (the server client, streaming, `<think>` removal), `apple` (the on-device model and
+its Swift helper), `macos` (trash, notify, copy, open) and `settings`. What used to be `macos.py`,
+`apple.py`, `apple.swift` and the client half of `oracle.py` lives there now; `oracle.Llama` and
+`oracle.Apple` are thin: a budget, wisp's wording for failures, and `check`.
 
 | Module | Owns | Grows when |
 | --- | --- | --- |
@@ -10,9 +15,7 @@ Nine small modules, each with one job, so a feature lands in one of them:
 | `search` | folding, word-prefix matching, rules, the kind and tag axes of a query | matching gets smarter |
 | `suggest` | the tag vocabulary of the log, completions, which tags a line names or goes with | suggestions get smarter |
 | `present` | time words, Alfred rows, the icon per kind | a row gets a new key, a new kind of row appears |
-| `macos` | Finder trash and notifications | another osascript call is needed |
-| `oracle` | the model: evidence, prompt, request, streaming, answers on disk, which backend | a new question shape, a different budget |
-| `apple` | the on-device model: Swift helper source, compile, run | the Swift side changes |
+| `oracle` | the model: evidence, prompt, budget, which backend, answers on disk | a new question shape, a different budget |
 | `view` | the Text View protocol: a job's files, the JSON for each state | the view shows something new |
 | `cli` | subcommands, the folder setting | a new subcommand, a new setting |
 
@@ -67,12 +70,9 @@ returns an `oracle.Apple` and the server fields are not read, otherwise an `orac
 Both carry a `budget` and answer `respond(messages, on_text)`, and every failure comes back as one
 `oracle.ModelError` whose message is what the user sees.
 
-`apple.swift` compiles with `swiftc -O -parse-as-library` into `<data>/bin/wisp-apple` the first time
-it is needed, and again whenever the shipped source is newer than the binary. It takes the system
-instructions as its argument and the prompt on stdin, prints each snapshot of the answer as one JSON
-string per line (`apple.snapshots` reads them, the last is the answer), and exits 2 with a message
-when Apple Intelligence is not available. Nothing in the suite runs it; the shell contract is what
-the tests pin down.
+The Swift helper and its compile live in `hoard.alfred.apple`: it builds into `<data>/bin/hoard-apple`
+the first time it is needed, takes the system instructions as its argument and the prompt on stdin,
+and streams one JSON string per line. hoard's suite pins the shell contract; nothing here runs it.
 
 Creation time is `st_birthtime` on macOS, `st_mtime` elsewhere (so the suite runs on Linux CI); the
 time a record last changed is `st_mtime` everywhere, and is what a done task reports as the time it
@@ -118,7 +118,7 @@ fill the budget. The oracle spells kinds out as `TODO`, `DONE
 
 Alfred colours nothing in a row but the icon, so a kind's colour is a PNG in `workflow/icons/`,
 drawn by `workflow/icons.py` with the standard library (a ring while open, a disc once settled).
-`Kind.icon` is `icons/<name>.png` relative to the bundle, which is where `build.sh` copies the folder.
+`Kind.icon` is `icons/<name>.png` relative to the bundle, where `hoard.build` copies the folder.
 
 A kind is one line of `records.Kind`: its sigil, the word `l` offers it with (`Kind.offer`) and the
 word the model sees (`Kind.spoken`). What stays outside the enum is the state machine (`FLIPPED`,
@@ -196,5 +196,9 @@ model for tags, like and digests) is all compatible with the current files:
   `digest` is `ask` with a fixed question over one day; `like` needs an embeddings endpoint and a
   vector file, the one piece of state the current design has no home for yet.
 
-None of it requires hoard. If the folder ever wants an index, a journal and a conformance suite,
-`records` is the reader a hoard kind would wrap.
+None of it requires hoard's kernel. The toolkit is what wisp shares with it; if the folder ever wants
+an index, a journal and a conformance suite, `records` is the reader a hoard kind would wrap.
+
+The one piece of the toolkit wisp does not use yet is its row model: `hoard.alfred.Item` carries one
+`verb` variable where wisp's rows carry `action`, `path`, `thread` and `fresh`, so `present.Row`
+stays until the toolkit's rows take arbitrary variables.

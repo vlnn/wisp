@@ -5,8 +5,10 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-from wisp import apple, oracle
-from wisp.oracle import visible
+from hoard.alfred import apple
+from hoard.alfred.chat import without_thinking
+
+from wisp import oracle
 
 RERUN = 0.2
 GIVE_UP = max(oracle.TIMEOUT, apple.TIMEOUT) + 30
@@ -104,7 +106,7 @@ def showing(question: str, job: Job, now: datetime, earlier: Job | None = None) 
     if error:
         return failed(error)
     turns = earlier.turns() if earlier else []
-    text = transcript(turns, question, visible(job.partial()))
+    text = transcript(turns, question, without_thinking(job.partial()))
     if job.done():
         first = turns[0][0] if turns else question
         return {

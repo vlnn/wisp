@@ -6,6 +6,8 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from hoard.alfred.text import words
+
 from wisp import search
 from wisp.records import Record, tags_in, untagged
 
@@ -40,11 +42,11 @@ class Vocabulary:
     last: dict[str, datetime] = field(default_factory=dict)
 
     def add(self, record: Record) -> None:
-        words = set(search.words(untagged(record.line)))
-        self.seen.update(words)
+        said = set(words(untagged(record.line)))
+        self.seen.update(said)
         for key, tag in by_key(record.tags, search.tag_key).items():
             self.spellings[key][tag.lower()] += 1
-            self.with_tag[key].update(words)
+            self.with_tag[key].update(said)
             self.last[key] = max(self.last.get(key, record.created), record.created)
         for key, mention in by_key(mentions_in(record.line), mention_key).items():
             self.mentions[key][mention] += 1
@@ -149,7 +151,7 @@ def seen_with(counted: Mapping[str, float]) -> str:
 
 
 def line_words(text: str) -> list[str]:
-    return search.words(untagged(search.logged(text)))
+    return words(untagged(search.logged(text)))
 
 
 def names(words: Iterable[str], key: str) -> bool:
